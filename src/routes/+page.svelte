@@ -78,7 +78,7 @@
 			pyodideReadyPromise
 		);
 	}
-	// Parse the JSON data from fileContentStore
+	// Parse the JSON data from fileContentStore if it exists
 	$: parsedData = $fileContentStore ? JSON.parse($fileContentStore) : [];
 	console.log('parsedData:', parsedData);
 </script>
