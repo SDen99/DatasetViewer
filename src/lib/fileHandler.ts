@@ -7,7 +7,9 @@ export async function handleFileChange(
     setFileContent: (content: string) => void,
     setUploadTime: (time: string) => void,
     setNumVariables: (num: number) => void,
+    setVariables: (variables: Array<string>) => void,
     setNumRecords: (num: number) => void,
+    setUniqueValues: (uniqueValues: { [key: string]: string[] }) => void,
     pyodideReadyPromise: Promise<any>
 ) {
     console.log('handleFileChange called');
@@ -23,13 +25,14 @@ export async function handleFileChange(
             try {
                 const arrayBuffer = reader.result as ArrayBuffer;
                 console.log('Processing SAS file...');
-                const jsonData = await processSasFile(arrayBuffer, pyodideReadyPromise);
-                console.log('jsonData:', jsonData);
-                const numVariables = Object.keys(jsonData[0]).length;
-                const numRecords = jsonData.length;
-                setFileContent(JSON.stringify(jsonData, null, 2));
-                setNumVariables(numVariables);
-                setNumRecords(numRecords);
+                const { details, data } = await processSasFile(arrayBuffer, pyodideReadyPromise);
+                console.log('details:', details);
+                console.log('data:', data);
+                setVariables(details.columns);
+                setFileContent(JSON.stringify(data, null, 2));
+                setNumVariables(details.num_columns);
+                setNumRecords(details.num_rows);
+                setUniqueValues(details.unique_values);
                 const endTime = new Date(); // End the timer
                 const timeDiff = endTime.getTime() - startTime.getTime(); // Time difference in milliseconds
                 setUploadTime(`Upload and processing time: ${(timeDiff / 1000).toFixed(2)} seconds`);
