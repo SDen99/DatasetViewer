@@ -89,10 +89,10 @@
 		{/if}
 	</nav>
 
-	<!-- Container for Main Content and Right Sidebar -->
-	<div class="flex flex-1 flex-col lg:flex-row">
-		<!-- Main Content Area -->
-		<section class="flex-1 p-4">
+	<!-- Container for Left Sidebar, Main Content, and Right Sidebar -->
+	<div class="flex flex-1">
+		<!-- Left Sidebar for Datasets List -->
+		<aside class="w-1/4 bg-white p-4 shadow-md">
 			<h2 class="mb-4 text-xl font-bold">Datasets</h2>
 			{#if $datasetsStore.size > 0}
 				<ul class="list-disc pl-5">
@@ -110,9 +110,12 @@
 			{:else}
 				<p class="text-gray-500">No datasets to display.</p>
 			{/if}
+		</aside>
 
-			<!-- Display the file content as a table -->
+		<!-- Main Content Area -->
+		<section class="flex-1 p-4">
 			{#if selectedDataset}
+				<!-- Display the file content as a table -->
 				{#if selectedDataset.data.length > 0}
 					<table class="min-w-full bg-white">
 						<thead>
@@ -149,7 +152,7 @@
 		</section>
 
 		<!-- Right Sidebar for Variables List -->
-		<aside class="w-full bg-white p-4 shadow-md lg:w-1/4">
+		<aside class="w-1/4 bg-white p-4 shadow-md">
 			{#if selectedDataset}
 				<h2 class="mb-4 text-xl font-bold">Variables</h2>
 				<ul class="list-disc pl-5">
