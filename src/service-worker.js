@@ -1,3 +1,4 @@
+/*
 /// <reference types="@sveltejs/kit" />
 import { build, files, version } from '$service-worker';
 
@@ -77,4 +78,4 @@ self.addEventListener('fetch', (event) => {
     }
 
     event.respondWith(respond());
-});
+});*/

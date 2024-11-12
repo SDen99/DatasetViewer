@@ -12,6 +12,7 @@
 	const selectedDatasetStore = writable<string | null>(null);
 	const isLoadingStore = writable(false);
 	const uploadTimeStore = writable('');
+	const selectedColumns = writable<Set<string>>(new Set());
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
@@ -52,35 +53,26 @@
 		}
 	}
 
+	function handleCheckboxChange(event: Event) {
+		const checkbox = event.target as HTMLInputElement;
+		selectedColumns.update((columns) => {
+			if (checkbox.checked) {
+				columns.add(checkbox.value);
+			} else {
+				columns.delete(checkbox.value);
+			}
+			return columns;
+		});
+	}
+
 	// get data from the selected dataset
 	$: selectedDataset = $selectedDatasetStore ? $datasetsStore.get($selectedDatasetStore) : null;
 </script>
 
-<main class="flex min-h-screen bg-gray-100">
-	<!-- Sidebar for Datasets List -->
-	<aside class="w-1/4 bg-white p-4 shadow-md">
-		<h2 class="mb-4 text-xl font-bold">Datasets</h2>
-		{#if $datasetsStore.size > 0}
-			<ul class="list-disc pl-5">
-				{#each Array.from($datasetsStore.keys()) as datasetName}
-					<button
-						type="button"
-						class="cursor-pointer text-gray-700"
-						on:click={() => selectedDatasetStore.set(datasetName)}
-					>
-						{datasetName}
-					</button>
-					<br />
-				{/each}
-			</ul>
-		{:else}
-			<p class="text-gray-500">No datasets to display.</p>
-		{/if}
-	</aside>
-
-	<!-- Main Content Area -->
-	<section class="flex-1 p-4">
-		<h1 class="mb-4 text-2xl font-bold">Upload .sas7bdat Files</h1>
+<main class="min-h-screen bg-gray-100">
+	<!-- Navigation Bar -->
+	<nav class="w-full bg-blue-500 p-4 text-white">
+		<h1 class="text-2xl font-bold">Upload .sas7bdat Files</h1>
 		<input
 			type="file"
 			accept=".sas7bdat"
@@ -91,54 +83,101 @@
 		{#if $isLoadingStore}
 			<!-- Display a loading indicator -->
 			<div class="flex items-center justify-center space-x-2">
-				<div class="h-8 w-8 animate-spin rounded-full border-4 border-dashed border-blue-500"></div>
+				<div class="h-8 w-8 animate-spin rounded-full border-4 border-dashed border-white"></div>
 				<div>Loading...</div>
 			</div>
 		{/if}
-		{#if $uploadTimeStore}
-			<p class="text-lg text-gray-700">{$uploadTimeStore}</p>
-		{/if}
-		{#if selectedDataset}
-			<p class="text-lg text-gray-700">
-				Number of Variables: {selectedDataset.details.num_columns}
-			</p>
-			<p class="text-lg text-gray-700">Number of Records: {selectedDataset.details.num_rows}</p>
+	</nav>
 
-			<!-- Display the variables list -->
-			<h2 class="mb-2 mt-4 text-xl font-bold">Variables</h2>
-			<ul class="list-disc pl-5">
-				{#each selectedDataset.details.columns as variable}
-					<li class="text-gray-700">{variable}</li>
-				{/each}
-			</ul>
+	<!-- Container for Main Content and Right Sidebar -->
+	<div class="flex flex-col lg:flex-row">
+		<!-- Main Content Area -->
+		<section class="flex-1 p-4">
+			<h2 class="mb-4 text-xl font-bold">Datasets</h2>
+			{#if $datasetsStore.size > 0}
+				<ul class="list-disc pl-5">
+					{#each Array.from($datasetsStore.keys()) as datasetName}
+						<button
+							type="button"
+							class="cursor-pointer text-gray-700"
+							on:click={() => selectedDatasetStore.set(datasetName)}
+						>
+							{datasetName}
+						</button>
+						<br />
+					{/each}
+				</ul>
+			{:else}
+				<p class="text-gray-500">No datasets to display.</p>
+			{/if}
 
-			<!-- Display the file content as a table -->
-			{#if selectedDataset.data.length > 0}
-				<table class="min-w-full bg-white">
-					<thead>
-						<tr>
-							{#each Object.keys(selectedDataset.data[0] || {}) as key}
-								<th
-									class="border-b border-gray-200 bg-gray-100 px-4 py-2 text-left text-sm font-semibold text-gray-700"
-									>{key}</th
-								>
-							{/each}
-						</tr>
-					</thead>
-					<tbody>
-						{#each selectedDataset.data.slice(0, 50) as row}
-							<!--limit to 50 rows -->
+			{#if $uploadTimeStore}
+				<p class="text-lg text-gray-700">{$uploadTimeStore}</p>
+			{/if}
+			{#if selectedDataset}
+				<p class="text-lg text-gray-700">
+					Number of Variables: {selectedDataset.details.num_columns}
+				</p>
+				<p class="text-lg text-gray-700">Number of Records: {selectedDataset.details.num_rows}</p>
+
+				<!-- Display the file content as a table -->
+				{#if selectedDataset.data.length > 0}
+					<table class="min-w-full bg-white">
+						<thead>
 							<tr>
-								{#each Object.values(row) as value}
-									<td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">{value}</td>
+								{#each Object.keys(selectedDataset.data[0] || {}) as key}
+									{#if $selectedColumns.has(key)}
+										<th
+											class="border-b border-gray-200 bg-gray-100 px-4 py-2 text-left text-sm font-semibold text-gray-700"
+											>{key}</th
+										>
+									{/if}
 								{/each}
 							</tr>
-						{/each}
-					</tbody>
-				</table>
-			{:else}
-				<p class="text-gray-500">No data to display.</p>
+						</thead>
+						<tbody>
+							{#each selectedDataset.data.slice(0, 50) as row}
+								<!--limit to 50 rows -->
+								<tr>
+									{#each Object.entries(row) as [key, value]}
+										{#if $selectedColumns.has(key)}
+											<td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700"
+												>{value}</td
+											>
+										{/if}
+									{/each}
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{:else}
+					<p class="text-gray-500">No data to display.</p>
+				{/if}
 			{/if}
-		{/if}
-	</section>
+		</section>
+
+		<!-- Right Sidebar for Variables List -->
+		<aside class="w-full bg-white p-4 shadow-md lg:w-1/4">
+			{#if selectedDataset}
+				<h2 class="mb-4 text-xl font-bold">Variables</h2>
+				<ul class="list-disc pl-5">
+					{#each selectedDataset.details.columns as variable}
+						<li>
+							<label>
+								<input
+									type="checkbox"
+									name={variable}
+									value={variable}
+									on:change={handleCheckboxChange}
+								/>
+								{variable}
+							</label>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="text-gray-500">Select a dataset to view variables.</p>
+			{/if}
+		</aside>
+	</div>
 </main>
