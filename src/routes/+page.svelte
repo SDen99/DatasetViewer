@@ -69,7 +69,7 @@
 	$: selectedDataset = $selectedDatasetStore ? $datasetsStore.get($selectedDatasetStore) : null;
 </script>
 
-<main class="min-h-screen bg-gray-100">
+<main class="flex min-h-screen flex-col bg-gray-100">
 	<!-- Navigation Bar -->
 	<nav class="w-full bg-blue-500 p-4 text-white">
 		<h1 class="text-2xl font-bold">Upload .sas7bdat Files</h1>
@@ -90,7 +90,7 @@
 	</nav>
 
 	<!-- Container for Main Content and Right Sidebar -->
-	<div class="flex flex-col lg:flex-row">
+	<div class="flex flex-1 flex-col lg:flex-row">
 		<!-- Main Content Area -->
 		<section class="flex-1 p-4">
 			<h2 class="mb-4 text-xl font-bold">Datasets</h2>
@@ -111,16 +111,8 @@
 				<p class="text-gray-500">No datasets to display.</p>
 			{/if}
 
-			{#if $uploadTimeStore}
-				<p class="text-lg text-gray-700">{$uploadTimeStore}</p>
-			{/if}
+			<!-- Display the file content as a table -->
 			{#if selectedDataset}
-				<p class="text-lg text-gray-700">
-					Number of Variables: {selectedDataset.details.num_columns}
-				</p>
-				<p class="text-lg text-gray-700">Number of Records: {selectedDataset.details.num_rows}</p>
-
-				<!-- Display the file content as a table -->
 				{#if selectedDataset.data.length > 0}
 					<table class="min-w-full bg-white">
 						<thead>
@@ -180,4 +172,21 @@
 			{/if}
 		</aside>
 	</div>
+
+	<!-- Footer -->
+	<footer class="flex w-full items-center justify-between bg-gray-800 p-4 text-white">
+		<div>
+			{#if $uploadTimeStore}
+				<p class="text-sm">Upload and processing time: {$uploadTimeStore}</p>
+			{/if}
+		</div>
+		<div>
+			{#if selectedDataset}
+				<p class="text-sm">
+					Variables: {selectedDataset.details.num_columns}
+					Records: {selectedDataset.details.num_rows}
+				</p>
+			{/if}
+		</div>
+	</footer>
 </main>
