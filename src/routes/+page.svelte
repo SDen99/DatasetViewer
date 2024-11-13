@@ -65,8 +65,17 @@
 		});
 	}
 
+	function isColumnSelected(column: string): boolean {
+		return $selectedColumns.has(column);
+	}
+
 	// get data from the selected dataset
 	$: selectedDataset = $selectedDatasetStore ? $datasetsStore.get($selectedDatasetStore) : null;
+
+	// Initialize selectedColumns with all column names when a dataset is selected
+	$: if (selectedDataset) {
+		selectedColumns.set(new Set(Object.keys(selectedDataset.data[0] || {})));
+	}
 </script>
 
 <main class="flex min-h-screen flex-col bg-gray-100">
@@ -114,8 +123,8 @@
 
 		<!-- Main Content Area -->
 		<section class="flex-1 p-4">
+			<!-- Display the file content as a table -->
 			{#if selectedDataset}
-				<!-- Display the file content as a table -->
 				{#if selectedDataset.data.length > 0}
 					<table class="min-w-full bg-white">
 						<thead>
@@ -164,6 +173,7 @@
 									name={variable}
 									value={variable}
 									on:change={handleCheckboxChange}
+									checked={isColumnSelected(variable)}
 								/>
 								{variable}
 							</label>
