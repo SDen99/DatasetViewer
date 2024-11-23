@@ -40,6 +40,8 @@
 		const input = event.target as HTMLInputElement;
 		const files = input.files;
 		if (files) {
+			setLoadingState(true);
+			const startTime = performance.now();
 			for (const file of files) {
 				await handleFileChange(
 					file,
@@ -50,6 +52,9 @@
 					pyodideReadyPromise
 				);
 			}
+			const endTime = performance.now();
+			setUploadTime(`Upload and processing time: ${(endTime - startTime) / 1000} seconds`);
+			setLoadingState(false);
 		}
 	}
 
@@ -70,11 +75,27 @@
 	}
 
 	// get data from the selected dataset
-	$: selectedDataset = $selectedDatasetStore ? $datasetsStore.get($selectedDatasetStore) : null;
+	let selectedDataset: any = null;
+
+	$: {
+		if ($selectedDatasetStore) {
+			console.log('selectedDatasetStore', $selectedDatasetStore);
+			console.log('$datasetsStore', $datasetsStore);
+			selectedDataset = $datasetsStore.get($selectedDatasetStore);
+			console.log('selectedDataset', selectedDataset);
+		} else {
+			selectedDataset = null;
+		}
+	}
 
 	// Initialize selectedColumns with all column names when a dataset is selected
 	$: if (selectedDataset) {
 		selectedColumns.set(new Set(Object.keys(selectedDataset.data[0] || {})));
+	}
+
+	// Reactive block to log selectedDataset whenever it changes
+	$: {
+		console.log(selectedDataset, $selectedDatasetStore);
 	}
 </script>
 
@@ -106,14 +127,17 @@
 			{#if $datasetsStore.size > 0}
 				<ul class="list-disc pl-5">
 					{#each Array.from($datasetsStore.keys()) as datasetName}
-						<button
-							type="button"
-							class="cursor-pointer text-gray-700"
-							on:click={() => selectedDatasetStore.set(datasetName)}
-						>
-							{datasetName}
-						</button>
-						<br />
+						<li>
+							<button
+								type="button"
+								class="cursor-pointer text-gray-700 {datasetName === $selectedDatasetStore
+									? 'bg-red-500 text-white'
+									: ''}"
+								on:click={() => selectedDatasetStore.set(datasetName)}
+							>
+								{datasetName}
+							</button>
+						</li>
 					{/each}
 				</ul>
 			{:else}
