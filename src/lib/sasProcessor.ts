@@ -32,7 +32,6 @@ export async function processSasFile(
     }
 }
 
-// 4. Separated Python code into its own function
 function getPythonCode(): string {
     return `
 import pandas as pd
