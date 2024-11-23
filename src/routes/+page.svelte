@@ -11,14 +11,14 @@
 	const datasetsStore = writable<Map<string, any>>(new Map());
 	const selectedDatasetStore = writable<string | null>(null);
 	const isLoadingStore = writable(false);
-	const uploadTimeStore = writable('');
+	const uploadTimeStore = writable<number | null>(null);
 	const selectedColumns = writable<Set<string>>(new Set());
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
 	}
 
-	function setUploadTime(time: string) {
+	function setUploadTime(time: number) {
 		uploadTimeStore.set(time);
 	}
 
@@ -53,7 +53,7 @@
 				);
 			}
 			const endTime = performance.now();
-			setUploadTime(`Upload and processing time: ${(endTime - startTime) / 1000} seconds`);
+			setUploadTime(parseFloat(((endTime - startTime) / 1000).toFixed(2)));
 			setLoadingState(false);
 		}
 	}
@@ -213,8 +213,10 @@
 	<!-- Footer -->
 	<footer class="flex w-full items-center justify-between bg-gray-800 p-4 text-white">
 		<div>
-			{#if $uploadTimeStore}
-				<p class="text-sm">Upload and processing time: {$uploadTimeStore}</p>
+			{#if $uploadTimeStore !== null}
+				<p class="text-sm">
+					Upload and processing time: {$uploadTimeStore} seconds
+				</p>
 			{/if}
 		</div>
 		<div>

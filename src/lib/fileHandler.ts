@@ -1,3 +1,5 @@
+import type { PyodideInterface, ProcessingResult } from './types';
+
 export async function handleFileChange(
     file: File,
     processSasFile: (arrayBuffer: ArrayBuffer, pyodideReadyPromise: Promise<PyodideInterface>) => Promise<ProcessingResult>,
