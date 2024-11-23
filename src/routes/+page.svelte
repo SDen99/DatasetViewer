@@ -125,7 +125,7 @@
 		<aside class="w-1/4 bg-white p-4 shadow-md">
 			<h2 class="mb-4 text-xl font-bold">Datasets</h2>
 			{#if $datasetsStore.size > 0}
-				<ul class="list-disc pl-5">
+				<ul class="pl-5">
 					{#each Array.from($datasetsStore.keys()) as datasetName}
 						<li>
 							<button
@@ -188,7 +188,7 @@
 		<aside class="w-1/4 bg-white p-4 shadow-md">
 			{#if selectedDataset}
 				<h2 class="mb-4 text-xl font-bold">Variables</h2>
-				<ul class="list-disc pl-5">
+				<ul class="pl-5">
 					{#each selectedDataset.details.columns as variable}
 						<li>
 							<label>
