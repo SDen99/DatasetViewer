@@ -92,13 +92,15 @@
 	// Initialize selectedColumns with all column names when a dataset is selected
 	$: if (selectedDataset) {
 		const currentDataset = $selectedDatasetStore;
-		const columns =
-			$selectedColumnsStore.get(currentDataset) ||
-			new Set(Object.keys(selectedDataset.data[0] || {}));
-		selectedColumnsStore.update((selectedColumns) => {
-			selectedColumns.set(currentDataset, columns);
-			return selectedColumns;
-		});
+		if (currentDataset) {
+			const columns =
+				$selectedColumnsStore.get(currentDataset) ||
+				new Set(Object.keys(selectedDataset.data[0] || {}));
+			selectedColumnsStore.update((selectedColumns) => {
+				selectedColumns.set(currentDataset, columns);
+				return selectedColumns;
+			});
+		}
 	}
 </script>
 
@@ -116,7 +118,9 @@
 			{#if selectedDataset}
 				<DataTable
 					data={selectedDataset.data}
-					selectedColumns={$selectedColumnsStore.get($selectedDatasetStore)}
+					selectedColumns={$selectedDatasetStore
+						? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
+						: new Set()}
 				/>
 			{/if}
 		</section>
@@ -124,7 +128,9 @@
 		{#if selectedDataset}
 			<VariableList
 				variables={selectedDataset.details.columns}
-				selectedColumns={$selectedColumnsStore.get($selectedDatasetStore)}
+				selectedColumns={$selectedDatasetStore
+					? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
+					: new Set()}
 				onColumnToggle={handleColumnToggle}
 			/>
 		{/if}
