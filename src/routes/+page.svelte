@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
+	import { get, writable } from 'svelte/store';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -17,7 +17,7 @@
 	const selectedDatasetStore = writable<string | null>(null);
 	const isLoadingStore = writable(false);
 	const uploadTimeStore = writable<number | null>(null);
-	const selectedColumns = writable<Set<string>>(new Set());
+	const selectedColumnsStore = writable<Map<string, Set<string>>>(new Map());
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
@@ -64,13 +64,18 @@
 	}
 
 	function handleColumnToggle(column: string, checked: boolean) {
-		selectedColumns.update((columns) => {
-			if (checked) {
-				columns.add(column);
-			} else {
-				columns.delete(column);
+		selectedColumnsStore.update((selectedColumns) => {
+			const currentDataset = $selectedDatasetStore;
+			if (currentDataset) {
+				let columns = selectedColumns.get(currentDataset) || new Set();
+				if (checked) {
+					columns.add(column);
+				} else {
+					columns.delete(column);
+				}
+				selectedColumns.set(currentDataset, columns);
 			}
-			return columns;
+			return selectedColumns;
 		});
 	}
 
@@ -87,6 +92,18 @@
 	$: if (selectedDataset) {
 		selectedColumns.set(new Set(Object.keys(selectedDataset.data[0] || {})));
 	}
+
+	// Initialize selectedColumns with all column names when a dataset is selected
+	$: if (selectedDataset) {
+		const currentDataset = $selectedDatasetStore;
+		const columns =
+			$selectedColumnsStore.get(currentDataset) ||
+			new Set(Object.keys(selectedDataset.data[0] || {}));
+		selectedColumnsStore.update((selectedColumns) => {
+			selectedColumns.set(currentDataset, columns);
+			return selectedColumns;
+		});
+	}
 </script>
 
 <main class="flex min-h-screen flex-col bg-gray-100">
@@ -101,14 +118,17 @@
 
 		<section class="flex-1 p-4">
 			{#if selectedDataset}
-				<DataTable data={selectedDataset.data} selectedColumns={$selectedColumns} />
+				<DataTable
+					data={selectedDataset.data}
+					selectedColumns={$selectedColumnsStore.get($selectedDatasetStore)}
+				/>
 			{/if}
 		</section>
 
 		{#if selectedDataset}
 			<VariableList
 				variables={selectedDataset.details.columns}
-				selectedColumns={$selectedColumns}
+				selectedColumns={$selectedColumnsStore.get($selectedDatasetStore)}
 				onColumnToggle={handleColumnToggle}
 			/>
 		{/if}
