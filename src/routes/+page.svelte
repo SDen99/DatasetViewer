@@ -89,10 +89,6 @@
 		}
 	}
 
-	$: if (selectedDataset) {
-		selectedColumns.set(new Set(Object.keys(selectedDataset.data[0] || {})));
-	}
-
 	// Initialize selectedColumns with all column names when a dataset is selected
 	$: if (selectedDataset) {
 		const currentDataset = $selectedDatasetStore;
