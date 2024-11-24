@@ -115,7 +115,7 @@
 	</div>
 
 	<Footer
-		uploadTime={$uploadTimeStore}
+		uploadTime={selectedDataset?.processingTime.toFixed(2)}
 		numColumns={selectedDataset?.details.num_columns}
 		numRows={selectedDataset?.details.num_rows}
 	/>

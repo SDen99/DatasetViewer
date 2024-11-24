@@ -1,4 +1,5 @@
 import type { PyodideInterface, ProcessingResult } from './types';
+import type { Writable } from 'svelte/store';
 
 export async function handleFileChange(
     file: File,
@@ -26,12 +27,14 @@ export async function handleFileChange(
         console.log('Processing SAS file...');
         const result = await processSasFile(arrayBuffer, pyodideReadyPromise);
 
+        const processingTime = (performance.now() - startTime) / 1000;
+        result.processingTime = processingTime; // Add processing time to the result
+
         datasetsStore.update(datasets => {
             datasets.set(file.name, result);
             return datasets;
         });
 
-        const processingTime = (performance.now() - startTime) / 1000;
         setUploadTime(`Upload and processing time: ${processingTime.toFixed(2)} seconds`);
     } catch (error) {
         console.error('Error processing SAS file:', error);

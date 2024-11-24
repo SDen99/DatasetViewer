@@ -1,3 +1,5 @@
+import { PyodideInterface, ProcessingResult } from './types';
+
 export interface ProcessingResult {
     details: {
         num_rows: number;
@@ -8,6 +10,7 @@ export interface ProcessingResult {
         unique_values: Record<string, any[]>;
     };
     data: any[];
+    processingTime: number;
 }
 
 export interface PyodideInterface {

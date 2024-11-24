@@ -19,7 +19,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each data.slice(0, 50) as row}
+			{#each data.slice(0, 10) as row}
 				<tr>
 					{#each Object.entries(row) as [key, value]}
 						{#if selectedColumns.has(key)}
