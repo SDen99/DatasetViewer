@@ -138,6 +138,7 @@
 	</div>
 
 	<Footer
+		class="fixed bottom-0 left-0 right-0 w-full bg-gray-800 p-4 text-white"
 		uploadTime={selectedDataset?.processingTime.toFixed(2)}
 		numColumns={selectedDataset?.details.num_columns}
 		numRows={selectedDataset?.details.num_rows}
