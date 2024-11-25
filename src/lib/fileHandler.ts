@@ -29,6 +29,7 @@ export async function handleFileChange(
 
         const processingTime = (performance.now() - startTime) / 1000;
         result.processingTime = processingTime; // Add processing time to the result
+        console.log(result);
 
         datasetsStore.update(datasets => {
             datasets.set(file.name, result);
