@@ -1,15 +1,55 @@
 <script lang="ts">
 	export let variables: string[];
 	export let selectedColumns: Set<string>;
+	export let columnOrder: string[];
 	export let onColumnToggle: (column: string, checked: boolean) => void;
+	export let onReorderVariables: (newOrder: string[]) => void;
+
+	let draggedVariable: string | null = null;
+
+	function handleDragStart(e: DragEvent, variable: string) {
+		draggedVariable = variable;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', variable);
+		}
+	}
+
+	function handleDragOver(e: DragEvent) {
+		e.preventDefault();
+		if (e.dataTransfer) {
+			e.dataTransfer.dropEffect = 'move';
+		}
+	}
+
+	function handleDrop(e: DragEvent, targetVariable: string) {
+		e.preventDefault();
+		if (!draggedVariable || draggedVariable === targetVariable) return;
+
+		const newOrder = [...columnOrder];
+		const fromIndex = newOrder.indexOf(draggedVariable);
+		const toIndex = newOrder.indexOf(targetVariable);
+
+		newOrder.splice(fromIndex, 1);
+		newOrder.splice(toIndex, 0, draggedVariable);
+
+		onReorderVariables(newOrder);
+		draggedVariable = null;
+	}
 </script>
 
 <aside class="w-1/4 bg-white p-4 shadow-md">
 	<h2 class="mb-4 text-xl font-bold">Variables</h2>
 	<ul class="pl-5">
-		{#each variables as variable}
-			<li>
-				<label>
+		{#each columnOrder as variable}
+			<li
+				draggable="true"
+				on:dragstart={(e) => handleDragStart(e, variable)}
+				on:dragover={handleDragOver}
+				on:drop={(e) => handleDrop(e, variable)}
+				class="cursor-move py-1 hover:bg-gray-100"
+			>
+				<label class="flex items-center space-x-2">
 					<input
 						type="checkbox"
 						name={variable}
@@ -17,7 +57,7 @@
 						checked={selectedColumns.has(variable)}
 						on:change={(e) => onColumnToggle(variable, (e.target as HTMLInputElement).checked)}
 					/>
-					{variable}
+					<span>{variable}</span>
 				</label>
 			</li>
 		{/each}

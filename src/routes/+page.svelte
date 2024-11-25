@@ -18,6 +18,7 @@
 	const isLoadingStore = writable(false);
 	const uploadTimeStore = writable<number | null>(null);
 	const selectedColumnsStore = writable<Map<string, Set<string>>>(new Map());
+	const columnOrderStore = writable<Map<string, string[]>>(new Map());
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
@@ -89,16 +90,35 @@
 		}
 	}
 
-	// Initialize selectedColumns with all column names when a dataset is selected
+	function handleColumnReorder(newOrder: string[]) {
+		const currentDataset = $selectedDatasetStore;
+		if (currentDataset) {
+			columnOrderStore.update((orders) => {
+				orders.set(currentDataset, newOrder);
+				return orders;
+			});
+		}
+	}
+
+	// Initialize columnOrder when a dataset is selected
 	$: if (selectedDataset) {
 		const currentDataset = $selectedDatasetStore;
 		if (currentDataset) {
-			const columns =
-				$selectedColumnsStore.get(currentDataset) ||
-				new Set(Object.keys(selectedDataset.data[0] || {}));
+			const allColumns = Object.keys(selectedDataset.data[0] || {});
+			const initialColumns = new Set(allColumns.slice(0, 5)); // Take first 5 columns
+
+			// Update selectedColumns
 			selectedColumnsStore.update((selectedColumns) => {
-				selectedColumns.set(currentDataset, columns);
+				selectedColumns.set(currentDataset, initialColumns);
 				return selectedColumns;
+			});
+
+			// Update columnOrder (maintain full list of columns for ordering)
+			columnOrderStore.update((orders) => {
+				if (!orders.has(currentDataset)) {
+					orders.set(currentDataset, allColumns);
+				}
+				return orders;
 			});
 		}
 	}
@@ -121,18 +141,25 @@
 					selectedColumns={$selectedDatasetStore
 						? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
 						: new Set()}
+					columnOrder={$selectedDatasetStore
+						? ($columnOrderStore.get($selectedDatasetStore) ?? [])
+						: []}
+					onReorderColumns={handleColumnReorder}
 				/>
 			{/if}
 		</section>
 
 		{#if selectedDataset}
 			<VariableList
-				class="fixed bottom-0 right-0 top-0 w-1/4 bg-white p-4 shadow-md"
 				variables={selectedDataset.details.columns}
 				selectedColumns={$selectedDatasetStore
 					? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
 					: new Set()}
+				columnOrder={$selectedDatasetStore
+					? ($columnOrderStore.get($selectedDatasetStore) ?? [])
+					: []}
 				onColumnToggle={handleColumnToggle}
+				onReorderVariables={handleColumnReorder}
 			/>
 		{/if}
 	</div>
