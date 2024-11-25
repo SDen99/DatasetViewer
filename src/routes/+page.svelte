@@ -107,14 +107,14 @@
 <main class="flex min-h-screen flex-col bg-gray-100">
 	<Navigation {handleFileChangeEvent} isLoading={$isLoadingStore} />
 
-	<div class="flex flex-1">
+	<div class="flex flex-1 overflow-hidden">
 		<DatasetList
 			datasets={$datasetsStore}
 			selectedDataset={$selectedDatasetStore}
 			onSelectDataset={(dataset) => selectedDatasetStore.set(dataset)}
 		/>
 
-		<section class="flex-1 p-4">
+		<section class="flex-1 overflow-x-auto p-4">
 			{#if selectedDataset}
 				<DataTable
 					data={selectedDataset.data}
@@ -127,6 +127,7 @@
 
 		{#if selectedDataset}
 			<VariableList
+				class="fixed bottom-0 right-0 top-0 w-1/4 bg-white p-4 shadow-md"
 				variables={selectedDataset.details.columns}
 				selectedColumns={$selectedDatasetStore
 					? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
