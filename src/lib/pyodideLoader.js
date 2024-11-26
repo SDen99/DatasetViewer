@@ -1,6 +1,6 @@
 self.loadPyodide = await import("https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs");
 
-let pyodide: PyodideInterface | null = null;
+let pyodide = null;
 
 // Create an initialization function that wraps everything in an async function
 function initialize() {
