@@ -4,14 +4,15 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [sveltekit()],
 	worker: {
-		format: 'es', // Use ES modules format for workers
-		plugins: [] // Any additional plugins needed for workers
+		format: 'es',
+		plugins: () => []
 	},
 	build: {
-		target: 'esnext', // Ensure we're targeting modern browsers
+		target: 'esnext',
 		rollupOptions: {
 			output: {
-				format: 'es' // Use ES modules format for output
+				format: 'es',
+				inlineDynamicImports: true
 			}
 		}
 	}

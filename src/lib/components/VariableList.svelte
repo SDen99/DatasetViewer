@@ -1,5 +1,4 @@
 <script lang="ts">
-	export let variables: string[];
 	export let selectedColumns: Set<string>;
 	export let columnOrder: string[];
 	export let onColumnToggle: (column: string, checked: boolean) => void;
