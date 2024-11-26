@@ -31,7 +31,7 @@ export class WorkerPool {
         this.maxWorkers = maxWorkers;
         this.idleTimeout = idleTimeout;
         // Get the appropriate worker URL for our environment
-        this.workerURL = getWorkerURL('fileProcessor.worker.ts');
+        this.workerURL = getWorkerURL('fileProcessor.worker.js');
 
         setInterval(() => this.cleanupIdleWorkers(), 10000);
     }

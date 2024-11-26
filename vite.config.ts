@@ -8,11 +8,6 @@ export default defineConfig({
 		plugins: () => []
 	},
 	build: {
-		rollupOptions: {
-			input: {
-				main: 'app.html',
-				worker: 'src/fileProcessor.worker.ts'
-			}
-		}
+		target: 'esnext',
 	}
 });
