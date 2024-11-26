@@ -1,4 +1,3 @@
-// fileHandler.ts
 import type { ProcessingResult } from './types';
 import type { Writable } from 'svelte/store';
 import { WorkerPool } from './workerPool';

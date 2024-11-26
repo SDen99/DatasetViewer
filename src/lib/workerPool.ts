@@ -31,25 +31,21 @@ export class WorkerPool {
         this.maxWorkers = maxWorkers;
         this.idleTimeout = idleTimeout;
         // Get the appropriate worker URL for our environment
-        this.workerURL = getWorkerURL('fileProcessor.worker.js');
+        this.workerURL = getWorkerURL('fileProcessor.worker.ts');
 
         setInterval(() => this.cleanupIdleWorkers(), 10000);
     }
 
-    private async createWorker(): Promise<ManagedWorker> {
-        // Validate the worker URL before creating the worker
-        const isValid = await validateWorkerURL(this.workerURL);
-        if (!isValid) {
-            throw new Error('Worker script is not accessible');
-        }
-
+    private createWorker(): Promise<ManagedWorker> {
         return new Promise((resolve, reject) => {
             try {
-                // Create the worker with error handling
-                const worker = new Worker(this.workerURL, {
-                    type: 'module',
-                    name: 'SAS-File-Processor'
-                });
+                // Create the worker with module type
+                const worker = new Worker(
+                    new URL('./fileProcessor.worker.ts', import.meta.url),
+                    {
+                        type: 'module'
+                    }
+                );
 
                 const managedWorker: ManagedWorker = {
                     worker,
@@ -58,17 +54,28 @@ export class WorkerPool {
                     pyodideReady: false
                 };
 
-                // Add error handling for worker creation
+                // Listen for initialization messages
+                const initListener = (e: MessageEvent) => {
+                    if (e.data.type === 'PYODIDE_READY') {
+                        managedWorker.pyodideReady = true;
+                        worker.removeEventListener('message', initListener);
+                        resolve(managedWorker);
+                    } else if (e.data.type === 'PYODIDE_ERROR') {
+                        worker.removeEventListener('message', initListener);
+                        reject(new Error(e.data.error));
+                    }
+                };
+
+                worker.addEventListener('message', initListener);
                 worker.addEventListener('error', (error) => {
-                    console.error('Worker error:', error);
-                    this.handleWorkerError(error, managedWorker);
+                    console.error('Worker creation error:', error);
+                    reject(error);
                 });
 
-                // Rest of your worker initialization code...
-                // (Keep your existing initialization logic here)
-
+                // Set up regular message handling
+                worker.onmessage = (e) => this.handleWorkerMessage(e, managedWorker);
             } catch (error) {
-                console.error('Worker creation failed:', error);
+                console.error('Failed to create worker:', error);
                 reject(error);
             }
         });
