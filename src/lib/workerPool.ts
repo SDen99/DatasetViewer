@@ -35,33 +35,46 @@ export class WorkerPool {
 
     private createWorker(): Promise<ManagedWorker> {
         return new Promise((resolve, reject) => {
-            const worker = new Worker(
-                new URL('./fileProcessor.worker.ts', import.meta.url),
-                { type: 'module' }
-            );
+            try {
+                // Create the worker with module type
+                const worker = new Worker(
+                    new URL('./fileProcessor.worker.ts', import.meta.url),
+                    {
+                        type: 'module'
+                    }
+                );
 
-            const managedWorker: ManagedWorker = {
-                worker,
-                busy: false,
-                lastUsed: Date.now(),
-                pyodideReady: false
-            };
+                const managedWorker: ManagedWorker = {
+                    worker,
+                    busy: false,
+                    lastUsed: Date.now(),
+                    pyodideReady: false
+                };
 
-            // Listen for the Pyodide initialization message
-            const initListener = (e: MessageEvent) => {
-                if (e.data.type === 'PYODIDE_READY') {
-                    managedWorker.pyodideReady = true;
-                    worker.removeEventListener('message', initListener);
-                    resolve(managedWorker);
-                } else if (e.data.type === 'PYODIDE_ERROR') {
-                    worker.removeEventListener('message', initListener);
-                    reject(new Error(e.data.error));
-                }
-            };
+                // Listen for initialization messages
+                const initListener = (e: MessageEvent) => {
+                    if (e.data.type === 'PYODIDE_READY') {
+                        managedWorker.pyodideReady = true;
+                        worker.removeEventListener('message', initListener);
+                        resolve(managedWorker);
+                    } else if (e.data.type === 'PYODIDE_ERROR') {
+                        worker.removeEventListener('message', initListener);
+                        reject(new Error(e.data.error));
+                    }
+                };
 
-            worker.addEventListener('message', initListener);
-            worker.onmessage = (e) => this.handleWorkerMessage(e, managedWorker);
-            worker.onerror = (e) => this.handleWorkerError(e, managedWorker);
+                worker.addEventListener('message', initListener);
+                worker.addEventListener('error', (error) => {
+                    console.error('Worker creation error:', error);
+                    reject(error);
+                });
+
+                // Set up regular message handling
+                worker.onmessage = (e) => this.handleWorkerMessage(e, managedWorker);
+            } catch (error) {
+                console.error('Failed to create worker:', error);
+                reject(error);
+            }
         });
     }
 
