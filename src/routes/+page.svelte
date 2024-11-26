@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { get, writable } from 'svelte/store';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
@@ -9,6 +9,7 @@
 	import { handleFileChange } from '$lib/fileHandler';
 	import { processSasFile } from '$lib/sasProcessor';
 	import { initializePyodide } from '$lib/pyodideInitializer';
+	import { WorkerPool } from '$lib/workerPool';
 
 	let pyodideReadyPromise: Promise<any> | null = null;
 	let isPyodideLoaded = false;
@@ -19,6 +20,7 @@
 	const uploadTimeStore = writable<number | null>(null);
 	const selectedColumnsStore = writable<Map<string, Set<string>>>(new Map());
 	const columnOrderStore = writable<Map<string, string[]>>(new Map());
+	const workerPool = new WorkerPool();
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
@@ -42,24 +44,57 @@
 		}
 	});
 
+	onDestroy(() => {
+		workerPool.terminate();
+	});
+
 	async function handleFileChangeEvent(event: Event) {
 		const input = event.target as HTMLInputElement;
 		const files = input.files;
-		if (files) {
-			setLoadingState(true);
-			const startTime = performance.now();
+
+		if (!files || files.length === 0) {
+			return;
+		}
+
+		setLoadingState(true);
+		const startTime = performance.now();
+		const filePromises = [];
+
+		try {
+			// Convert all files to ArrayBuffers first
 			for (const file of files) {
-				await handleFileChange(
-					file,
-					processSasFile,
-					setLoadingState,
-					setUploadTime,
-					datasetsStore,
-					pyodideReadyPromise
-				);
+				if (!file.name.endsWith('.sas7bdat')) {
+					console.warn(`Skipping ${file.name} - not a SAS file`);
+					continue;
+				}
+
+				// Read the file into an ArrayBuffer
+				const arrayBuffer = await file.arrayBuffer();
+
+				// Use the workerPool instance to process the file
+				const processPromise = workerPool.processFile(arrayBuffer, file.name).then((result) => {
+					// Update store as each file completes
+					datasetsStore.update((datasets) => {
+						datasets.set(file.name, {
+							...result,
+							processingTime: (performance.now() - startTime) / 1000
+						});
+						return datasets;
+					});
+					return result;
+				});
+
+				filePromises.push(processPromise);
 			}
-			const endTime = performance.now();
-			setUploadTime(parseFloat(((endTime - startTime) / 1000).toFixed(2)));
+
+			// Wait for all files to be processed
+			await Promise.all(filePromises);
+
+			const totalTime = (performance.now() - startTime) / 1000;
+			setUploadTime(totalTime);
+		} catch (error) {
+			console.error('Error processing files:', error);
+		} finally {
 			setLoadingState(false);
 		}
 	}
