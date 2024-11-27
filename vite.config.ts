@@ -6,15 +6,13 @@ export default defineConfig({
 	worker: {
 		format: 'es'
 	},
-	// Direct the worker file to public directory
 	build: {
 		rollupOptions: {
 			output: {
-				assetFileNames: (assetInfo) => {
-					if (assetInfo.name === 'fileProcessor.worker.ts') {
-						return 'worker.js';
-					}
-					return 'assets/[name]-[hash][extname]';
+				assetFileNames: (chunkInfo: { type: string; name?: string }) => {
+					return chunkInfo.name?.includes('fileProcessor.worker')
+						? 'worker.js'
+						: 'assets/[name]-[hash][extname]';
 				}
 			}
 		}
