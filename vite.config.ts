@@ -9,6 +9,9 @@ export default defineConfig({
 			input: './src/workers/fileProcessor.worker.ts'
 		}
 	},
+	esbuild: {
+		target: 'esnext'
+	},
 	build: {
 		rollupOptions: {
 			input: {
