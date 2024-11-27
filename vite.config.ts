@@ -16,7 +16,7 @@ export default defineConfig({
 			output: {
 				entryFileNames: (chunkInfo) => {
 					return chunkInfo.name === 'worker'
-						? '_app/immutable/workers/[name].js'
+						? 'worker.js'
 						: '_app/immutable/chunks/[name].[hash].js';
 				}
 			}
