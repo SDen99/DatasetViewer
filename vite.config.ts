@@ -1,23 +1,20 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	worker: {
+		format: 'es'
+	},
+	// Direct the worker file to public directory
 	build: {
-		target: 'esnext',
 		rollupOptions: {
-			input: {
-				worker: path.resolve(__dirname, 'src/workers/fileProcessor.worker.ts')
-			},
 			output: {
-				entryFileNames: (chunkInfo) => {
-					return chunkInfo.name === 'worker'
-						? 'worker.js'
-						: '_app/immutable/chunks/[name].[hash].js';
+				assetFileNames: (assetInfo) => {
+					if (assetInfo.name === 'fileProcessor.worker.ts') {
+						return 'worker.js';
+					}
+					return 'assets/[name]-[hash][extname]';
 				}
 			}
 		}

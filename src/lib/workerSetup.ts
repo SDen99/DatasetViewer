@@ -1,7 +1,7 @@
 // This helper function determines if we're in production
 export function getWorkerURL(workerPath: string): string {
     return import.meta.env.PROD ?
-        `/worker.js?url` :
+        `/worker.js` :
         `/src/workers/${workerPath}`;
 }
 
