@@ -36,6 +36,7 @@
 		"vite": "^5.0.3"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-vercel": "^5.4.8",
 		"pyodide": "^0.26.3"
 	}
 }
