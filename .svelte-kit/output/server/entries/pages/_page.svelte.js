@@ -1,4 +1,4 @@
-import { I as current_component, J as bind_props, K as ensure_array_like, L as attr, E as escape_html, B as pop, M as stringify, z as push, F as store_get, G as unsubscribe_stores } from "../../chunks/index.js";
+import { J as current_component, K as bind_props, L as ensure_array_like, M as attr, F as escape_html, B as pop, N as stringify, z as push, G as store_get, I as unsubscribe_stores } from "../../chunks/index.js";
 import { w as writable } from "../../chunks/index2.js";
 function onDestroy(fn) {
   var context = (
@@ -135,208 +135,18 @@ function Footer($$payload, $$props) {
   $$payload.out += `<!--]--></div></footer>`;
   bind_props($$props, { uploadTime, numColumns, numRows });
 }
-function getWorkerURL(workerPath) {
-  {
-    return `/_app/${workerPath}`;
-  }
-}
-class WorkerPool {
-  workers = [];
-  taskQueue = [];
-  maxWorkers;
-  idleTimeout;
-  workerURL;
-  constructor(maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1), idleTimeout = 3e4) {
-    this.maxWorkers = maxWorkers;
-    this.idleTimeout = idleTimeout;
-    this.workerURL = getWorkerURL("fileProcessor.worker.ts");
-    setInterval(() => this.cleanupIdleWorkers(), 1e4);
-  }
-  createWorker() {
-    return new Promise((resolve, reject) => {
-      try {
-        const worker = new Worker(
-          new URL("./fileProcessor.worker.ts", import.meta.url),
-          {
-            type: "module"
-          }
-        );
-        const managedWorker = {
-          worker,
-          busy: false,
-          lastUsed: Date.now(),
-          pyodideReady: false
-        };
-        const initListener = (e) => {
-          if (e.data.type === "PYODIDE_READY") {
-            managedWorker.pyodideReady = true;
-            worker.removeEventListener("message", initListener);
-            resolve(managedWorker);
-          } else if (e.data.type === "PYODIDE_ERROR") {
-            worker.removeEventListener("message", initListener);
-            reject(new Error(e.data.error));
-          }
-        };
-        worker.addEventListener("message", initListener);
-        worker.addEventListener("error", (error) => {
-          console.error("Worker creation error:", error);
-          reject(error);
-        });
-        worker.onmessage = (e) => this.handleWorkerMessage(e, managedWorker);
-      } catch (error) {
-        console.error("Failed to create worker:", error);
-        reject(error);
-      }
-    });
-  }
-  async getAvailableWorker() {
-    let worker = this.workers.find((w) => !w.busy && w.pyodideReady);
-    if (!worker && this.workers.length < this.maxWorkers) {
-      try {
-        worker = await this.createWorker();
-        this.workers.push(worker);
-      } catch (error) {
-        console.error("Failed to create worker:", error);
-        throw error;
-      }
-    }
-    if (!worker) {
-      return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-          const availableWorker = this.workers.find((w) => !w.busy && w.pyodideReady);
-          if (availableWorker) {
-            clearInterval(checkInterval);
-            resolve(availableWorker);
-          }
-        }, 100);
-      });
-    }
-    return worker;
-  }
-  handleWorkerMessage(e, managedWorker) {
-    const task = this.taskQueue.find((t) => t.id === e.data.taskId);
-    if (!task) return;
-    if (e.data.type === "PROCESSING_COMPLETE") {
-      task.resolve(e.data.result);
-    } else if (e.data.type === "PROCESSING_ERROR") {
-      task.reject(new Error(e.data.error));
-    }
-    managedWorker.busy = false;
-    managedWorker.lastUsed = Date.now();
-    this.taskQueue = this.taskQueue.filter((t) => t.id !== e.data.taskId);
-    this.processNextTask();
-  }
-  handleWorkerError(e, managedWorker) {
-    console.error("Worker error:", e);
-    managedWorker.busy = false;
-  }
-  async processNextTask() {
-    if (this.taskQueue.length === 0) return;
-    try {
-      const worker = await this.getAvailableWorker();
-      const task = this.taskQueue[0];
-      worker.busy = true;
-      worker.lastUsed = Date.now();
-      worker.worker.postMessage({
-        type: "PROCESS_FILE",
-        taskId: task.id,
-        file: task.file,
-        fileName: task.fileName
-      });
-    } catch (error) {
-      console.error("Failed to process task:", error);
-      const task = this.taskQueue[0];
-      task.reject(error);
-      this.taskQueue.shift();
-    }
-  }
-  cleanupIdleWorkers() {
-    const now = Date.now();
-    this.workers = this.workers.filter((worker) => {
-      if (!worker.busy && now - worker.lastUsed > this.idleTimeout) {
-        worker.worker.terminate();
-        return false;
-      }
-      return true;
-    });
-  }
-  async processFile(file, fileName) {
-    return new Promise((resolve, reject) => {
-      const task = {
-        id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        file,
-        fileName,
-        resolve,
-        reject
-      };
-      this.taskQueue.push(task);
-      this.processNextTask();
-    });
-  }
-  terminate() {
-    this.workers.forEach((worker) => {
-      worker.worker.terminate();
-    });
-    this.workers = [];
-    this.taskQueue = [];
-  }
-}
-new WorkerPool();
 function _page($$payload, $$props) {
   push();
   var $$store_subs;
   const datasetsStore = writable(/* @__PURE__ */ new Map());
   const selectedDatasetStore = writable(null);
   const isLoadingStore = writable(false);
-  const uploadTimeStore = writable(null);
   const selectedColumnsStore = writable(/* @__PURE__ */ new Map());
   const columnOrderStore = writable(/* @__PURE__ */ new Map());
-  const workerPool = new WorkerPool();
-  function setLoadingState(state) {
-    isLoadingStore.set(state);
-  }
-  function setUploadTime(time) {
-    uploadTimeStore.set(time);
-  }
   onDestroy(() => {
-    workerPool.terminate();
   });
   async function handleFileChangeEvent(event) {
-    const input = event.target;
-    const files = input.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-    setLoadingState(true);
-    const startTime = performance.now();
-    const filePromises = [];
-    try {
-      for (const file of files) {
-        if (!file.name.endsWith(".sas7bdat")) {
-          console.warn(`Skipping ${file.name} - not a SAS file`);
-          continue;
-        }
-        const arrayBuffer = await file.arrayBuffer();
-        const processPromise = workerPool.processFile(arrayBuffer, file.name).then((result) => {
-          datasetsStore.update((datasets) => {
-            datasets.set(file.name, {
-              ...result,
-              processingTime: (performance.now() - startTime) / 1e3
-            });
-            return datasets;
-          });
-          return result;
-        });
-        filePromises.push(processPromise);
-      }
-      await Promise.all(filePromises);
-      const totalTime = (performance.now() - startTime) / 1e3;
-      setUploadTime(totalTime);
-    } catch (error) {
-      console.error("Error processing files:", error);
-    } finally {
-      setLoadingState(false);
-    }
+    return;
   }
   function handleColumnToggle(column, checked) {
     selectedColumnsStore.update((selectedColumns) => {

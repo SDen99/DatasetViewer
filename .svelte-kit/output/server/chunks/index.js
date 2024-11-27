@@ -923,15 +923,21 @@ function render(component, options = {}) {
   payload.out += BLOCK_CLOSE;
   for (const cleanup of on_destroy) cleanup();
   on_destroy = prev_on_destroy;
-  let head = payload.head.out + payload.head.title;
+  let head2 = payload.head.out + payload.head.title;
   for (const { hash, code } of payload.css) {
-    head += `<style id="${hash}">${code}</style>`;
+    head2 += `<style id="${hash}">${code}</style>`;
   }
   return {
-    head,
+    head: head2,
     html: payload.out,
     body: payload.out
   };
+}
+function head(payload, fn) {
+  const head_payload = payload.head;
+  head_payload.out += BLOCK_OPEN;
+  fn(head_payload);
+  head_payload.out += BLOCK_CLOSE;
 }
 const replacements = {
   translate: /* @__PURE__ */ new Map([
@@ -985,19 +991,20 @@ function ensure_array_like(array_like_or_iterator) {
 export {
   setContext as A,
   pop as B,
-  getContext as C,
+  head as C,
   DEV as D,
-  escape_html as E,
-  store_get as F,
-  unsubscribe_stores as G,
+  getContext as E,
+  escape_html as F,
+  store_get as G,
   HYDRATION_ERROR as H,
-  current_component as I,
-  bind_props as J,
-  ensure_array_like as K,
-  attr as L,
-  stringify as M,
-  noop as N,
-  safe_not_equal as O,
+  unsubscribe_stores as I,
+  current_component as J,
+  bind_props as K,
+  ensure_array_like as L,
+  attr as M,
+  stringify as N,
+  noop as O,
+  safe_not_equal as P,
   set_active_effect as a,
   active_reaction as b,
   active_effect as c,

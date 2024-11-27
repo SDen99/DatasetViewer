@@ -5,17 +5,15 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	worker: {
 		format: 'es',
-		plugins: () => []
+		rollupOptions: {
+			input: './src/workers/fileProcessor.worker.ts'
+		}
 	},
 	build: {
-		target: 'esnext',
-	},
-	optimizeDeps: {
-		exclude: ['pyodide']  // Add this
-	},
-	server: {
-		fs: {
-			allow: ['./node_modules/pyodide']  // Add this
+		rollupOptions: {
+			input: {
+				worker: './src/workers/fileProcessor.worker.ts'
+			}
 		}
 	}
 });

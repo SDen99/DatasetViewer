@@ -1,12 +1,8 @@
 // This helper function determines if we're in production
 export function getWorkerURL(workerPath: string): string {
-    if (import.meta.env.PROD) {
-        // In production, we need to handle the path differently
-        // Vercel serves static assets from /_app/
-        return `/_app/immutable/workers/${workerPath}`;
-    }
-    // In development, we can use the standard URL pattern
-    return new URL(workerPath, import.meta.url).href;
+    return import.meta.env.PROD ?
+        `/_app/immutable/workers/${workerPath.split('/').pop()}` :
+        `/src/workers/${workerPath}`;
 }
 
 // This function validates that our worker is available
