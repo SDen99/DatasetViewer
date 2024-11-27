@@ -179,7 +179,7 @@ export class WorkerPool {
             console.error('Failed to process task:', error);
             // Handle task failure
             const task = this.taskQueue[0];
-            task.reject(error);
+            task.reject(error as Error);
             this.taskQueue.shift();
         }
     }

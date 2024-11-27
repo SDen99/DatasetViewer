@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { get, writable } from 'svelte/store';
+	import { writable } from 'svelte/store';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -65,17 +65,19 @@
 				const arrayBuffer = await file.arrayBuffer();
 
 				// Use the workerPool instance to process the file
-				const processPromise = workerPool.processFile(arrayBuffer, file.name).then((result) => {
-					// Update store as each file completes
-					datasetsStore.update((datasets) => {
-						datasets.set(file.name, {
-							...result,
-							processingTime: (performance.now() - startTime) / 1000
+				const processPromise = workerPool
+					.processFile(arrayBuffer, file.name)
+					.then((result: any) => {
+						// Update store as each file completes
+						datasetsStore.update((datasets) => {
+							datasets.set(file.name, {
+								...result,
+								processingTime: (performance.now() - startTime) / 1000
+							});
+							return datasets;
 						});
-						return datasets;
+						return result;
 					});
-					return result;
-				});
 
 				filePromises.push(processPromise);
 			}
