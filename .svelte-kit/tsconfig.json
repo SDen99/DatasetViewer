@@ -1,6 +1,15 @@
 {
 	"compilerOptions": {
 		"paths": {
+			"$workers": [
+				"../src/lib/workers"
+			],
+			"$workers/*": [
+				"../src/lib/workers/*"
+			],
+			"$config": [
+				"../src/config.js"
+			],
 			"$lib": [
 				"../src/lib"
 			],
