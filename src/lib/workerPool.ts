@@ -44,7 +44,7 @@ export class WorkerPool {
         this.maxWorkers = maxWorkers ?? getDefaultWorkerCount();
         this.idleTimeout = idleTimeout;
         this.workerURL = getWorkerURL('fileProcessor.worker.ts');
-
+        console.log('workerURL', this.workerURL);
         // Defer initialization until explicitly called
         this.isInitialized = false;
     }
