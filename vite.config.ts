@@ -5,18 +5,13 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	worker: {
 		format: 'es',
-		rollupOptions: {
-			input: './src/workers/fileProcessor.worker.ts'
-		}
-	},
-	esbuild: {
+		plugins: [sveltekit()],
 		target: 'esnext'
 	},
 	build: {
-		rollupOptions: {
-			input: {
-				worker: './src/workers/fileProcessor.worker.ts'
-			}
+		target: 'esnext',
+		modulePreload: {
+			polyfill: true
 		}
 	}
 });
