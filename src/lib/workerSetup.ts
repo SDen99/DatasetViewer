@@ -1,7 +1,7 @@
 // This helper function determines if we're in production
 export function getWorkerURL(workerPath: string): string {
     return import.meta.env.PROD ?
-        `/_app/immutable/workers/${workerPath.split('/').pop()}` :
+        `/_app/immutable/workers/worker.js` :
         `/src/workers/${workerPath}`;
 }
 
