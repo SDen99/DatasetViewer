@@ -3,7 +3,7 @@ export function getWorkerURL(workerPath: string): string {
     if (import.meta.env.PROD) {
         // In production, we need to handle the path differently
         // Vercel serves static assets from /_app/
-        return `/_app/${workerPath}`;
+        return `${workerPath}`;
     }
     // In development, we can use the standard URL pattern
     return new URL(workerPath, import.meta.url).href;
