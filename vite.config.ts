@@ -1,5 +1,9 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
 	plugins: [sveltekit()],
@@ -7,8 +11,7 @@ export default defineConfig({
 		target: 'esnext',
 		rollupOptions: {
 			input: {
-				main: 'src/app.html',
-				worker: 'src/workers/fileProcessor.worker.ts'
+				worker: path.resolve(__dirname, 'src/workers/fileProcessor.worker.ts')
 			},
 			output: {
 				entryFileNames: (chunkInfo) => {
