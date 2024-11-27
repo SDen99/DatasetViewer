@@ -11,7 +11,7 @@ export default defineConfig({
 			output: {
 				assetFileNames: (chunkInfo: { type: string; name?: string }) => {
 					return chunkInfo.name?.includes('fileProcessor.worker')
-						? 'worker.js'
+						? '_app/immutable/workers/[name].ts'
 						: 'assets/[name]-[hash][extname]';
 				}
 			}
