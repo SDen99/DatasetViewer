@@ -17,6 +17,14 @@ interface ManagedWorker {
     pyodideReady: boolean;
 }
 
+// Helper to safely get hardware concurrency
+const getDefaultWorkerCount = () => {
+    if (typeof window !== 'undefined' && 'navigator' in window) {
+        return Math.max(1, navigator.hardwareConcurrency - 1);
+    }
+    return 2; // Default fallback for SSR
+};
+
 export function createWorkerPool(maxWorkers?: number): WorkerPool | null {
     if (typeof window === 'undefined') {
         return null;
@@ -30,35 +38,36 @@ export class WorkerPool {
     private maxWorkers: number;
     private idleTimeout: number;
     private workerURL: string;
+    private isInitialized: boolean = false;
 
-    constructor(
-        maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1),
-        idleTimeout = 30000
-    ) {
-        // Safely handle server-side context
-        const defaultWorkers = typeof navigator !== 'undefined'
-            ? Math.max(1, navigator.hardwareConcurrency - 1)
-            : 2;
-
-        this.maxWorkers = maxWorkers ?? defaultWorkers;
+    constructor(maxWorkers?: number, idleTimeout = 30000) {
+        this.maxWorkers = maxWorkers ?? getDefaultWorkerCount();
         this.idleTimeout = idleTimeout;
         this.workerURL = getWorkerURL('fileProcessor.worker.ts');
 
-        if (typeof window !== 'undefined') {
-            setInterval(() => this.cleanupIdleWorkers(), 10000);
-        }
+        // Defer initialization until explicitly called
+        this.isInitialized = false;
     }
 
+    public async initialize(): Promise<void> {
+        if (this.isInitialized || typeof window === 'undefined') {
+            return;
+        }
+
+        // Set up cleanup interval only in browser context
+        setInterval(() => this.cleanupIdleWorkers(), 10000);
+        this.isInitialized = true;
+    }
+
+
     private createWorker(): Promise<ManagedWorker> {
+        if (typeof window === 'undefined') {
+            return Promise.reject(new Error('Cannot create worker in SSR context'));
+        }
+
         return new Promise((resolve, reject) => {
             try {
-                // Create the worker with module type
-                const worker = new Worker(
-                    new URL('./fileProcessor.worker.ts', import.meta.url),
-                    {
-                        type: 'module'
-                    }
-                );
+                const worker = new Worker(this.workerURL, { type: 'module' });
 
                 const managedWorker: ManagedWorker = {
                     worker,
@@ -67,7 +76,6 @@ export class WorkerPool {
                     pyodideReady: false
                 };
 
-                // Listen for initialization messages
                 const initListener = (e: MessageEvent) => {
                     if (e.data.type === 'PYODIDE_READY') {
                         managedWorker.pyodideReady = true;
@@ -85,7 +93,6 @@ export class WorkerPool {
                     reject(error);
                 });
 
-                // Set up regular message handling
                 worker.onmessage = (e) => this.handleWorkerMessage(e, managedWorker);
             } catch (error) {
                 console.error('Failed to create worker:', error);
@@ -189,6 +196,10 @@ export class WorkerPool {
     }
 
     public async processFile(file: ArrayBuffer, fileName: string): Promise<ProcessingResult> {
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
+
         return new Promise((resolve, reject) => {
             const task: WorkerTask = {
                 id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

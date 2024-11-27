@@ -32,9 +32,12 @@
 		uploadTimeStore.set(time);
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		if (browser) {
 			workerPool = createWorkerPool();
+			if (workerPool) {
+				await workerPool.initialize();
+			}
 
 			if (!isPyodideLoaded) {
 				try {
