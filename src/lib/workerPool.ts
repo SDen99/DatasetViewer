@@ -17,6 +17,13 @@ interface ManagedWorker {
     pyodideReady: boolean;
 }
 
+export function createWorkerPool(maxWorkers?: number): WorkerPool | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    return new WorkerPool(maxWorkers);
+}
+
 export class WorkerPool {
     private workers: ManagedWorker[] = [];
     private taskQueue: WorkerTask[] = [];
@@ -28,12 +35,18 @@ export class WorkerPool {
         maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1),
         idleTimeout = 30000
     ) {
-        this.maxWorkers = maxWorkers;
+        // Safely handle server-side context
+        const defaultWorkers = typeof navigator !== 'undefined'
+            ? Math.max(1, navigator.hardwareConcurrency - 1)
+            : 2;
+
+        this.maxWorkers = maxWorkers ?? defaultWorkers;
         this.idleTimeout = idleTimeout;
-        // Get the appropriate worker URL for our environment
         this.workerURL = getWorkerURL('fileProcessor.worker.ts');
 
-        setInterval(() => this.cleanupIdleWorkers(), 10000);
+        if (typeof window !== 'undefined') {
+            setInterval(() => this.cleanupIdleWorkers(), 10000);
+        }
     }
 
     private createWorker(): Promise<ManagedWorker> {
@@ -197,4 +210,6 @@ export class WorkerPool {
         this.workers = [];
         this.taskQueue = [];
     }
+
+
 }

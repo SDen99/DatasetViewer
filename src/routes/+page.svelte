@@ -11,6 +11,7 @@
 	import { processSasFile } from '$lib/sasProcessor';
 	import { initializePyodide } from '$lib/pyodideInitializer';
 	import { WorkerPool } from '$lib/workerPool';
+	import { createWorkerPool } from '$lib/workerPool';
 
 	let pyodideReadyPromise: Promise<any> | null = null;
 	let isPyodideLoaded = false;
@@ -31,19 +32,18 @@
 		uploadTimeStore.set(time);
 	}
 
-	onMount(async () => {
+	onMount(() => {
 		if (browser) {
-			// Only initialize on the client side
-			const { WorkerPool } = await import('$lib/workerPool');
-			workerPool = new WorkerPool();
+			workerPool = createWorkerPool();
 
 			if (!isPyodideLoaded) {
 				try {
 					console.log('Initializing Pyodide...');
 					pyodideReadyPromise = initializePyodide();
-					await pyodideReadyPromise;
-					isPyodideLoaded = true;
-					console.log('Pyodide loaded successfully');
+					pyodideReadyPromise.then(() => {
+						isPyodideLoaded = true;
+						console.log('Pyodide loaded successfully');
+					});
 				} catch (error) {
 					console.error('Error loading Pyodide:', error);
 				}
@@ -52,9 +52,7 @@
 	});
 
 	onDestroy(() => {
-		if (workerPool) {
-			workerPool.terminate();
-		}
+		workerPool?.terminate();
 	});
 
 	async function handleFileChangeEvent(event: Event) {
