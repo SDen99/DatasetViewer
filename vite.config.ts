@@ -9,5 +9,13 @@ export default defineConfig({
 	},
 	build: {
 		target: 'esnext',
+	},
+	optimizeDeps: {
+		exclude: ['pyodide']  // Add this
+	},
+	server: {
+		fs: {
+			allow: ['./node_modules/pyodide']  // Add this
+		}
 	}
 });
