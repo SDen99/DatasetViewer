@@ -7,14 +7,8 @@
 	import DataTable from '$lib/components/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { handleFileChange } from '$lib/fileHandler';
-	import { processSasFile } from '$lib/sasProcessor';
-	import { initializePyodide } from '$lib/pyodideInitializer';
-	import { WorkerPool } from '$lib/workerPool';
 	import { createWorkerPool } from '$lib/workerPool';
 
-	let pyodideReadyPromise: Promise<any> | null = null;
-	let isPyodideLoaded = false;
 	let workerPool: any;
 
 	const datasetsStore = writable<Map<string, any>>(new Map());
@@ -37,19 +31,6 @@
 			workerPool = createWorkerPool();
 			if (workerPool) {
 				await workerPool.initialize();
-			}
-
-			if (!isPyodideLoaded) {
-				try {
-					console.log('Initializing Pyodide...');
-					pyodideReadyPromise = initializePyodide();
-					pyodideReadyPromise.then(() => {
-						isPyodideLoaded = true;
-						console.log('Pyodide loaded successfully');
-					});
-				} catch (error) {
-					console.error('Error loading Pyodide:', error);
-				}
 			}
 		}
 	});
