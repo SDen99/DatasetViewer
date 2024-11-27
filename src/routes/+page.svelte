@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { get, writable } from 'svelte/store';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
@@ -13,6 +14,7 @@
 
 	let pyodideReadyPromise: Promise<any> | null = null;
 	let isPyodideLoaded = false;
+	let workerPool: any;
 
 	const datasetsStore = writable<Map<string, any>>(new Map());
 	const selectedDatasetStore = writable<string | null>(null);
@@ -20,7 +22,6 @@
 	const uploadTimeStore = writable<number | null>(null);
 	const selectedColumnsStore = writable<Map<string, Set<string>>>(new Map());
 	const columnOrderStore = writable<Map<string, string[]>>(new Map());
-	const workerPool = new WorkerPool();
 
 	function setLoadingState(state: boolean) {
 		isLoadingStore.set(state);
@@ -31,24 +32,34 @@
 	}
 
 	onMount(async () => {
-		if (!isPyodideLoaded) {
-			try {
-				console.log('Initializing Pyodide...');
-				pyodideReadyPromise = initializePyodide();
-				await pyodideReadyPromise;
-				isPyodideLoaded = true;
-				console.log('Pyodide loaded successfully');
-			} catch (error) {
-				console.error('Error loading Pyodide:', error);
+		if (browser) {
+			// Only initialize on the client side
+			const { WorkerPool } = await import('$lib/workerPool');
+			workerPool = new WorkerPool();
+
+			if (!isPyodideLoaded) {
+				try {
+					console.log('Initializing Pyodide...');
+					pyodideReadyPromise = initializePyodide();
+					await pyodideReadyPromise;
+					isPyodideLoaded = true;
+					console.log('Pyodide loaded successfully');
+				} catch (error) {
+					console.error('Error loading Pyodide:', error);
+				}
 			}
 		}
 	});
 
 	onDestroy(() => {
-		workerPool.terminate();
+		if (workerPool) {
+			workerPool.terminate();
+		}
 	});
 
 	async function handleFileChangeEvent(event: Event) {
+		if (!workerPool) return;
+
 		const input = event.target as HTMLInputElement;
 		const files = input.files;
 
