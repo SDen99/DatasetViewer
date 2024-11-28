@@ -1,22 +1,46 @@
-// fileProcessor.worker.ts
-import { pyodide } from './pyodideLoader.js';
+// fileProcessor.worker.js
+const PYODIDE_VERSION = 'v0.24.1';
+const PYODIDE_BASE_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
 
-interface WorkerInMessage {
-    type: 'PROCESS_FILE';
-    taskId: string;
-    file: ArrayBuffer;
-    fileName: string;
+self.loadPyodide = await import(`${PYODIDE_BASE_URL}pyodide.mjs`);
+
+let pyodide = null;
+
+// Create an initialization function that wraps everything in an async function
+function initialize() {
+    async function initializePyodideInWorker() {
+        try {
+            const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
+
+            pyodide = await pyodideModule.loadPyodide({
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+                stderr: (msg) => console.error('Python Error:', msg)
+            });
+
+            await pyodide.loadPackage('pandas');
+
+            self.postMessage({
+                type: 'PYODIDE_READY',
+                taskId: 'init'
+            });
+        } catch (error) {
+            console.error('Pyodide initialization error:', error);
+            self.postMessage({
+                type: 'PYODIDE_ERROR',
+                taskId: 'init',
+                error: error.message
+            });
+        }
+    }
+
+    // Start initialization
+    initializePyodideInWorker();
 }
 
-interface WorkerOutMessage {
-    taskId: string;
-    type: 'PROCESSING_COMPLETE' | 'PROCESSING_ERROR' | 'PYODIDE_READY' | 'PYODIDE_ERROR';
-    result?: any;
-    error?: string;
-    processingTime?: number;
-}
+// Call initialize function instead of having top-level await
+initialize();
 
-async function processSasFile(arrayBuffer: ArrayBuffer): Promise<any> {
+async function processSasFile(arrayBuffer) {
     if (!pyodide) {
         throw new Error('Pyodide not initialized');
     }
@@ -107,7 +131,7 @@ async function processSasFile(arrayBuffer: ArrayBuffer): Promise<any> {
 }
 
 // Handle messages from the main thread
-self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
+self.onmessage = async (e) => {
     const { type, taskId, file, fileName } = e.data;
 
     if (type === 'PROCESS_FILE') {
@@ -121,14 +145,14 @@ self.onmessage = async (e: MessageEvent<WorkerInMessage>) => {
                 taskId,
                 result,
                 processingTime: (performance.now() - startTime) / 1000
-            } as WorkerOutMessage);
+            });
         } catch (error) {
             self.postMessage({
                 type: 'PROCESSING_ERROR',
                 taskId,
                 error: error.message,
                 processingTime: (performance.now() - startTime) / 1000
-            } as WorkerOutMessage);
+            });
         }
     }
 };

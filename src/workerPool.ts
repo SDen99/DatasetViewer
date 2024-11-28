@@ -1,6 +1,5 @@
 // workerPool.ts
-import type { ProcessingResult } from './types';
-import { getWorkerURL, validateWorkerURL } from './workerSetup';
+import type { ProcessingResult } from './lib/types';
 
 interface WorkerTask {
     id: string;
@@ -15,6 +14,18 @@ interface ManagedWorker {
     busy: boolean;
     lastUsed: number;
     pyodideReady: boolean;
+}
+
+// This helper function determines if we're in production
+function getWorkerURL(workerPath: string): string {
+    console.log('import.meta', import.meta);
+    console.log(new URL('./fileProcessor.worker.js', import.meta.url).href)
+    //console.log('workerPath', workerPath);
+    //console.log('import.meta.env', ${ location.origin });
+    return new URL('./fileProcessor.worker.js', import.meta.url).href;
+    //return import.meta.env.PROD ?
+    //    `${import.meta.url}` :
+    //    `/src/${workerPath}`;
 }
 
 // Helper to safely get hardware concurrency
@@ -67,7 +78,11 @@ export class WorkerPool {
 
         return new Promise((resolve, reject) => {
             try {
-                const worker = new Worker(this.workerURL, { type: 'module' });
+                console.log('Creating worker with URL:', this.workerURL);
+                const worker = new Worker(this.workerURL, {
+                    type: 'module',
+                    name: 'fileProcessor'
+                });
 
                 const managedWorker: ManagedWorker = {
                     worker,

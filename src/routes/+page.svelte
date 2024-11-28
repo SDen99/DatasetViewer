@@ -7,7 +7,7 @@
 	import DataTable from '$lib/components/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { createWorkerPool } from '$lib/workerPool';
+	import { createWorkerPool } from '../workerPool';
 
 	let workerPool: any;
 
