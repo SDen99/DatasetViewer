@@ -1,4 +1,3 @@
-// fileProcessor.worker.js
 const PYODIDE_VERSION = 'v0.24.1';
 const PYODIDE_BASE_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
 

@@ -8,149 +8,192 @@
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { createWorkerPool } from '../workerPool';
+	import { DatasetService } from '../datasetService';
+	import { UIStateService } from '../uiStateService';
 
+	// Service instances
 	let workerPool: any;
+	let datasetService: DatasetService;
+	let uiStateService: UIStateService;
 
-	const datasetsStore = writable<Map<string, any>>(new Map());
-	const selectedDatasetStore = writable<string | null>(null);
+	// Reactive stores for UI state
 	const isLoadingStore = writable(false);
 	const uploadTimeStore = writable<number | null>(null);
-	const selectedColumnsStore = writable<Map<string, Set<string>>>(new Map());
-	const columnOrderStore = writable<Map<string, string[]>>(new Map());
 
-	function setLoadingState(state: boolean) {
-		isLoadingStore.set(state);
-	}
+	// State variables that will be automatically updated by Svelte
+	let datasets: Record<string, any> = {};
+	let selectedDataset: any = null;
+	let selectedDatasetId: string | null = null;
+	let selectedColumns: string[] = [];
+	let columnOrder: string[] = [];
 
-	function setUploadTime(time: number) {
-		uploadTimeStore.set(time);
-	}
-
+	// Initialize services and load initial data
 	onMount(async () => {
 		if (browser) {
+			// Initialize services
+			datasetService = DatasetService.getInstance();
+			uiStateService = UIStateService.getInstance();
+			await datasetService.initialize();
+
+			try {
+				datasets = await datasetService.getAllDatasets();
+				console.log('Initial datasets loaded:', datasets);
+			} catch (error) {
+				console.error('Error loading initial datasets:', error);
+			}
+
+			// Initialize worker pool
 			workerPool = createWorkerPool();
 			if (workerPool) {
 				await workerPool.initialize();
 			}
+
+			// Load initial state
+			await refreshState();
 		}
 	});
 
+	// Clean up resources
 	onDestroy(() => {
 		workerPool?.terminate();
 	});
 
+	// Function to refresh all state from our services
+	async function refreshState() {
+		// Get all datasets from IndexedDB
+		datasets = await datasetService.getAllDatasets();
+
+		// Get UI state from localStorage
+		selectedDatasetId = uiStateService.getSelectedDataset();
+
+		if (selectedDatasetId) {
+			selectedDataset = datasets[selectedDatasetId];
+			const columnState = uiStateService.getColumnState(selectedDatasetId);
+			selectedColumns = columnState.selectedColumns;
+			columnOrder = columnState.columnOrder;
+		} else {
+			selectedDataset = null;
+			selectedColumns = [];
+			columnOrder = [];
+		}
+	}
+
+	// Handle file uploads
 	async function handleFileChangeEvent(event: Event) {
-		if (!workerPool) return;
+		if (!workerPool || !datasetService) {
+			console.log('Missing required services:', {
+				hasWorkerPool: !!workerPool,
+				hasDatasetService: !!datasetService
+			});
+			return;
+		}
 
 		const input = event.target as HTMLInputElement;
 		const files = input.files;
 
 		if (!files || files.length === 0) {
+			console.log('No files selected');
 			return;
 		}
 
-		setLoadingState(true);
+		console.log('Starting file processing...', {
+			numberOfFiles: files.length,
+			fileNames: Array.from(files).map((f) => f.name)
+		});
+
+		isLoadingStore.set(true);
 		const startTime = performance.now();
-		const filePromises = [];
 
 		try {
-			// Convert all files to ArrayBuffers first
 			for (const file of files) {
 				if (!file.name.endsWith('.sas7bdat')) {
 					console.warn(`Skipping ${file.name} - not a SAS file`);
 					continue;
 				}
 
-				// Read the file into an ArrayBuffer
+				console.log(`Processing file: ${file.name}`);
 				const arrayBuffer = await file.arrayBuffer();
+				const result = await workerPool.processFile(arrayBuffer, file.name);
 
-				// Use the workerPool instance to process the file
-				const processPromise = workerPool
-					.processFile(arrayBuffer, file.name)
-					.then((result: any) => {
-						// Update store as each file completes
-						datasetsStore.update((datasets) => {
-							datasets.set(file.name, {
-								...result,
-								processingTime: (performance.now() - startTime) / 1000
-							});
-							return datasets;
-						});
-						return result;
-					});
+				// Log the processing result
+				console.log('Worker processing result:', {
+					fileName: file.name,
+					hasData: !!result.data,
+					dataLength: result.data?.length,
+					details: result.details
+				});
 
-				filePromises.push(processPromise);
+				// Create the dataset entry
+				const datasetEntry = {
+					fileName: file.name,
+					...result,
+					processingTime: (performance.now() - startTime) / 1000
+				};
+
+				console.log('Storing dataset:', {
+					fileName: datasetEntry.fileName,
+					processingTime: datasetEntry.processingTime,
+					details: datasetEntry.details
+				});
+
+				// Store the dataset in IndexedDB
+				await datasetService.addDataset(datasetEntry);
+				console.log(`Successfully stored ${file.name} in IndexedDB`);
 			}
 
-			// Wait for all files to be processed
-			await Promise.all(filePromises);
+			uploadTimeStore.set((performance.now() - startTime) / 1000);
 
-			const totalTime = (performance.now() - startTime) / 1000;
-			setUploadTime(totalTime);
+			console.log('Refreshing UI state...');
+			// Refresh the UI to show new datasets
+			await refreshState();
+			console.log('UI state refresh complete');
 		} catch (error) {
 			console.error('Error processing files:', error);
 		} finally {
-			setLoadingState(false);
+			isLoadingStore.set(false);
+			console.log('File processing complete');
 		}
 	}
 
+	// Handle dataset selection
+	async function handleDatasetSelect(datasetId: string) {
+		selectedDatasetId = datasetId;
+		uiStateService.setSelectedDataset(datasetId);
+
+		// Initialize column state if this is the first time selecting this dataset
+		if (datasets[datasetId]) {
+			const allColumns = Object.keys(datasets[datasetId].data[0] || {});
+			const initialColumns = allColumns.slice(0, 5); // Take first 5 columns
+
+			uiStateService.setColumnState(datasetId, initialColumns, allColumns);
+		}
+
+		await refreshState();
+	}
+
+	// Handle column visibility toggling
 	function handleColumnToggle(column: string, checked: boolean) {
-		selectedColumnsStore.update((selectedColumns) => {
-			const currentDataset = $selectedDatasetStore;
-			if (currentDataset) {
-				let columns = selectedColumns.get(currentDataset) || new Set();
-				if (checked) {
-					columns.add(column);
-				} else {
-					columns.delete(column);
-				}
-				selectedColumns.set(currentDataset, columns);
-			}
-			return selectedColumns;
-		});
+		if (!selectedDatasetId) return;
+
+		// Create a new array instead of modifying the existing Set
+		const newSelectedColumns = checked
+			? [...selectedColumns, column]
+			: selectedColumns.filter((col) => col !== column);
+
+		// Update UI state
+		uiStateService.setColumnState(selectedDatasetId, newSelectedColumns, columnOrder);
+
+		// Update local state
+		selectedColumns = newSelectedColumns;
 	}
-
-	let selectedDataset: any = null;
-
-	$: {
-		if ($selectedDatasetStore) {
-			selectedDataset = $datasetsStore.get($selectedDatasetStore);
-		} else {
-			selectedDataset = null;
-		}
-	}
-
+	// Handle column reordering
 	function handleColumnReorder(newOrder: string[]) {
-		const currentDataset = $selectedDatasetStore;
-		if (currentDataset) {
-			columnOrderStore.update((orders) => {
-				orders.set(currentDataset, newOrder);
-				return orders;
-			});
-		}
-	}
+		if (!selectedDatasetId) return;
 
-	// Initialize columnOrder when a dataset is selected
-	$: if (selectedDataset) {
-		const currentDataset = $selectedDatasetStore;
-		if (currentDataset) {
-			const allColumns = Object.keys(selectedDataset.data[0] || {});
-			const initialColumns = new Set(allColumns.slice(0, 5)); // Take first 5 columns
+		uiStateService.setColumnState(selectedDatasetId, selectedColumns, newOrder);
 
-			// Update selectedColumns
-			selectedColumnsStore.update((selectedColumns) => {
-				selectedColumns.set(currentDataset, initialColumns);
-				return selectedColumns;
-			});
-
-			// Update columnOrder (maintain full list of columns for ordering)
-			columnOrderStore.update((orders) => {
-				if (!orders.has(currentDataset)) {
-					orders.set(currentDataset, allColumns);
-				}
-				return orders;
-			});
-		}
+		// Update local state
+		columnOrder = newOrder;
 	}
 </script>
 
@@ -159,21 +202,17 @@
 
 	<div class="flex flex-1 overflow-hidden">
 		<DatasetList
-			datasets={$datasetsStore}
-			selectedDataset={$selectedDatasetStore}
-			onSelectDataset={(dataset) => selectedDatasetStore.set(dataset)}
+			{datasets}
+			selectedDataset={selectedDatasetId}
+			onSelectDataset={handleDatasetSelect}
 		/>
 
 		<section class="flex-1 overflow-x-auto p-4">
 			{#if selectedDataset}
 				<DataTable
 					data={selectedDataset.data}
-					selectedColumns={$selectedDatasetStore
-						? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
-						: new Set()}
-					columnOrder={$selectedDatasetStore
-						? ($columnOrderStore.get($selectedDatasetStore) ?? [])
-						: []}
+					selectedColumns={new Set(selectedColumns)}
+					{columnOrder}
 					onReorderColumns={handleColumnReorder}
 				/>
 			{/if}
@@ -182,12 +221,8 @@
 		{#if selectedDataset}
 			<VariableList
 				variables={selectedDataset.details.columns}
-				selectedColumns={$selectedDatasetStore
-					? ($selectedColumnsStore.get($selectedDatasetStore) ?? new Set())
-					: new Set()}
-				columnOrder={$selectedDatasetStore
-					? ($columnOrderStore.get($selectedDatasetStore) ?? [])
-					: []}
+				selectedColumns={new Set(selectedColumns)}
+				{columnOrder}
 				onColumnToggle={handleColumnToggle}
 				onReorderVariables={handleColumnReorder}
 			/>

@@ -1,9 +1,11 @@
 <script lang="ts">
+	export let variables: string[]; // New prop for available variables
 	export let selectedColumns: Set<string>;
 	export let columnOrder: string[];
 	export let onColumnToggle: (column: string, checked: boolean) => void;
 	export let onReorderVariables: (newOrder: string[]) => void;
 
+	// Preserve drag and drop functionality
 	let draggedVariable: string | null = null;
 
 	function handleDragStart(e: DragEvent, variable: string) {
@@ -35,12 +37,21 @@
 		onReorderVariables(newOrder);
 		draggedVariable = null;
 	}
+
+	// Sort variables based on columnOrder
+	$: sortedVariables = [...variables].sort((a, b) => {
+		const aIndex = columnOrder.indexOf(a);
+		const bIndex = columnOrder.indexOf(b);
+		if (aIndex === -1) return 1;
+		if (bIndex === -1) return -1;
+		return aIndex - bIndex;
+	});
 </script>
 
 <aside class="w-1/4 bg-white p-4 shadow-md">
 	<h2 class="mb-4 text-xl font-bold">Variables</h2>
 	<ul class="pl-5">
-		{#each columnOrder as variable}
+		{#each sortedVariables as variable}
 			<li
 				draggable="true"
 				on:dragstart={(e) => handleDragStart(e, variable)}
