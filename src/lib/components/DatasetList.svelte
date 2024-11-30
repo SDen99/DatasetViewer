@@ -46,7 +46,7 @@
 <aside class="w-1/4 bg-white p-4 shadow-md">
 	<h2 class="mb-4 text-xl font-bold">Datasets</h2>
 	{#if datasetEntries.length > 0}
-		<ul class="space-y-2">
+		<ul>
 			{#each datasetEntries as datasetName}
 				<li class="flex items-center pl-2">
 					<button

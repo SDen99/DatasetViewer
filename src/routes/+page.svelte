@@ -91,78 +91,55 @@
 
 	// Handle file uploads
 	async function handleFileChangeEvent(event: Event) {
-		if (!workerPool || !datasetService) {
-			console.log('Missing required services:', {
-				hasWorkerPool: !!workerPool,
-				hasDatasetService: !!datasetService
-			});
-			return;
-		}
+		if (!workerPool || !datasetService) return;
 
-		const input = event.target as HTMLInputElement;
-		const files = input.files;
-
-		if (!files || files.length === 0) {
-			console.log('No files selected');
-			return;
-		}
-
-		console.log('Starting file processing...', {
-			numberOfFiles: files.length,
-			fileNames: Array.from(files).map((f) => f.name)
-		});
+		const files = (event.target as HTMLInputElement).files;
+		if (!files?.length) return;
 
 		isLoadingStore.set(true);
 		const startTime = performance.now();
 
 		try {
-			for (const file of files) {
-				if (!file.name.endsWith('.sas7bdat')) {
-					console.warn(`Skipping ${file.name} - not a SAS file`);
-					continue;
-				}
+			// Create a progress store if you want to show upload progress
+			const progress = writable({
+				current: 0,
+				total: files.length,
+				currentFileName: ''
+			});
 
-				console.log(`Processing file: ${file.name}`);
+			for (const file of files) {
+				if (!file.name.endsWith('.sas7bdat')) continue;
+
+				// Update progress
+				progress.update((p) => ({
+					...p,
+					currentFileName: file.name
+				}));
+
 				const arrayBuffer = await file.arrayBuffer();
 				const result = await workerPool.processFile(arrayBuffer, file.name);
 
-				// Log the processing result
-				console.log('Worker processing result:', {
-					fileName: file.name,
-					hasData: !!result.data,
-					dataLength: result.data?.length,
-					details: result.details
-				});
-
-				// Create the dataset entry
 				const datasetEntry = {
 					fileName: file.name,
 					...result,
 					processingTime: (performance.now() - startTime) / 1000
 				};
 
-				console.log('Storing dataset:', {
-					fileName: datasetEntry.fileName,
-					processingTime: datasetEntry.processingTime,
-					details: datasetEntry.details
-				});
-
-				// Store the dataset in IndexedDB
 				await datasetService.addDataset(datasetEntry);
-				console.log(`Successfully stored ${file.name} in IndexedDB`);
+
+				// Update progress after each file
+				progress.update((p) => ({
+					...p,
+					current: p.current + 1
+				}));
 			}
 
 			uploadTimeStore.set((performance.now() - startTime) / 1000);
-
-			console.log('Refreshing UI state...');
-			// Refresh the UI to show new datasets
 			await refreshState();
-			console.log('UI state refresh complete');
 		} catch (error) {
-			console.error('Error processing files:', error);
+			console.log(error, 'processing files');
 		} finally {
 			isLoadingStore.set(false);
-			console.log('File processing complete');
 		}
 	}
 
