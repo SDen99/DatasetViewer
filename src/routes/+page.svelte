@@ -9,7 +9,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { createWorkerPool } from '../workerPool';
 	import { DatasetService } from '../datasetService';
-	import { UIStateService } from '../xxxxuiStateService';
+	import { UIStateService } from '../UIStateService';
 
 	// Service instances
 	let workerPool: any;
