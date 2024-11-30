@@ -60,17 +60,28 @@
 
 	// Function to refresh all state from our services
 	async function refreshState() {
-		// Get all datasets from IndexedDB
 		datasets = await datasetService.getAllDatasets();
-
-		// Get UI state from localStorage
 		selectedDatasetId = uiStateService.getSelectedDataset();
 
-		if (selectedDatasetId) {
+		if (selectedDatasetId && datasets[selectedDatasetId]) {
 			selectedDataset = datasets[selectedDatasetId];
 			const columnState = uiStateService.getColumnState(selectedDatasetId);
-			selectedColumns = columnState.selectedColumns;
-			columnOrder = columnState.columnOrder;
+
+			// If we have existing column state, use it
+			if (columnState.selectedColumns.length > 0) {
+				selectedColumns = columnState.selectedColumns;
+			} else {
+				// Initialize with default columns if no state exists
+				selectedColumns = Object.keys(selectedDataset.data[0] || {}).slice(0, 5);
+			}
+
+			// If we have existing column order, use it
+			if (columnState.columnOrder.length > 0) {
+				columnOrder = columnState.columnOrder;
+			} else {
+				// Initialize with all columns if no order exists
+				columnOrder = Object.keys(selectedDataset.data[0] || {});
+			}
 		} else {
 			selectedDataset = null;
 			selectedColumns = [];
@@ -156,19 +167,56 @@
 	}
 
 	// Handle dataset selection
-	async function handleDatasetSelect(datasetId: string) {
+	async function onSelectDataset(datasetId: string) {
 		selectedDatasetId = datasetId;
 		uiStateService.setSelectedDataset(datasetId);
 
-		// Initialize column state if this is the first time selecting this dataset
 		if (datasets[datasetId]) {
-			const allColumns = Object.keys(datasets[datasetId].data[0] || {});
-			const initialColumns = allColumns.slice(0, 5); // Take first 5 columns
+			// Only initialize if there's no existing state
+			if (!uiStateService.hasColumnState(datasetId)) {
+				const allColumns = Object.keys(datasets[datasetId].data[0] || {});
+				const initialColumns = allColumns.slice(0, 5); // Take first 5 columns
 
-			uiStateService.setColumnState(datasetId, initialColumns, allColumns);
+				uiStateService.setColumnState(datasetId, initialColumns, allColumns);
+			}
 		}
 
 		await refreshState();
+	}
+
+	async function onDeleteDataset(datasetId: string) {
+		try {
+			console.log(`Starting deletion of dataset: ${datasetId}`);
+
+			// Remove from IndexedDB
+			await datasetService.removeDataset(datasetId);
+			console.log(`Dataset removed from IndexedDB: ${datasetId}`);
+
+			// Clear UI state for this dataset
+			uiStateService.clearStateForDataset(datasetId);
+			console.log(`UI state cleared for dataset: ${datasetId}`);
+
+			// If the deleted dataset was selected, clear the selection
+			if (selectedDatasetId === datasetId) {
+				selectedDatasetId = null;
+				selectedDataset = null;
+				selectedColumns = [];
+				columnOrder = [];
+				console.log('Cleared selected dataset state');
+			}
+
+			// Force a refresh of the datasets list
+			datasets = await datasetService.getAllDatasets();
+			console.log('Dataset list refreshed', datasets);
+
+			// Force a Svelte update by reassigning the datasets object
+			datasets = { ...datasets };
+
+			console.log(`Successfully completed deletion of dataset: ${datasetId}`);
+		} catch (error) {
+			console.error('Error deleting dataset:', error);
+			// You might want to add user-visible error handling here
+		}
 	}
 
 	// Handle column visibility toggling
@@ -204,9 +252,9 @@
 		<DatasetList
 			{datasets}
 			selectedDataset={selectedDatasetId}
-			onSelectDataset={handleDatasetSelect}
+			{onSelectDataset}
+			{onDeleteDataset}
 		/>
-
 		<section class="flex-1 overflow-x-auto p-4">
 			{#if selectedDataset}
 				<DataTable

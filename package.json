@@ -21,22 +21,42 @@
 		"@tailwindcss/typography": "^0.5.15",
 		"@types/eslint": "^9.6.0",
 		"autoprefixer": "^10.4.20",
+		"bits-ui": "^0.21.16",
+		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.36.0",
 		"globals": "^15.0.0",
+		"lucide-svelte": "^0.462.0",
 		"prettier": "^3.3.2",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
+		"tailwind-merge": "^2.5.5",
+		"tailwind-variants": "^0.3.0",
 		"tailwindcss": "^3.4.9",
+		"tailwindcss-animate": "^1.0.7",
 		"typescript": "^5.0.0",
 		"typescript-eslint": "^8.0.0",
 		"vite": "^5.0.3"
 	},
 	"dependencies": {
 		"@sveltejs/adapter-vercel": "^5.4.8",
-		"pyodide": "^0.26.3"
-	}
+		"class-variance-authority": "^0.7.1",
+		"pyodide": "^0.26.3",
+		"vaul-svelte": "^0.3.2"
+	},
+	"description": "Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).",
+	"main": "index.ts",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SDen99/DatasetViewer.git"
+	},
+	"author": "Densham",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/SDen99/DatasetViewer/issues"
+	},
+	"homepage": "https://github.com/SDen99/DatasetViewer#readme"
 }

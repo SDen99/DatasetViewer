@@ -46,12 +46,15 @@ export class UIStateService {
         this.setState(state);
     }
 
-    public getColumnState(fileName: string) {
+    public getColumnState(datasetId: string): { selectedColumns: string[], columnOrder: string[] } {
         const state = this.getState();
-        return state.columnStates[fileName] || {
-            selectedColumns: [],
-            columnOrder: []
-        };
+        return state.columnStates[datasetId] || { selectedColumns: [], columnOrder: [] };
+    }
+
+    public hasColumnState(datasetId: string): boolean {
+        const state = this.getState();
+        const columnState = state.columnStates[datasetId];
+        return !!(columnState && (columnState.selectedColumns.length > 0 || columnState.columnOrder.length > 0));
     }
 
     public setColumnState(
@@ -74,6 +77,9 @@ export class UIStateService {
     }
 
     public clearAll(): void {
-        localStorage.removeItem(this.storageKey);
+        this.setState({
+            selectedDataset: null,
+            columnStates: {}
+        });
     }
 }
