@@ -138,12 +138,15 @@ self.onmessage = async (e) => {
 
         try {
             const result = await processSasFile(file);
+            const processingTime = (performance.now() - startTime) / 1000;
 
             self.postMessage({
                 type: 'PROCESSING_COMPLETE',
                 taskId,
-                result,
-                processingTime: (performance.now() - startTime) / 1000
+                result: {
+                    ...result,
+                    processingTime
+                }
             });
         } catch (error) {
             self.postMessage({

@@ -7,14 +7,14 @@
 
 <footer class="flex w-full items-center justify-between bg-gray-800 p-4 text-white">
 	<div>
-		{#if uploadTime !== undefined}
+		{#if uploadTime !== null}
 			<p class="text-sm">
 				Upload and processing time: {uploadTime} seconds
 			</p>
 		{/if}
 	</div>
 	<div>
-		{#if numColumns !== undefined && numRows !== undefined}
+		{#if numColumns !== null && numRows !== null}
 			<p class="text-sm">
 				Variables: {numColumns}
 				Records: {numRows}

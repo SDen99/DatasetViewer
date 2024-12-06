@@ -1,20 +1,6 @@
 // workerPool.ts
-import type { ProcessingResult } from './lib/types';
+import type { ProcessingResult, WorkerTask, ManagedWorker, DatasetLoadingState } from './lib/types';
 
-interface WorkerTask {
-    id: string;
-    file: ArrayBuffer;
-    fileName: string;
-    resolve: (result: ProcessingResult) => void;
-    reject: (error: Error) => void;
-}
-
-interface ManagedWorker {
-    worker: Worker;
-    busy: boolean;
-    lastUsed: number;
-    pyodideReady: boolean;
-}
 
 // This helper function determines if we're in production
 function getWorkerURL(workerPath: string): string {
@@ -147,26 +133,6 @@ export class WorkerPool {
         return worker;
     }
 
-    private handleWorkerMessage(e: MessageEvent, managedWorker: ManagedWorker) {
-        const task = this.taskQueue.find(t => t.id === e.data.taskId);
-        if (!task) return;
-
-        if (e.data.type === 'PROCESSING_COMPLETE') {
-            task.resolve(e.data.result);
-        } else if (e.data.type === 'PROCESSING_ERROR') {
-            task.reject(new Error(e.data.error));
-        }
-
-        managedWorker.busy = false;
-        managedWorker.lastUsed = Date.now();
-
-        // Remove the completed task
-        this.taskQueue = this.taskQueue.filter(t => t.id !== e.data.taskId);
-
-        // Process next task if available
-        this.processNextTask();
-    }
-
     private handleWorkerError(e: ErrorEvent, managedWorker: ManagedWorker) {
         console.error('Worker error:', e);
         managedWorker.busy = false;
@@ -210,7 +176,27 @@ export class WorkerPool {
         });
     }
 
-    public async processFile(file: ArrayBuffer, fileName: string): Promise<ProcessingResult> {
+    private handleWorkerMessage(e: MessageEvent, managedWorker: ManagedWorker) {
+        const task = this.taskQueue.find(t => t.id === e.data.taskId);
+        if (!task) return;
+
+        if (e.data.type === 'PROCESSING_COMPLETE') {
+            task.resolve(e.data.result);
+        } else if (e.data.type === 'PROCESSING_ERROR') {
+            task.reject(new Error(e.data.error));
+        }
+
+        managedWorker.busy = false;
+        managedWorker.lastUsed = Date.now();
+        this.taskQueue = this.taskQueue.filter(t => t.id !== e.data.taskId);
+        this.processNextTask();
+    }
+
+    public async processFile(
+        file: File,
+        fileName: string,
+        progressCallback: (state: DatasetLoadingState) => void
+    ): Promise<ProcessingResult> {
         if (!this.isInitialized) {
             await this.initialize();
         }
@@ -218,14 +204,57 @@ export class WorkerPool {
         return new Promise((resolve, reject) => {
             const task: WorkerTask = {
                 id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                file,
+                file: null, // We'll read the file progressively
                 fileName,
                 resolve,
                 reject
             };
 
-            this.taskQueue.push(task);
-            this.processNextTask();
+            // Start reading the file with progress tracking
+            const reader = new FileReader();
+            let loadingState: DatasetLoadingState = {
+                progress: 0,
+                fileName,
+                totalSize: file.size,
+                loadedSize: 0,
+                status: 'loading'
+            };
+
+            reader.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    loadingState = {
+                        ...loadingState,
+                        loadedSize: event.loaded,
+                        progress: (event.loaded / event.total) * 50 // First 50% is loading
+                    };
+                    progressCallback(loadingState);
+                }
+            };
+
+            reader.onload = async (e) => {
+                task.file = e.target?.result as ArrayBuffer;
+                loadingState = {
+                    ...loadingState,
+                    status: 'processing',
+                    progress: 50 // Start processing at 50%
+                };
+                progressCallback(loadingState);
+
+                this.taskQueue.push(task);
+                this.processNextTask();
+            };
+
+            reader.onerror = (error) => {
+                loadingState = {
+                    ...loadingState,
+                    status: 'error',
+                    error: 'Failed to read file'
+                };
+                progressCallback(loadingState);
+                reject(error);
+            };
+
+            reader.readAsArrayBuffer(file);
         });
     }
 

@@ -10,6 +10,7 @@
 	import { createWorkerPool } from '../workerPool';
 	import { DatasetService } from '../datasetService';
 	import { UIStateService } from '../UIStateService';
+	import type { DatasetLoadingState } from '../types';
 
 	// Service instances
 	let workerPool: any;
@@ -18,7 +19,12 @@
 
 	// Reactive stores for UI state
 	const isLoadingStore = writable(false);
-	const uploadTimeStore = writable<number | null>(null);
+	const processingStatsStore = writable({
+		uploadTime: null,
+		numColumns: null,
+		numRows: null
+	});
+	const loadingDatasetsStore = writable<Record<string, DatasetLoadingState>>({});
 
 	// State variables that will be automatically updated by Svelte
 	let datasets: Record<string, any> = {};
@@ -26,6 +32,10 @@
 	let selectedDatasetId: string | null = null;
 	let selectedColumns: string[] = [];
 	let columnOrder: string[] = [];
+
+	interface LoadingDatasets {
+		[key: string]: DatasetLoadingState;
+	}
 
 	// Initialize services and load initial data
 	onMount(async () => {
@@ -96,50 +106,75 @@
 		const files = (event.target as HTMLInputElement).files;
 		if (!files?.length) return;
 
-		isLoadingStore.set(true);
-		const startTime = performance.now();
+		for (const file of files) {
+			if (!file.name.endsWith('.sas7bdat')) continue;
 
-		try {
-			// Create a progress store if you want to show upload progress
-			const progress = writable({
-				current: 0,
-				total: files.length,
-				currentFileName: ''
-			});
+			// Add the file to the loading state immediately
+			loadingDatasetsStore.update((state) => ({
+				...state,
+				[file.name]: {
+					progress: 0,
+					fileName: file.name,
+					totalSize: file.size,
+					loadedSize: 0,
+					status: 'loading'
+				}
+			}));
 
-			for (const file of files) {
-				if (!file.name.endsWith('.sas7bdat')) continue;
+			try {
+				const result = await workerPool.processFile(
+					file,
+					file.name,
+					(state: DatasetLoadingState) => {
+						loadingDatasetsStore.update((current) => ({
+							...current,
+							[file.name]: state
+						}));
+					}
+				);
 
-				// Update progress
-				progress.update((p) => ({
-					...p,
-					currentFileName: file.name
-				}));
+				processingStatsStore.set({
+					uploadTime: result.processingTime?.toFixed(2),
+					numColumns: result.details?.num_columns,
+					numRows: result.details?.num_rows
+				});
 
-				const arrayBuffer = await file.arrayBuffer();
-				const result = await workerPool.processFile(arrayBuffer, file.name);
+				console.log('Processing complete:', result);
 
 				const datasetEntry = {
 					fileName: file.name,
-					...result,
-					processingTime: (performance.now() - startTime) / 1000
+					...result
 				};
 
-				await datasetService.addDataset(datasetEntry);
+				await datasetService.addDataset({
+					fileName: file.name,
+					...result,
+					processingStats: {
+						uploadTime: Number(result.processingTime?.toFixed(2)),
+						numColumns: result.details?.num_columns,
+						numRows: result.details?.num_rows
+					}
+				});
 
-				// Update progress after each file
-				progress.update((p) => ({
-					...p,
-					current: p.current + 1
+				// Remove from loading state once complete
+				loadingDatasetsStore.update((state) => {
+					const newState = { ...state };
+					delete newState[file.name];
+					return newState;
+				});
+
+				// Refresh the datasets list
+				await refreshState();
+			} catch (error) {
+				loadingDatasetsStore.update((state) => ({
+					...state,
+					[file.name]: {
+						...state[file.name],
+						status: 'error',
+						error: error.message
+					}
 				}));
 			}
-
-			uploadTimeStore.set((performance.now() - startTime) / 1000);
-			await refreshState();
-		} catch (error) {
-			console.log(error, 'processing files');
-		} finally {
-			isLoadingStore.set(false);
 		}
 	}
 
@@ -149,13 +184,12 @@
 		uiStateService.setSelectedDataset(datasetId);
 
 		if (datasets[datasetId]) {
-			// Only initialize if there's no existing state
-			if (!uiStateService.hasColumnState(datasetId)) {
-				const allColumns = Object.keys(datasets[datasetId].data[0] || {});
-				const initialColumns = allColumns.slice(0, 5); // Take first 5 columns
-
-				uiStateService.setColumnState(datasetId, initialColumns, allColumns);
-			}
+			const stats = datasets[datasetId].processingStats || {
+				uploadTime: null,
+				numColumns: null,
+				numRows: null
+			};
+			processingStatsStore.set(stats);
 		}
 
 		await refreshState();
@@ -231,6 +265,7 @@
 			selectedDataset={selectedDatasetId}
 			{onSelectDataset}
 			{onDeleteDataset}
+			loadingDatasets={$loadingDatasetsStore}
 		/>
 		<section class="flex-1 overflow-x-auto p-4">
 			{#if selectedDataset}
@@ -255,8 +290,8 @@
 	</div>
 
 	<Footer
-		uploadTime={selectedDataset?.processingTime.toFixed(2)}
-		numColumns={selectedDataset?.details.num_columns}
-		numRows={selectedDataset?.details.num_rows}
+		uploadTime={$processingStatsStore.uploadTime}
+		numColumns={$processingStatsStore.numColumns}
+		numRows={$processingStatsStore.numRows}
 	/>
 </main>
