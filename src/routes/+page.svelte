@@ -2,6 +2,13 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { writable } from 'svelte/store';
+	// Import shadcn components
+	import * as Card from '$lib/components/ui/card';
+	import * as Button from '$lib/components/ui/button';
+	import * as ScrollArea from '$lib/components/ui/scroll-area';
+	import * as Separator from '$lib/components/ui/separator';
+	import { PanelLeftOpen, PanelRightOpen, PanelLeftClose, PanelRightClose } from 'lucide-svelte';
+
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
@@ -16,6 +23,10 @@
 	let workerPool: any;
 	let datasetService: DatasetService;
 	let uiStateService: UIStateService;
+
+	// Add state for responsive sidebar toggles
+	let isLeftSidebarOpen = true;
+	let isRightSidebarOpen = true;
 
 	// Reactive stores for UI state
 	const isLoadingStore = writable(false);
@@ -260,40 +271,121 @@
 	}
 </script>
 
-<main class="flex min-h-screen flex-col bg-gray-100">
+<main class="flex max-h-screen min-h-screen flex-col bg-background">
 	<Navigation {handleFileChangeEvent} isLoading={$isLoadingStore} />
 
-	<div class="flex flex-1 overflow-hidden">
-		<DatasetList
-			{datasets}
-			selectedDataset={selectedDatasetId}
-			{onSelectDataset}
-			{onDeleteDataset}
-			loadingDatasets={$loadingDatasetsStore}
-		/>
-		<section class="flex-1 overflow-x-auto p-4">
-			{#if selectedDataset}
-				<DataTable
-					data={selectedDataset.data}
-					selectedColumns={new Set(selectedColumns)}
-					{columnOrder}
-					onReorderColumns={handleColumnReorder}
-				/>
-			{/if}
-		</section>
-
-		{#if selectedDataset}
-			<VariableList
-				variables={selectedDataset.details.columns.map((col: string) => ({
-					name: col,
-					dtype: selectedDataset.details.dtypes[col]
-				}))}
-				selectedColumns={new Set(selectedColumns)}
-				{columnOrder}
-				onColumnToggle={handleColumnToggle}
-				onReorderVariables={handleColumnReorder}
-			/>
+	<div class="fixed bottom-4 left-4 z-50 flex gap-2">
+		{#if !isLeftSidebarOpen}
+			<Button.Root
+				variant="default"
+				size="icon"
+				on:click={() => (isLeftSidebarOpen = true)}
+				aria-label="Show left sidebar"
+			>
+				<PanelLeftClose class="h-4 w-4" />
+			</Button.Root>
 		{/if}
+
+		{#if !isRightSidebarOpen}
+			<Button.Root
+				variant="default"
+				size="icon"
+				on:click={() => (isRightSidebarOpen = true)}
+				aria-label="Show right sidebar"
+			>
+				<PanelRightClose class="h-4 w-4" />
+			</Button.Root>
+		{/if}
+	</div>
+
+	<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
+		<!-- Left Sidebar -->
+		<div
+			class="relative {isLeftSidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out"
+		>
+			<ScrollArea.Root class="h-[calc(100vh-8rem)] border-r border-border bg-card">
+				<div class="p-4">
+					<div class="mb-4 flex items-center justify-between">
+						<h2 class="text-lg font-semibold">Datasets</h2>
+						<Button.Root
+							variant="ghost"
+							size="icon"
+							on:click={() => (isLeftSidebarOpen = !isLeftSidebarOpen)}
+						>
+							<PanelLeftOpen class="h-4 w-4" />
+						</Button.Root>
+					</div>
+					<DatasetList
+						{datasets}
+						selectedDataset={selectedDatasetId}
+						{onSelectDataset}
+						{onDeleteDataset}
+						loadingDatasets={$loadingDatasetsStore}
+					/>
+				</div>
+			</ScrollArea.Root>
+		</div>
+
+		<!-- Main Content -->
+		<div class="min-w-0 flex-1 overflow-auto">
+			{#if selectedDataset}
+				<div class="h-full p-6">
+					<Card.Root class="flex h-full flex-col">
+						<Card.Content class="flex-1 overflow-hidden p-0">
+							<ScrollArea.Root class="h-full">
+								<div class="p-4">
+									<DataTable
+										data={selectedDataset.data}
+										selectedColumns={new Set(selectedColumns)}
+										{columnOrder}
+										onReorderColumns={handleColumnReorder}
+									/>
+								</div>
+							</ScrollArea.Root>
+						</Card.Content>
+					</Card.Root>
+				</div>
+			{:else}
+				<div class="flex flex-1 items-center justify-center">
+					<div class="text-center text-muted-foreground">
+						<h3 class="text-lg font-medium">No dataset selected</h3>
+						<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+					</div>
+				</div>
+			{/if}
+		</div>
+
+		<!-- Right Sidebar -->
+		<div
+			class="relative {isRightSidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out"
+		>
+			{#if selectedDataset}
+				<ScrollArea.Root class="h-[calc(100vh-8rem)] border-l border-border bg-card">
+					<div class="p-4">
+						<div class="mb-4 flex items-center justify-between">
+							<h2 class="text-lg font-semibold">Variables</h2>
+							<Button.Root
+								variant="ghost"
+								size="icon"
+								on:click={() => (isRightSidebarOpen = !isRightSidebarOpen)}
+							>
+								<PanelRightOpen class="h-4 w-4" />
+							</Button.Root>
+						</div>
+						<VariableList
+							variables={selectedDataset.details.columns.map((col: string) => ({
+								name: col,
+								dtype: selectedDataset.details.dtypes[col]
+							}))}
+							selectedColumns={new Set(selectedColumns)}
+							{columnOrder}
+							onColumnToggle={handleColumnToggle}
+							onReorderVariables={handleColumnReorder}
+						/>
+					</div>
+				</ScrollArea.Root>
+			{/if}
+		</div>
 	</div>
 
 	<Footer

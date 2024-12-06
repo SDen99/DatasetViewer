@@ -1,13 +1,28 @@
 <script lang="ts">
+	import {
+		Table,
+		TableBody,
+		TableCell,
+		TableHead,
+		TableHeader,
+		TableRow
+	} from '$lib/components/ui/table';
+	import { GripVertical } from 'lucide-svelte';
+
 	export let data: any[];
 	export let selectedColumns: Set<string>;
 	export let columnOrder: string[];
 	export let onReorderColumns: (newOrder: string[]) => void;
 
-	// Preserve drag and drop functionality
 	let draggedColumn: string | null = null;
+	let dragOverColumn: string | null = null;
 
 	function handleDragStart(e: DragEvent, column: string) {
+		if (!(e.target as HTMLElement).closest('[role="button"]')) {
+			e.preventDefault();
+			return;
+		}
+
 		draggedColumn = column;
 		if (e.dataTransfer) {
 			e.dataTransfer.effectAllowed = 'move';
@@ -15,15 +30,22 @@
 		}
 	}
 
-	function handleDragOver(e: DragEvent) {
+	function handleDragOver(e: DragEvent, column: string) {
 		e.preventDefault();
 		if (e.dataTransfer) {
 			e.dataTransfer.dropEffect = 'move';
 		}
+		dragOverColumn = column;
+	}
+
+	function handleDragLeave() {
+		dragOverColumn = null;
 	}
 
 	function handleDrop(e: DragEvent, targetColumn: string) {
 		e.preventDefault();
+		dragOverColumn = null;
+
 		if (!draggedColumn || draggedColumn === targetColumn) return;
 
 		const newOrder = [...columnOrder];
@@ -37,10 +59,8 @@
 		draggedColumn = null;
 	}
 
-	// Use a reactive statement to derive visible columns
 	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
 
-	// Track the actual column data separately
 	$: tableData = data.map((row) => {
 		const visibleData: Record<string, any> = {};
 		visibleColumns.forEach((col) => {
@@ -50,31 +70,43 @@
 	});
 </script>
 
-<table class="min-w-full bg-white">
-	<thead>
-		<tr>
-			{#each visibleColumns as column}
-				<th
-					draggable="true"
-					on:dragstart={(e) => handleDragStart(e, column)}
-					on:dragover={handleDragOver}
-					on:drop={(e) => handleDrop(e, column)}
-					class="cursor-move border-b border-gray-200 bg-gray-100 px-4 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-200"
-				>
-					{column}
-				</th>
-			{/each}
-		</tr>
-	</thead>
-	<tbody>
-		{#each tableData.slice(0, 10) as row}
-			<tr>
+<div class="rounded-md border">
+	<Table>
+		<TableHeader>
+			<TableRow>
 				{#each visibleColumns as column}
-					<td class="border-b border-gray-200 px-4 py-2 text-sm text-gray-700">
-						{row[column]}
-					</td>
+					<TableHead
+						class="relative {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+						draggable={false}
+					>
+						<div class="flex items-center gap-2">
+							<div
+								role="button"
+								tabindex="0"
+								aria-label="Drag to reorder column"
+								draggable="true"
+								on:dragstart={(e) => handleDragStart(e, column)}
+								on:dragover={(e) => handleDragOver(e, column)}
+								on:dragleave={handleDragLeave}
+								on:drop={(e) => handleDrop(e, column)}
+								class="cursor-move rounded p-1 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+							>
+								<GripVertical class="h-4 w-4 text-muted-foreground" />
+							</div>
+							<span class="select-none">{column}</span>
+						</div>
+					</TableHead>
 				{/each}
-			</tr>
-		{/each}
-	</tbody>
-</table>
+			</TableRow>
+		</TableHeader>
+		<TableBody>
+			{#each tableData.slice(0, 10) as row}
+				<TableRow>
+					{#each visibleColumns as column}
+						<TableCell>{row[column]}</TableCell>
+					{/each}
+				</TableRow>
+			{/each}
+		</TableBody>
+	</Table>
+</div>
