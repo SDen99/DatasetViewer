@@ -22,7 +22,8 @@
 	const processingStatsStore = writable({
 		uploadTime: null,
 		numColumns: null,
-		numRows: null
+		numRows: null,
+		datasetSize: null
 	});
 	const loadingDatasetsStore = writable<Record<string, DatasetLoadingState>>({});
 
@@ -136,7 +137,8 @@
 				processingStatsStore.set({
 					uploadTime: result.processingTime?.toFixed(2),
 					numColumns: result.details?.num_columns,
-					numRows: result.details?.num_rows
+					numRows: result.details?.num_rows,
+					datasetSize: file.size
 				});
 
 				console.log('Processing complete:', result);
@@ -152,7 +154,8 @@
 					processingStats: {
 						uploadTime: Number(result.processingTime?.toFixed(2)),
 						numColumns: result.details?.num_columns,
-						numRows: result.details?.num_rows
+						numRows: result.details?.num_rows,
+						datasetSize: file.size
 					}
 				});
 
@@ -187,7 +190,8 @@
 			const stats = datasets[datasetId].processingStats || {
 				uploadTime: null,
 				numColumns: null,
-				numRows: null
+				numRows: null,
+				datasetSize: null
 			};
 			processingStatsStore.set(stats);
 		}
@@ -296,5 +300,6 @@
 		uploadTime={$processingStatsStore.uploadTime}
 		numColumns={$processingStatsStore.numColumns}
 		numRows={$processingStatsStore.numRows}
+		datasetSize={$processingStatsStore.datasetSize}
 	/>
 </main>
