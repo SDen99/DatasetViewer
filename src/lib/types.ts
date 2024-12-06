@@ -49,3 +49,8 @@ export interface ProcessingStats {
     numColumns: number | null;
     numRows: number | null;
 }
+
+export interface VariableType {
+    name: string;
+    dtype: string;
+}

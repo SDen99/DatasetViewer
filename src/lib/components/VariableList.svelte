@@ -1,5 +1,6 @@
 <script lang="ts">
-	export let variables: string[]; // New prop for available variables
+	import type { VariableType } from '$lib/types';
+	export let variables: VariableType[];
 	export let selectedColumns: Set<string>;
 	export let columnOrder: string[];
 	export let onColumnToggle: (column: string, checked: boolean) => void;
@@ -54,20 +55,21 @@
 		{#each sortedVariables as variable}
 			<li
 				draggable="true"
-				on:dragstart={(e) => handleDragStart(e, variable)}
+				on:dragstart={(e) => handleDragStart(e, variable.name)}
 				on:dragover={handleDragOver}
-				on:drop={(e) => handleDrop(e, variable)}
+				on:drop={(e) => handleDrop(e, variable.name)}
 				class="cursor-move py-1 hover:bg-gray-100"
 			>
 				<label class="flex items-center space-x-2">
 					<input
 						type="checkbox"
-						name={variable}
-						value={variable}
-						checked={selectedColumns.has(variable)}
-						on:change={(e) => onColumnToggle(variable, (e.target as HTMLInputElement).checked)}
+						name={variable.name}
+						value={variable.name}
+						checked={selectedColumns.has(variable.name)}
+						on:change={(e) => onColumnToggle(variable.name, (e.target as HTMLInputElement).checked)}
 					/>
-					<span>{variable}</span>
+					<span class="flex-grow">{variable.name}</span>
+					<span class="text-sm text-gray-500">{variable.dtype}</span>
 				</label>
 			</li>
 		{/each}

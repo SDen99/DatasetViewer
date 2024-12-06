@@ -280,7 +280,10 @@
 
 		{#if selectedDataset}
 			<VariableList
-				variables={selectedDataset.details.columns}
+				variables={selectedDataset.details.columns.map((col: string) => ({
+					name: col,
+					dtype: selectedDataset.details.dtypes[col]
+				}))}
 				selectedColumns={new Set(selectedColumns)}
 				{columnOrder}
 				onColumnToggle={handleColumnToggle}
