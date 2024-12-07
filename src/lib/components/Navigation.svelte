@@ -50,8 +50,8 @@
 	<div class="container flex h-14 items-center">
 		<div class="flex flex-1 items-center justify-between">
 			<div class="flex items-center gap-2">
-				<h1 class="text-xl font-semibold">SAS Data Viewer</h1>
-				<Badge variant="outline" class="font-mono">v1.0</Badge>
+				<h1 class="text-xl font-semibold">Data Viewer</h1>
+				<Badge variant="outline" class="font-mono">v0.1</Badge>
 			</div>
 
 			<div class="flex items-center gap-4">
