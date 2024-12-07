@@ -17,7 +17,7 @@
 	import { createWorkerPool } from '../workerPool';
 	import { DatasetService } from '../datasetService';
 	import { UIStateService } from '../UIStateService';
-	import type { DatasetLoadingState } from '../types';
+	import type { DatasetLoadingState } from '$lib/types';
 
 	// Service instances
 	let workerPool: any;
@@ -344,23 +344,19 @@
 		</div>
 
 		<!-- Main Content -->
-		<div class="min-w-0 flex-1 overflow-auto">
+		<div class="min-w-0 flex-1 overflow-hidden">
 			{#if selectedDataset}
-				<div class="h-full p-6">
-					<Card.Root class="flex h-full flex-col">
-						<Card.Content class="flex-1 overflow-hidden p-0">
-							<ScrollArea.Root class="h-full">
-								<div class="p-4">
-									<DataTable
-										data={selectedDataset.data}
-										selectedColumns={new Set(selectedColumns)}
-										{columnOrder}
-										{columnWidths}
-										onReorderColumns={handleColumnReorder}
-										onResizeColumn={handleColumnResize}
-									/>
-								</div>
-							</ScrollArea.Root>
+				<div class="h-full">
+					<Card.Root class="h-full">
+						<Card.Content class="h-full p-0">
+							<DataTable
+								data={selectedDataset.data}
+								selectedColumns={new Set(selectedColumns)}
+								{columnOrder}
+								{columnWidths}
+								onReorderColumns={handleColumnReorder}
+								onResizeColumn={handleColumnResize}
+							/>
 						</Card.Content>
 					</Card.Root>
 				</div>
