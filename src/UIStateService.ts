@@ -3,6 +3,7 @@ interface UIState {
     columnStates: Record<string, {
         selectedColumns: string[];
         columnOrder: string[];
+        columnWidths: Record<string, number>;
     }>;
 }
 
@@ -46,24 +47,62 @@ export class UIStateService {
         this.setState(state);
     }
 
-    public getColumnState(datasetId: string): { selectedColumns: string[], columnOrder: string[] } {
+    public getColumnState(datasetId: string): {
+        selectedColumns: string[];
+        columnOrder: string[];
+        columnWidths: Record<string, number>;
+    } {
         const state = this.getState();
-        return state.columnStates[datasetId] || { selectedColumns: [], columnOrder: [] };
+        return state.columnStates[datasetId] || {
+            selectedColumns: [],
+            columnOrder: [],
+            columnWidths: {}
+        };
     }
 
     public hasColumnState(datasetId: string): boolean {
         const state = this.getState();
         const columnState = state.columnStates[datasetId];
-        return !!(columnState && (columnState.selectedColumns.length > 0 || columnState.columnOrder.length > 0));
+        return !!(columnState && (
+            columnState.selectedColumns.length > 0 ||
+            columnState.columnOrder.length > 0 ||
+            Object.keys(columnState.columnWidths || {}).length > 0
+        ));
     }
 
     public setColumnState(
         fileName: string,
         selectedColumns: string[],
-        columnOrder: string[]
+        columnOrder: string[],
+        columnWidths: Record<string, number> = {}
     ): void {
         const state = this.getState();
-        state.columnStates[fileName] = { selectedColumns, columnOrder };
+        state.columnStates[fileName] = {
+            selectedColumns,
+            columnOrder,
+            columnWidths
+        };
+        this.setState(state);
+    }
+
+    public updateColumnWidth(
+        fileName: string,
+        column: string,
+        width: number
+    ): void {
+        const state = this.getState();
+        const columnState = state.columnStates[fileName] || {
+            selectedColumns: [],
+            columnOrder: [],
+            columnWidths: {}
+        };
+
+        columnState.columnWidths = {
+            ...columnState.columnWidths,
+            [column]: width
+        };
+
+        state.columnStates[fileName] = columnState;
         this.setState(state);
     }
 

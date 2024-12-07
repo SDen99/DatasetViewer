@@ -14,14 +14,39 @@
 	export let data: any[];
 	export let selectedColumns: Set<string>;
 	export let columnOrder: string[];
+	export let columnWidths: Record<string, number>;
 	export let onReorderColumns: (newOrder: string[]) => void;
+	export let onResizeColumn: (column: string, width: number) => void;
 
 	let draggedColumn: string | null = null;
 	let dragOverColumn: string | null = null;
+	let resizingColumn: string | null = null;
+	let startX: number = 0;
+	let startWidth: number = 0;
 	let loadMoreTrigger: HTMLElement;
 	let pageSize = 50;
 	let currentPage = 1;
 	let mounted = false;
+
+	const MIN_COLUMN_WIDTH = 100;
+	const DEFAULT_COLUMN_WIDTH = 200;
+
+	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
+	$: visibleData =
+		mounted && browser
+			? data.slice(0, currentPage * pageSize).map((row) => {
+					const visibleRowData: Record<string, any> = {};
+					visibleColumns.forEach((col) => {
+						visibleRowData[col] = row[col];
+					});
+					return visibleRowData;
+				})
+			: [];
+
+	$: tableWidth = visibleColumns.reduce(
+		(sum, col) => sum + (columnWidths[col] || DEFAULT_COLUMN_WIDTH),
+		0
+	);
 
 	onMount(() => {
 		mounted = true;
@@ -53,11 +78,6 @@
 	});
 
 	function handleDragStart(e: DragEvent, column: string) {
-		if (!(e.target as HTMLElement).closest('[role="button"]')) {
-			e.preventDefault();
-			return;
-		}
-
 		draggedColumn = column;
 		if (e.dataTransfer) {
 			e.dataTransfer.effectAllowed = 'move';
@@ -67,97 +87,147 @@
 
 	function handleDragOver(e: DragEvent, column: string) {
 		e.preventDefault();
-		if (e.dataTransfer) {
-			e.dataTransfer.dropEffect = 'move';
-		}
+		if (draggedColumn === column) return;
 		dragOverColumn = column;
+	}
+
+	function handleDrop(e: DragEvent, targetColumn: string) {
+		e.preventDefault();
+
+		if (!draggedColumn || draggedColumn === targetColumn) {
+			dragOverColumn = null;
+			return;
+		}
+
+		const fromIndex = columnOrder.indexOf(draggedColumn);
+		const toIndex = columnOrder.indexOf(targetColumn);
+
+		const newOrder = [...columnOrder];
+		newOrder.splice(fromIndex, 1);
+		newOrder.splice(toIndex, 0, draggedColumn);
+
+		onReorderColumns(newOrder);
+		dragOverColumn = null;
+		draggedColumn = null;
 	}
 
 	function handleDragLeave() {
 		dragOverColumn = null;
 	}
 
-	function handleDrop(e: DragEvent, targetColumn: string) {
-		e.preventDefault();
-		dragOverColumn = null;
-
-		if (!draggedColumn || draggedColumn === targetColumn) return;
-
-		const newOrder = [...columnOrder];
-		const fromIndex = newOrder.indexOf(draggedColumn);
-		const toIndex = newOrder.indexOf(targetColumn);
-
-		newOrder.splice(fromIndex, 1);
-		newOrder.splice(toIndex, 0, draggedColumn);
-
-		onReorderColumns(newOrder);
+	function handleDragEnd() {
 		draggedColumn = null;
+		dragOverColumn = null;
 	}
 
-	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
+	// Resize handlers
+	function handleMouseMove(e: MouseEvent) {
+		if (!resizingColumn) return;
+		const diff = e.clientX - startX;
+		const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + diff);
+		onResizeColumn(resizingColumn, newWidth);
+	}
 
-	$: visibleData =
-		browser && mounted
-			? data.slice(0, currentPage * pageSize).map((row) => {
-					const visibleRowData: Record<string, any> = {};
-					visibleColumns.forEach((col) => {
-						visibleRowData[col] = row[col];
-					});
-					return visibleRowData;
-				})
-			: [];
+	function startResize(e: MouseEvent, column: string) {
+		e.preventDefault();
+		e.stopPropagation();
+		resizingColumn = column;
+		startX = e.clientX;
+		startWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+
+		document.addEventListener('mousemove', handleMouseMove);
+		document.addEventListener('mouseup', stopResize);
+	}
+
+	function stopResize() {
+		resizingColumn = null;
+		document.removeEventListener('mousemove', handleMouseMove);
+		document.removeEventListener('mouseup', stopResize);
+	}
+
+	function handleKeyResize(e: KeyboardEvent, column: string) {
+		if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+			e.preventDefault();
+			const delta = e.key === 'ArrowLeft' ? -10 : 10;
+			const currentWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+			const newWidth = Math.max(MIN_COLUMN_WIDTH, currentWidth + delta);
+			onResizeColumn(column, newWidth);
+		}
+	}
+
+	$: totalWidth = visibleColumns.reduce(
+		(sum, col) => sum + (columnWidths[col] || DEFAULT_COLUMN_WIDTH),
+		0
+	);
 </script>
 
 {#if browser}
 	<div class="flex h-[600px] flex-col overflow-hidden rounded-md border">
 		<!-- Fixed Header -->
-		<div class="sticky top-0 z-10 border-b bg-background">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						{#each visibleColumns as column}
-							<TableHead
-								class="relative {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
-								draggable={false}
-							>
-								<div class="flex items-center gap-2">
-									<div
-										role="button"
-										tabindex="0"
-										aria-label="Drag to reorder column"
-										draggable="true"
-										on:dragstart={(e) => handleDragStart(e, column)}
-										on:dragover={(e) => handleDragOver(e, column)}
-										on:dragleave={handleDragLeave}
-										on:drop={(e) => handleDrop(e, column)}
-										class="cursor-move rounded p-1 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+		<div class="sticky top-0 z-10 select-none border-b bg-background">
+			<div class="overflow-auto">
+				<div style="width: {tableWidth}px">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								{#each visibleColumns as column}
+									<TableHead
+										class="relative {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+										style="width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px"
 									>
-										<GripVertical class="h-4 w-4 text-muted-foreground" />
-									</div>
-									<span class="select-none">{column}</span>
-								</div>
-							</TableHead>
-						{/each}
-					</TableRow>
-				</TableHeader>
-			</Table>
+										<div
+											class="flex h-full items-center gap-2"
+											draggable={true}
+											on:dragstart={(e) => handleDragStart(e, column)}
+											on:dragover={(e) => handleDragOver(e, column)}
+											on:dragleave={handleDragLeave}
+											on:drop={(e) => handleDrop(e, column)}
+											on:dragend={handleDragEnd}
+										>
+											<div class="cursor-move rounded p-1 hover:bg-muted">
+												<GripVertical class="h-4 w-4 text-muted-foreground" />
+											</div>
+											<span class="select-none">{column}</span>
+											<!-- Column Resizer -->
+											<button
+												type="button"
+												aria-label="Resize column"
+												class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent p-0 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+												on:mousedown={(e) => startResize(e, column)}
+												on:keydown={(e) => handleKeyResize(e, column)}
+											/>
+										</div>
+									</TableHead>
+								{/each}
+							</TableRow>
+						</TableHeader>
+					</Table>
+				</div>
+			</div>
 		</div>
 
 		<!-- Scrollable Content -->
 		<div class="flex-1 overflow-auto">
-			<Table>
-				<TableBody>
-					{#each visibleData as row}
-						<TableRow>
-							{#each visibleColumns as column}
-								<TableCell>{row[column]}</TableCell>
-							{/each}
-						</TableRow>
-					{/each}
-					<!-- Intersection Observer trigger -->
-					<tr bind:this={loadMoreTrigger} class="h-1" />
-				</TableBody>
-			</Table>
+			<div style="width: {tableWidth}px">
+				<Table>
+					<TableBody>
+						{#each visibleData as row}
+							<TableRow>
+								{#each visibleColumns as column}
+									<TableCell
+										class="whitespace-nowrap"
+										style="width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px"
+									>
+										{row[column]}
+									</TableCell>
+								{/each}
+							</TableRow>
+						{/each}
+						<!-- Intersection Observer trigger -->
+						<tr bind:this={loadMoreTrigger} class="h-1" />
+					</TableBody>
+				</Table>
+			</div>
 		</div>
 	</div>
 {/if}

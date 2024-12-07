@@ -44,6 +44,7 @@
 	let selectedDatasetId: string | null = null;
 	let selectedColumns: string[] = [];
 	let columnOrder: string[] = [];
+	let columnWidths: Record<string, number> = {};
 
 	interface LoadingDatasets {
 		[key: string]: DatasetLoadingState;
@@ -104,10 +105,14 @@
 				// Initialize with all columns if no order exists
 				columnOrder = Object.keys(selectedDataset.data[0] || {});
 			}
+
+			// Load column widths
+			columnWidths = columnState.columnWidths || {};
 		} else {
 			selectedDataset = null;
 			selectedColumns = [];
 			columnOrder = [];
+			columnWidths = {};
 		}
 	}
 
@@ -269,6 +274,18 @@
 		// Update local state
 		columnOrder = newOrder;
 	}
+
+	// Add a new function to handle column resizing
+	function handleColumnResize(column: string, width: number) {
+		if (!selectedDatasetId) return;
+
+		columnWidths = {
+			...columnWidths,
+			[column]: width
+		};
+
+		uiStateService.setColumnState(selectedDatasetId, selectedColumns, columnOrder, columnWidths);
+	}
 </script>
 
 <main class="flex max-h-screen min-h-screen flex-col bg-background">
@@ -338,7 +355,9 @@
 										data={selectedDataset.data}
 										selectedColumns={new Set(selectedColumns)}
 										{columnOrder}
+										{columnWidths}
 										onReorderColumns={handleColumnReorder}
+										onResizeColumn={handleColumnResize}
 									/>
 								</div>
 							</ScrollArea.Root>
