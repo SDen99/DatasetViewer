@@ -43,11 +43,6 @@
 				})
 			: [];
 
-	$: tableWidth = visibleColumns.reduce(
-		(sum, col) => sum + (columnWidths[col] || DEFAULT_COLUMN_WIDTH),
-		0
-	);
-
 	onMount(() => {
 		mounted = true;
 
@@ -162,69 +157,59 @@
 </script>
 
 {#if browser}
-	<div class="flex h-[600px] flex-col overflow-hidden rounded-md border">
-		<!-- Fixed Header -->
-		<div class="sticky top-0 z-10 select-none border-b bg-background">
-			<div class="overflow-auto">
-				<div style="width: {tableWidth}px">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								{#each visibleColumns as column}
-									<TableHead
-										class="relative {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
-										style="width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px"
-									>
-										<div
-											class="flex h-full items-center gap-2"
-											draggable={true}
-											on:dragstart={(e) => handleDragStart(e, column)}
-											on:dragover={(e) => handleDragOver(e, column)}
-											on:dragleave={handleDragLeave}
-											on:drop={(e) => handleDrop(e, column)}
-											on:dragend={handleDragEnd}
-										>
-											<div class="cursor-move rounded p-1 hover:bg-muted">
-												<GripVertical class="h-4 w-4 text-muted-foreground" />
-											</div>
-											<span class="select-none">{column}</span>
-											<!-- Column Resizer -->
-											<button
-												type="button"
-												aria-label="Resize column"
-												class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent p-0 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-												on:mousedown={(e) => startResize(e, column)}
-												on:keydown={(e) => handleKeyResize(e, column)}
-											/>
-										</div>
-									</TableHead>
-								{/each}
-							</TableRow>
-						</TableHeader>
-					</Table>
-				</div>
-			</div>
-		</div>
-
-		<!-- Scrollable Content -->
-		<div class="flex-1 overflow-auto">
-			<div style="width: {tableWidth}px">
+	<div class="h-full overflow-hidden">
+		<!-- Wrapper div for horizontal scroll synchronization -->
+		<div class="h-full overflow-x-auto">
+			<div class="inline-block h-full min-w-full">
 				<Table>
-					<TableBody>
+					<TableHeader class="sticky top-0 z-10 bg-background">
+						<TableRow>
+							{#each visibleColumns as column}
+								<TableHead
+									class="relative {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+									style="min-width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px;"
+								>
+									<div
+										class="flex h-full items-center gap-2"
+										draggable={true}
+										role="button"
+										tabindex="0"
+										on:dragstart={(e) => handleDragStart(e, column)}
+										on:dragover={(e) => handleDragOver(e, column)}
+										on:dragleave={handleDragLeave}
+										on:drop={(e) => handleDrop(e, column)}
+										on:dragend={handleDragEnd}
+									>
+										<div class="cursor-move rounded p-1 hover:bg-muted">
+											<GripVertical class="h-4 w-4 text-muted-foreground" />
+										</div>
+										<span class="select-none">{column}</span>
+										<button
+											type="button"
+											aria-label="Resize column"
+											class="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent p-0 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+											on:mousedown={(e) => startResize(e, column)}
+											on:keydown={(e) => handleKeyResize(e, column)}
+										></button>
+									</div>
+								</TableHead>
+							{/each}
+						</TableRow>
+					</TableHeader>
+					<TableBody class="overflow-y-auto">
 						{#each visibleData as row}
 							<TableRow>
 								{#each visibleColumns as column}
 									<TableCell
 										class="whitespace-nowrap"
-										style="width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px"
+										style="min-width: {columnWidths[column] || DEFAULT_COLUMN_WIDTH}px;"
 									>
 										{row[column]}
 									</TableCell>
 								{/each}
 							</TableRow>
 						{/each}
-						<!-- Intersection Observer trigger -->
-						<tr bind:this={loadMoreTrigger} class="h-1" />
+						<tr bind:this={loadMoreTrigger} class="h-1"></tr>
 					</TableBody>
 				</Table>
 			</div>
