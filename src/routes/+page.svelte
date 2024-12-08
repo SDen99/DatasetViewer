@@ -5,7 +5,7 @@
 	import * as Button from '$lib/components/ui/button';
 	import * as ScrollArea from '$lib/components/ui/scroll-area';
 	import { PanelLeftOpen, PanelRightOpen, PanelLeftClose, PanelRightClose } from 'lucide-svelte';
-	import type { Dataset, DatasetLoadingState } from '$lib/types';
+	import type { DatasetLoadingState } from '$lib/types';
 
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
@@ -19,7 +19,6 @@
 	import {
 		datasets,
 		selectedDataset,
-		selectedDatasetId,
 		loadingDatasets,
 		isLoading,
 		uiState,
@@ -54,7 +53,7 @@
 			// Load initial UI state
 			const selectedId = uiStateService.getSelectedDataset();
 			if (selectedId) {
-				datasetActions.selectDataset(selectedId, uiStateService);
+				datasetActions.selectDataset(selectedId);
 			}
 		} catch (error) {
 			console.error('Error during initialization:', error);
@@ -64,17 +63,6 @@
 	onDestroy(() => {
 		workerPool?.terminate();
 	});
-
-	function initializeColumnState(dataset: Dataset, columnState: any) {
-		if (!dataset?.data?.[0]) return;
-
-		const defaultColumns = Object.keys(dataset.data[0]);
-		datasetActions.updateColumnSelection(defaultColumns.slice(0, 5).map((col) => [col, true]));
-
-		datasetActions.updateColumnOrder(
-			columnState.columnOrder.length > 0 ? columnState.columnOrder : defaultColumns
-		);
-	}
 
 	async function handleFileChangeEvent(event: Event) {
 		if (!workerPool || !datasetService) return;
