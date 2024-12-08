@@ -32,18 +32,6 @@
 	const MIN_COLUMN_WIDTH = 100;
 	const DEFAULT_COLUMN_WIDTH = 200;
 
-	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
-	$: visibleData =
-		mounted && browser
-			? data.slice(0, currentPage * pageSize).map((row) => {
-					const visibleRowData: Record<string, any> = {};
-					visibleColumns.forEach((col) => {
-						visibleRowData[col] = row[col];
-					});
-					return visibleRowData;
-				})
-			: [];
-
 	onMount(() => {
 		mounted = true;
 
@@ -152,6 +140,18 @@
 		}
 	}
 
+	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
+	$: visibleData =
+		mounted && browser
+			? data.slice(0, currentPage * pageSize).map((row) => {
+					const visibleRowData: Record<string, any> = {};
+					visibleColumns.forEach((col) => {
+						visibleRowData[col] = row[col];
+					});
+					return visibleRowData;
+				})
+			: [];
+
 	$: totalWidth = visibleColumns.reduce(
 		(sum, col) => sum + (columnWidths[col] || DEFAULT_COLUMN_WIDTH),
 		0
@@ -225,9 +225,7 @@
 									{/each}
 								</TableRow>
 							{/each}
-							<TableRow bind:this={loadMoreTrigger} class="h-px">
-								<TableCell colspan={visibleColumns.length} />
-							</TableRow>
+							<tr bind:this={loadMoreTrigger} class="h-1"></tr>
 						</TableBody>
 					</Table>
 				</div>
