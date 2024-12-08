@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { writable } from 'svelte/store';
-	// Import shadcn components
 	import * as Card from '$lib/components/ui/card';
 	import * as Button from '$lib/components/ui/button';
 	import * as ScrollArea from '$lib/components/ui/scroll-area';
-	import * as Separator from '$lib/components/ui/separator';
 	import { PanelLeftOpen, PanelRightOpen, PanelLeftClose, PanelRightClose } from 'lucide-svelte';
+	import type { Dataset, DatasetLoadingState } from '$lib/types';
 
 	import Navigation from '$lib/components/Navigation.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
@@ -17,53 +15,31 @@
 	import { createWorkerPool } from '../workerPool';
 	import { DatasetService } from '../datasetService';
 	import { UIStateService } from '../UIStateService';
-	import type { DatasetLoadingState } from '$lib/types';
+
+	import {
+		datasets,
+		selectedDataset,
+		selectedDatasetId,
+		loadingDatasets,
+		isLoading,
+		uiState,
+		datasetActions
+	} from '$lib/stores';
 
 	// Service instances
-	let workerPool: any;
+	let workerPool: ReturnType<typeof createWorkerPool>;
 	let datasetService: DatasetService;
 	let uiStateService: UIStateService;
 
-	// Add state for responsive sidebar toggles
-	let isLeftSidebarOpen = true;
-	let isRightSidebarOpen = true;
-
-	// Reactive stores for UI state
-	const isLoadingStore = writable(false);
-	const processingStatsStore = writable({
-		uploadTime: null,
-		numColumns: null,
-		numRows: null,
-		datasetSize: null
-	});
-	const loadingDatasetsStore = writable<Record<string, DatasetLoadingState>>({});
-
-	// State variables that will be automatically updated by Svelte
-	let datasets: Record<string, any> = {};
-	let selectedDataset: any = null;
-	let selectedDatasetId: string | null = null;
-	let selectedColumns = new Set<string>();
-	let columnOrder: string[] = [];
-	let columnWidths: Record<string, number> = {};
-
-	interface LoadingDatasets {
-		[key: string]: DatasetLoadingState;
-	}
-
 	// Initialize services and load initial data
 	onMount(async () => {
-		if (browser) {
+		if (!browser) return;
+
+		try {
 			// Initialize services
 			datasetService = DatasetService.getInstance();
 			uiStateService = UIStateService.getInstance();
 			await datasetService.initialize();
-
-			try {
-				datasets = await datasetService.getAllDatasets();
-				console.log('Initial datasets loaded:', datasets);
-			} catch (error) {
-				console.error('Error loading initial datasets:', error);
-			}
 
 			// Initialize worker pool
 			workerPool = createWorkerPool();
@@ -71,249 +47,139 @@
 				await workerPool.initialize();
 			}
 
-			// Load initial state
-			await refreshState();
+			// Load initial datasets
+			const initialDatasets = await datasetService.getAllDatasets();
+			datasets.set(initialDatasets);
+
+			// Load initial UI state
+			const selectedId = uiStateService.getSelectedDataset();
+			if (selectedId) {
+				datasetActions.selectDataset(selectedId, uiStateService);
+			}
+		} catch (error) {
+			console.error('Error during initialization:', error);
 		}
 	});
 
-	// Clean up resources
 	onDestroy(() => {
 		workerPool?.terminate();
 	});
 
-	// Function to refresh all state from our services
-	async function refreshState() {
-		datasets = await datasetService.getAllDatasets();
-		selectedDatasetId = uiStateService.getSelectedDataset();
+	function initializeColumnState(dataset: Dataset, columnState: any) {
+		if (!dataset?.data?.[0]) return;
 
-		if (selectedDatasetId && datasets[selectedDatasetId]) {
-			selectedDataset = datasets[selectedDatasetId];
-			const columnState = uiStateService.getColumnState(selectedDatasetId);
+		const defaultColumns = Object.keys(dataset.data[0]);
+		datasetActions.updateColumnSelection(defaultColumns.slice(0, 5).map((col) => [col, true]));
 
-			// New Set-based initialization logic
-			if (columnState.selectedColumns.length > 0) {
-				selectedColumns = new Set(columnState.selectedColumns);
-			} else {
-				selectedColumns = new Set(Object.keys(selectedDataset.data[0] || {}).slice(0, 5));
-			}
-
-			// If we have existing column order, use it
-			if (columnState.columnOrder.length > 0) {
-				columnOrder = columnState.columnOrder;
-			} else {
-				// Initialize with all columns if no order exists
-				columnOrder = Object.keys(selectedDataset.data[0] || {});
-			}
-
-			// Load column widths
-			columnWidths = columnState.columnWidths || {};
-		} else {
-			selectedDataset = null;
-			selectedColumns = new Set(); // Changed to empty Set instead of empty array
-			columnOrder = [];
-			columnWidths = {};
-		}
+		datasetActions.updateColumnOrder(
+			columnState.columnOrder.length > 0 ? columnState.columnOrder : defaultColumns
+		);
 	}
 
-	// Handle file uploads
 	async function handleFileChangeEvent(event: Event) {
 		if (!workerPool || !datasetService) return;
 
 		const files = (event.target as HTMLInputElement).files;
 		if (!files?.length) return;
 
+		datasetActions.setLoadingState(true);
+
 		for (const file of files) {
 			if (!file.name.endsWith('.sas7bdat')) continue;
 
-			// Add the file to the loading state immediately
-			loadingDatasetsStore.update((state) => ({
-				...state,
-				[file.name]: {
-					progress: 0,
-					fileName: file.name,
-					totalSize: file.size,
-					loadedSize: 0,
-					status: 'loading'
-				}
-			}));
-
 			try {
-				const result = await workerPool.processFile(
-					file,
-					file.name,
-					(state: DatasetLoadingState) => {
-						loadingDatasetsStore.update((current) => ({
-							...current,
-							[file.name]: state
-						}));
-					}
-				);
-
-				processingStatsStore.set({
-					uploadTime: result.processingTime?.toFixed(2),
-					numColumns: result.details?.num_columns,
-					numRows: result.details?.num_rows,
-					datasetSize: file.size
-				});
-
-				console.log('Processing complete:', result);
-
-				const datasetEntry = {
-					fileName: file.name,
-					...result
-				};
-
-				await datasetService.addDataset({
-					fileName: file.name,
-					...result,
-					processingStats: {
-						uploadTime: Number(result.processingTime?.toFixed(2)),
-						numColumns: result.details?.num_columns,
-						numRows: result.details?.num_rows,
-						datasetSize: file.size
-					}
-				});
-
-				// Remove from loading state once complete
-				loadingDatasetsStore.update((state) => {
-					const newState = { ...state };
-					delete newState[file.name];
-					return newState;
-				});
-
-				// Refresh the datasets list
-				await refreshState();
+				const result = await processFile(file);
+				await handleProcessingSuccess(file, result);
 			} catch (error) {
-				loadingDatasetsStore.update((state) => ({
-					...state,
-					[file.name]: {
-						...state[file.name],
-						status: 'error',
-						error: error.message
-					}
-				}));
+				handleProcessingError(file, error);
 			}
 		}
+
+		datasetActions.setLoadingState(false);
 	}
 
-	// Handle dataset selection
-	async function onSelectDataset(datasetId: string) {
-		selectedDatasetId = datasetId;
-		uiStateService.setSelectedDataset(datasetId);
-
-		if (datasets[datasetId]) {
-			const stats = datasets[datasetId].processingStats || {
-				uploadTime: null,
-				numColumns: null,
-				numRows: null,
-				datasetSize: null
-			};
-			processingStatsStore.set(stats);
-		}
-
-		await refreshState();
-	}
-
-	async function onDeleteDataset(datasetId: string) {
-		try {
-			console.log(`Starting deletion of dataset: ${datasetId}`);
-
-			// Remove from IndexedDB
-			await datasetService.removeDataset(datasetId);
-			console.log(`Dataset removed from IndexedDB: ${datasetId}`);
-
-			// Clear UI state for this dataset
-			uiStateService.clearStateForDataset(datasetId);
-			console.log(`UI state cleared for dataset: ${datasetId}`);
-
-			// If the deleted dataset was selected, clear the selection
-			if (selectedDatasetId === datasetId) {
-				selectedDatasetId = null;
-				selectedDataset = null;
-				selectedColumns = [];
-				columnOrder = [];
-				console.log('Cleared selected dataset state');
+	async function processFile(file: File) {
+		loadingDatasets.update((state) => ({
+			...state,
+			[file.name]: {
+				progress: 0,
+				fileName: file.name,
+				totalSize: file.size,
+				loadedSize: 0,
+				status: 'loading'
 			}
+		}));
 
-			// Force a refresh of the datasets list
-			datasets = await datasetService.getAllDatasets();
-			console.log('Dataset list refreshed', datasets);
-
-			// Force a Svelte update by reassigning the datasets object
-			datasets = { ...datasets };
-
-			console.log(`Successfully completed deletion of dataset: ${datasetId}`);
-		} catch (error) {
-			console.error('Error deleting dataset:', error);
-			// You might want to add user-visible error handling here
-		}
+		return await workerPool.processFile(file, file.name, (state: DatasetLoadingState) => {
+			loadingDatasets.update((current) => ({
+				...current,
+				[file.name]: state
+			}));
+		});
 	}
 
-	// Handle column visibility toggling
-	function handleColumnToggle(column: string, checked: boolean) {
-		if (!selectedDatasetId) return;
-
-		const newSelectedColumns = new Set(selectedColumns);
-		if (checked) {
-			newSelectedColumns.add(column);
-		} else {
-			newSelectedColumns.delete(column);
-		}
-
-		// Convert to array for storage
-		const columnsArray = Array.from(newSelectedColumns);
-		uiStateService.setColumnState(selectedDatasetId, columnsArray, columnOrder);
-
-		// Update local state
-		selectedColumns = newSelectedColumns;
-	}
-
-	// Handle column reordering
-	function handleColumnReorder(newOrder: string[]) {
-		if (!selectedDatasetId) return;
-		uiStateService.setColumnState(selectedDatasetId, Array.from(selectedColumns), newOrder);
-		columnOrder = newOrder;
-	}
-
-	// Add a new function to handle column resizing
-	function handleColumnResize(column: string, width: number) {
-		if (!selectedDatasetId) return;
-
-		columnWidths = {
-			...columnWidths,
-			[column]: width
+	async function handleProcessingSuccess(file: File, result: any) {
+		const processingStats = {
+			uploadTime: Number(result.processingTime?.toFixed(2)),
+			numColumns: result.details?.num_columns,
+			numRows: result.details?.num_rows,
+			datasetSize: file.size
 		};
 
-		uiStateService.setColumnState(
-			selectedDatasetId,
-			Array.from(selectedColumns),
-			columnOrder,
-			columnWidths
-		);
+		datasetActions.updateProcessingStats(processingStats);
+
+		await datasetService.addDataset({
+			fileName: file.name,
+			...result,
+			processingStats
+		});
+
+		// Update datasets store
+		const updatedDatasets = await datasetService.getAllDatasets();
+		datasets.set(updatedDatasets);
+
+		// Clear loading state
+		loadingDatasets.update((state) => {
+			const newState = { ...state };
+			delete newState[file.name];
+			return newState;
+		});
+	}
+
+	function handleProcessingError(file: File, error: Error) {
+		loadingDatasets.update((state) => ({
+			...state,
+			[file.name]: {
+				...state[file.name],
+				status: 'error',
+				error: error.message
+			}
+		}));
 	}
 </script>
 
 {#if browser}
 	<main class="flex max-h-screen min-h-screen flex-col bg-background">
-		<Navigation {handleFileChangeEvent} isLoading={$isLoadingStore} />
+		<Navigation {handleFileChangeEvent} isLoading={$isLoading} />
 
+		<!-- Sidebar toggle buttons -->
 		<div class="fixed bottom-4 left-4 z-50 flex gap-2">
-			{#if !isLeftSidebarOpen}
+			{#if !$uiState.leftSidebarOpen}
 				<Button.Root
 					variant="default"
 					size="icon"
-					on:click={() => (isLeftSidebarOpen = true)}
+					on:click={() => datasetActions.toggleSidebar('left')}
 					aria-label="Show left sidebar"
 				>
 					<PanelLeftClose class="h-4 w-4" />
 				</Button.Root>
 			{/if}
 
-			{#if !isRightSidebarOpen}
+			{#if !$uiState.rightSidebarOpen}
 				<Button.Root
 					variant="default"
 					size="icon"
-					on:click={() => (isRightSidebarOpen = true)}
+					on:click={() => datasetActions.toggleSidebar('right')}
 					aria-label="Show right sidebar"
 				>
 					<PanelRightClose class="h-4 w-4" />
@@ -324,7 +190,7 @@
 		<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
 			<!-- Left Sidebar -->
 			<div
-				class="relative {isLeftSidebarOpen
+				class="relative {$uiState.leftSidebarOpen
 					? 'w-80'
 					: 'w-0'} transition-all duration-300 ease-in-out"
 			>
@@ -335,36 +201,23 @@
 							<Button.Root
 								variant="ghost"
 								size="icon"
-								on:click={() => (isLeftSidebarOpen = !isLeftSidebarOpen)}
+								on:click={() => datasetActions.toggleSidebar('left')}
 							>
 								<PanelLeftOpen class="h-4 w-4" />
 							</Button.Root>
 						</div>
-						<DatasetList
-							{datasets}
-							selectedDataset={selectedDatasetId}
-							{onSelectDataset}
-							{onDeleteDataset}
-							loadingDatasets={$loadingDatasetsStore}
-						/>
+						<DatasetList />
 					</div>
 				</ScrollArea.Root>
 			</div>
 
-			<!-- Main Content -->
+			<!-- Main Table -->
 			<div class="min-w-0 flex-1 overflow-hidden">
-				{#if selectedDataset}
+				{#if $selectedDataset}
 					<div class="h-full">
 						<Card.Root class="h-full">
 							<Card.Content class="h-full p-0">
-								<DataTable
-									data={selectedDataset.data}
-									{selectedColumns}
-									{columnOrder}
-									{columnWidths}
-									onReorderColumns={handleColumnReorder}
-									onResizeColumn={handleColumnResize}
-								/>
+								<DataTable data={$selectedDataset.data} />
 							</Card.Content>
 						</Card.Root>
 					</div>
@@ -380,11 +233,11 @@
 
 			<!-- Right Sidebar -->
 			<div
-				class="relative {isRightSidebarOpen
+				class="relative {$uiState.rightSidebarOpen
 					? 'w-80'
 					: 'w-0'} transition-all duration-300 ease-in-out"
 			>
-				{#if selectedDataset}
+				{#if $selectedDataset}
 					<ScrollArea.Root class="h-[calc(100vh-8rem)] border-l border-border bg-card">
 						<div class="p-4">
 							<div class="mb-4 flex items-center justify-between">
@@ -392,32 +245,22 @@
 								<Button.Root
 									variant="ghost"
 									size="icon"
-									on:click={() => (isRightSidebarOpen = !isRightSidebarOpen)}
+									on:click={() => datasetActions.toggleSidebar('right')}
 								>
 									<PanelRightOpen class="h-4 w-4" />
 								</Button.Root>
 							</div>
 							<VariableList
-								variables={selectedDataset.details.columns.map((col: string) => ({
+								variables={$selectedDataset.details.columns.map((col: string) => ({
 									name: col,
-									dtype: selectedDataset.details.dtypes[col]
+									dtype: $selectedDataset.details.dtypes[col]
 								}))}
-								{selectedColumns}
-								{columnOrder}
-								onColumnToggle={handleColumnToggle}
-								onReorderVariables={handleColumnReorder}
 							/>
 						</div>
 					</ScrollArea.Root>
 				{/if}
 			</div>
 		</div>
-
-		<Footer
-			uploadTime={$processingStatsStore.uploadTime}
-			numColumns={$processingStatsStore.numColumns}
-			numRows={$processingStatsStore.numRows}
-			datasetSize={$processingStatsStore.datasetSize}
-		/>
+		<Footer />
 	</main>
 {/if}

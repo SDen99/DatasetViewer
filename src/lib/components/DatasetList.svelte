@@ -3,24 +3,15 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Button from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
-	import { Card } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import type { DatasetLoadingState } from '../types';
-
-	export let datasets: Record<string, any>;
-	export let loadingDatasets: Record<string, DatasetLoadingState>;
-	export let selectedDataset: string | null;
-	export let onSelectDataset: (dataset: string) => void;
-	export let onDeleteDataset: (dataset: string) => void;
-
-	$: allDatasetEntries = [...Object.keys(datasets), ...Object.keys(loadingDatasets)];
+	import { datasets, loadingDatasets, selectedDatasetId, datasetActions } from '$lib/stores';
 
 	let datasetToDelete: string | null = null;
 	let dialogOpen = false;
 
-	function handleConfirmDelete(event: CustomEvent) {
+	function handleConfirmDelete() {
 		if (datasetToDelete) {
-			onDeleteDataset(datasetToDelete);
+			datasetActions.deleteDataset(datasetToDelete);
 			datasetToDelete = null;
 			dialogOpen = false;
 		}
@@ -36,6 +27,8 @@
 		datasetToDelete = null;
 		dialogOpen = false;
 	}
+
+	$: allDatasetEntries = [...Object.keys($datasets), ...Object.keys($loadingDatasets)];
 </script>
 
 <div class="px-3 py-2">
@@ -43,7 +36,7 @@
 		<div class="space-y-2">
 			{#each allDatasetEntries as datasetName}
 				<div
-					class="overflow-hidden rounded-lg border {datasetName === selectedDataset
+					class="overflow-hidden rounded-lg border {datasetName === $selectedDatasetId
 						? 'border-primary'
 						: 'border-border'}"
 				>
@@ -52,20 +45,20 @@
 							<button
 								type="button"
 								class="flex-1 text-left hover:text-primary"
-								on:click={() => onSelectDataset(datasetName)}
-								disabled={loadingDatasets[datasetName]}
+								on:click={() => datasetActions.selectDataset(datasetName)}
+								disabled={$loadingDatasets[datasetName]}
 							>
 								<div class="flex items-center gap-2">
 									<span class="truncate font-medium">
 										{datasetName}
 									</span>
-									{#if loadingDatasets[datasetName]}
+									{#if $loadingDatasets[datasetName]}
 										<Badge variant="secondary">Loading</Badge>
 									{/if}
 								</div>
 							</button>
 
-							{#if !loadingDatasets[datasetName]}
+							{#if !$loadingDatasets[datasetName]}
 								<AlertDialog.Root bind:open={dialogOpen}>
 									<AlertDialog.Trigger asChild>
 										<Button.Root
@@ -101,9 +94,9 @@
 							{/if}
 						</div>
 
-						{#if loadingDatasets[datasetName]}
+						{#if $loadingDatasets[datasetName]}
 							<div class="px-3 pb-3">
-								<Progress value={loadingDatasets[datasetName].progress} />
+								<Progress value={$loadingDatasets[datasetName].progress} />
 							</div>
 						{/if}
 					</div>

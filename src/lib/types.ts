@@ -48,9 +48,36 @@ export interface ProcessingStats {
     uploadTime: number | null;
     numColumns: number | null;
     numRows: number | null;
+    datasetSize: number | null;
 }
 
 export interface VariableType {
     name: string;
     dtype: string;
+}
+
+export interface Dataset {
+    fileName: string;
+    data: any[];
+    details: {
+        columns: string[];
+        dtypes: Record<string, string>;
+        num_columns: number;
+        num_rows: number;
+    };
+    processingStats: {
+        uploadTime: number;
+        numColumns: number;
+        numRows: number;
+        datasetSize: number;
+    };
+}
+
+export interface DatasetLoadingState {
+    progress: number;
+    fileName: string;
+    totalSize: number;
+    loadedSize: number;
+    status: 'loading' | 'error' | 'complete';
+    error?: string;
 }

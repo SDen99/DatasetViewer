@@ -10,13 +10,10 @@
 	import { GripVertical } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { selectedColumns, columnOrder, columnWidths, datasetActions } from '$lib/stores';
 
+	// Keep data prop as it comes from the selected dataset
 	export let data: any[];
-	export let selectedColumns: Set<string>;
-	export let columnOrder: string[];
-	export let columnWidths: Record<string, number>;
-	export let onReorderColumns: (newOrder: string[]) => void;
-	export let onResizeColumn: (column: string, width: number) => void;
 
 	let draggedColumn: string | null = null;
 	let dragOverColumn: string | null = null;
@@ -36,6 +33,19 @@
 		mounted = true;
 
 		if (!browser) return;
+
+		// Initialize column selection if empty
+		if (data && data.length > 0 && $selectedColumns.size === 0) {
+			const initialColumns = Object.keys(data[0]).slice(0, 5);
+			initialColumns.forEach((col) => {
+				datasetActions.updateColumnSelection(col, true);
+			});
+		}
+
+		// Initialize column order if empty
+		if (data && data.length > 0 && $columnOrder.length === 0) {
+			datasetActions.updateColumnOrder(Object.keys(data[0]));
+		}
 
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -85,14 +95,14 @@
 			return;
 		}
 
-		const fromIndex = columnOrder.indexOf(draggedColumn);
-		const toIndex = columnOrder.indexOf(targetColumn);
+		const fromIndex = $columnOrder.indexOf(draggedColumn);
+		const toIndex = $columnOrder.indexOf(targetColumn);
 
-		const newOrder = [...columnOrder];
+		const newOrder = [...$columnOrder];
 		newOrder.splice(fromIndex, 1);
 		newOrder.splice(toIndex, 0, draggedColumn);
 
-		onReorderColumns(newOrder);
+		datasetActions.updateColumnOrder(newOrder);
 		dragOverColumn = null;
 		draggedColumn = null;
 	}
@@ -110,7 +120,7 @@
 		if (!resizingColumn) return;
 		const diff = e.clientX - startX;
 		const newWidth = Math.max(MIN_COLUMN_WIDTH, startWidth + diff);
-		onResizeColumn(resizingColumn, newWidth);
+		datasetActions.updateColumnWidth(resizingColumn, newWidth);
 	}
 
 	function startResize(e: MouseEvent, column: string) {
@@ -118,7 +128,7 @@
 		e.stopPropagation();
 		resizingColumn = column;
 		startX = e.clientX;
-		startWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+		startWidth = $columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 
 		document.addEventListener('mousemove', handleMouseMove);
 		document.addEventListener('mouseup', stopResize);
@@ -134,15 +144,22 @@
 		if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
 			e.preventDefault();
 			const delta = e.key === 'ArrowLeft' ? -10 : 10;
-			const currentWidth = columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+			const currentWidth = $columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 			const newWidth = Math.max(MIN_COLUMN_WIDTH, currentWidth + delta);
-			onResizeColumn(column, newWidth);
+			datasetActions.updateColumnWidth(column, newWidth);
 		}
 	}
 
-	$: visibleColumns = columnOrder.filter((col) => selectedColumns.has(col));
+	$: visibleColumns =
+		$columnOrder.length > 0 && $selectedColumns.size > 0
+			? $columnOrder.filter((col) => $selectedColumns.has(col))
+			: data && data.length > 0
+				? Object.keys(data[0]).slice(0, 5)
+				: [];
+
+	// Update visibleData to use more reliable visibleColumns
 	$: visibleData =
-		mounted && browser
+		mounted && browser && data && visibleColumns.length > 0
 			? data.slice(0, currentPage * pageSize).map((row) => {
 					const visibleRowData: Record<string, any> = {};
 					visibleColumns.forEach((col) => {
@@ -153,18 +170,101 @@
 			: [];
 
 	$: totalWidth = visibleColumns.reduce(
-		(sum, col) => sum + (columnWidths[col] || DEFAULT_COLUMN_WIDTH),
+		(sum, col) => sum + ($columnWidths[col] || DEFAULT_COLUMN_WIDTH),
 		0
 	);
 
 	$: getColumnStyle = (column: string) => {
-		const width = columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+		const width = $columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	};
+
+	$: console.log('Core state:', {
+		datasetFirstRow: data?.[0],
+		selectedColumnsSize: $selectedColumns.size,
+		columnOrderLength: $columnOrder.length,
+		mounted,
+		browser
+	});
+
+	$: if (data && data.length > 0) {
+		console.log('Dataset changed, initializing columns');
+
+		// Clear existing state
+		selectedColumns.set(new Set());
+		columnOrder.set([]);
+
+		// Get all possible columns
+		const allColumns = Object.keys(data[0]);
+
+		// Set the column order first
+		datasetActions.updateColumnOrder(allColumns);
+
+		// Then select the first 5 columns
+		allColumns.slice(0, 5).forEach((col) => {
+			datasetActions.updateColumnSelection(col, true);
+		});
+	}
+
+	// Log the visible data mapping
+	$: {
+		if (mounted && browser && data) {
+			const sampleRow = data[0];
+			const mappedRow: Record<string, any> = {};
+			visibleColumns.forEach((col) => {
+				mappedRow[col] = sampleRow[col];
+			});
+			console.log('Visible data mapping:', {
+				originalRow: sampleRow,
+				visibleColumns,
+				mappedResult: mappedRow
+			});
+		}
+	}
+
+	$: if (data && data.length > 0) {
+		// Clear previous column state when data changes
+		selectedColumns.set(new Set());
+
+		// Initialize columns for new dataset
+		const defaultColumns = Object.keys(data[0]);
+
+		// Set new column order
+		datasetActions.updateColumnOrder(defaultColumns);
+
+		// Select first 5 columns by default
+		defaultColumns.slice(0, 5).forEach((col) => {
+			datasetActions.updateColumnSelection(col, true);
+		});
+	}
+
+	$: {
+		const debugVisibleCols =
+			$columnOrder.length > 0
+				? $columnOrder.filter((col) => $selectedColumns.has(col))
+				: data && data.length > 0
+					? Object.keys(data[0]).filter((col) => $selectedColumns.has(col))
+					: [];
+		console.log('Visible columns calculation:', {
+			usingColumnOrder: $columnOrder.length > 0,
+			columnOrder: $columnOrder,
+			selectedColumns: Array.from($selectedColumns),
+			result: debugVisibleCols
+		});
+	}
 </script>
 
 {#if browser}
 	<div class="relative h-full overflow-hidden">
+		<!-- Debug info (temporary) -->
+		<pre class="bg-gray-100 p-2 text-xs">
+            {JSON.stringify(
+				{ visibleColumns, dataLength: data?.length, firstRow: visibleData[0] },
+				null,
+				2
+			)}
+        </pre>
+
 		<!-- Main scroll container -->
 		<div class="overflow-x-auto">
 			<div style="width: {totalWidth}px">

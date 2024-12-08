@@ -2,13 +2,11 @@
 	import { GripVertical } from 'lucide-svelte';
 	import * as Checkbox from '$lib/components/ui/checkbox';
 	import { Badge } from '$lib/components/ui/badge';
+	import { selectedColumns, columnOrder, datasetActions } from '$lib/stores';
 	import type { VariableType } from '$lib/types';
 
+	// We still need the variables prop as it's computed from the selected dataset
 	export let variables: VariableType[];
-	export let selectedColumns: Set<string>;
-	export let columnOrder: string[];
-	export let onColumnToggle: (column: string, checked: boolean) => void;
-	export let onReorderVariables: (newOrder: string[]) => void;
 
 	let draggedVariable: string | null = null;
 
@@ -31,31 +29,24 @@
 		e.preventDefault();
 		if (!draggedVariable || draggedVariable === targetVariable) return;
 
-		const newOrder = [...columnOrder];
+		const newOrder = [...$columnOrder];
 		const fromIndex = newOrder.indexOf(draggedVariable);
 		const toIndex = newOrder.indexOf(targetVariable);
 
 		newOrder.splice(fromIndex, 1);
 		newOrder.splice(toIndex, 0, draggedVariable);
 
-		onReorderVariables(newOrder);
+		datasetActions.updateColumnOrder(newOrder);
 		draggedVariable = null;
 	}
 
-	$: selectedColumnsArray = Array.from(selectedColumns);
-
 	$: sortedVariables = [...variables].sort((a, b) => {
-		const aIndex = columnOrder.indexOf(a.name);
-		const bIndex = columnOrder.indexOf(b.name);
+		const aIndex = $columnOrder.indexOf(a.name);
+		const bIndex = $columnOrder.indexOf(b.name);
 		if (aIndex === -1) return 1;
 		if (bIndex === -1) return -1;
 		return aIndex - bIndex;
 	});
-
-	$: {
-		console.log('DataTable selectedColumns changed:', selectedColumns);
-		console.log('Column order:', columnOrder);
-	}
 </script>
 
 <div class="px-3 py-2">
@@ -72,8 +63,9 @@
 					class="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100"
 				/>
 				<Checkbox.Root
-					checked={selectedColumnsArray.includes(variable.name)}
-					onCheckedChange={(checked) => onColumnToggle(variable.name, checked)}
+					checked={$selectedColumns.has(variable.name)}
+					onCheckedChange={(checked) =>
+						datasetActions.updateColumnSelection(variable.name, checked)}
 				/>
 				<div class="flex flex-1 items-center justify-between">
 					<span

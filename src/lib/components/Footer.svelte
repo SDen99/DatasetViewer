@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { formatStorageSize } from '$lib/utils';
 	import { Separator } from '$lib/components/ui/separator';
+	import { selectedDataset, processingStats } from '$lib/stores';
 
-	export let uploadTime: number | null;
-	export let numColumns: number | null;
-	export let numRows: number | null;
-	export let datasetSize: number | null;
+	$: stats = $selectedDataset
+		? $selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected
+		: $processingStats;
 </script>
 
 <footer
@@ -13,29 +13,31 @@
 >
 	<div class="container flex h-14 items-center justify-between text-sm">
 		<div class="flex items-center gap-4">
-			{#if uploadTime !== null}
+			{#if stats.uploadTime !== null}
 				<div class="text-muted-foreground">
-					Processing time: <span class="font-medium text-foreground">{uploadTime}s</span>
+					Processing time: <span class="font-medium text-foreground">{stats.uploadTime}s</span>
 				</div>
 			{/if}
 		</div>
 
 		<div class="flex items-center gap-4">
-			{#if datasetSize !== null}
+			{#if stats.datasetSize !== null}
 				<div class="text-muted-foreground">
-					Size: <span class="font-medium text-foreground">{formatStorageSize(datasetSize)}</span>
+					Size: <span class="font-medium text-foreground"
+						>{formatStorageSize(stats.datasetSize)}</span
+					>
 				</div>
 			{/if}
-			{#if numColumns !== null}
+			{#if stats.numColumns !== null}
 				<Separator orientation="vertical" class="h-4" />
 				<div class="text-muted-foreground">
-					Variables: <span class="font-medium text-foreground">{numColumns}</span>
+					Variables: <span class="font-medium text-foreground">{stats.numColumns}</span>
 				</div>
 			{/if}
-			{#if numRows !== null}
+			{#if stats.numRows !== null}
 				<Separator orientation="vertical" class="h-4" />
 				<div class="text-muted-foreground">
-					Records: <span class="font-medium text-foreground">{numRows}</span>
+					Records: <span class="font-medium text-foreground">{stats.numRows}</span>
 				</div>
 			{/if}
 		</div>
