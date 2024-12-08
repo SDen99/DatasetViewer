@@ -291,14 +291,6 @@
 			columnWidths
 		);
 	}
-
-	$: if (browser) {
-		console.log('[Client] selectedColumns updated:', selectedColumns);
-		console.log(
-			'[Client] visibleColumns in DataTable:',
-			columnOrder.filter((col) => selectedColumns.has(col))
-		);
-	}
 </script>
 
 {#if browser}
