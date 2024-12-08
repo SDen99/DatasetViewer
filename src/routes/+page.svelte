@@ -42,7 +42,7 @@
 	let datasets: Record<string, any> = {};
 	let selectedDataset: any = null;
 	let selectedDatasetId: string | null = null;
-	let selectedColumns: string[] = [];
+	let selectedColumns = new Set<string>();
 	let columnOrder: string[] = [];
 	let columnWidths: Record<string, number> = {};
 
@@ -90,12 +90,11 @@
 			selectedDataset = datasets[selectedDatasetId];
 			const columnState = uiStateService.getColumnState(selectedDatasetId);
 
-			// If we have existing column state, use it
+			// New Set-based initialization logic
 			if (columnState.selectedColumns.length > 0) {
-				selectedColumns = columnState.selectedColumns;
+				selectedColumns = new Set(columnState.selectedColumns);
 			} else {
-				// Initialize with default columns if no state exists
-				selectedColumns = Object.keys(selectedDataset.data[0] || {}).slice(0, 5);
+				selectedColumns = new Set(Object.keys(selectedDataset.data[0] || {}).slice(0, 5));
 			}
 
 			// If we have existing column order, use it
@@ -110,7 +109,7 @@
 			columnWidths = columnState.columnWidths || {};
 		} else {
 			selectedDataset = null;
-			selectedColumns = [];
+			selectedColumns = new Set(); // Changed to empty Set instead of empty array
 			columnOrder = [];
 			columnWidths = {};
 		}
@@ -254,24 +253,25 @@
 	function handleColumnToggle(column: string, checked: boolean) {
 		if (!selectedDatasetId) return;
 
-		// Create a new array instead of modifying the existing Set
-		const newSelectedColumns = checked
-			? [...selectedColumns, column]
-			: selectedColumns.filter((col) => col !== column);
+		const newSelectedColumns = new Set(selectedColumns);
+		if (checked) {
+			newSelectedColumns.add(column);
+		} else {
+			newSelectedColumns.delete(column);
+		}
 
-		// Update UI state
-		uiStateService.setColumnState(selectedDatasetId, newSelectedColumns, columnOrder);
+		// Convert to array for storage
+		const columnsArray = Array.from(newSelectedColumns);
+		uiStateService.setColumnState(selectedDatasetId, columnsArray, columnOrder);
 
 		// Update local state
 		selectedColumns = newSelectedColumns;
 	}
+
 	// Handle column reordering
 	function handleColumnReorder(newOrder: string[]) {
 		if (!selectedDatasetId) return;
-
-		uiStateService.setColumnState(selectedDatasetId, selectedColumns, newOrder);
-
-		// Update local state
+		uiStateService.setColumnState(selectedDatasetId, Array.from(selectedColumns), newOrder);
 		columnOrder = newOrder;
 	}
 
@@ -284,8 +284,19 @@
 			[column]: width
 		};
 
-		uiStateService.setColumnState(selectedDatasetId, selectedColumns, columnOrder, columnWidths);
+		uiStateService.setColumnState(
+			selectedDatasetId,
+			Array.from(selectedColumns),
+			columnOrder,
+			columnWidths
+		);
 	}
+
+	$: console.log('selectedColumns updated:', selectedColumns);
+	$: console.log(
+		'visibleColumns in DataTable:',
+		columnOrder.filter((col) => selectedColumns.has(col))
+	);
 </script>
 
 <main class="flex max-h-screen min-h-screen flex-col bg-background">
@@ -351,7 +362,7 @@
 						<Card.Content class="h-full p-0">
 							<DataTable
 								data={selectedDataset.data}
-								selectedColumns={new Set(selectedColumns)}
+								{selectedColumns}
 								{columnOrder}
 								{columnWidths}
 								onReorderColumns={handleColumnReorder}
@@ -392,7 +403,7 @@
 								name: col,
 								dtype: selectedDataset.details.dtypes[col]
 							}))}
-							selectedColumns={new Set(selectedColumns)}
+							{selectedColumns}
 							{columnOrder}
 							onColumnToggle={handleColumnToggle}
 							onReorderVariables={handleColumnReorder}

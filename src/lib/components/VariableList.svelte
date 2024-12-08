@@ -42,6 +42,8 @@
 		draggedVariable = null;
 	}
 
+	$: selectedColumnsArray = Array.from(selectedColumns);
+
 	$: sortedVariables = [...variables].sort((a, b) => {
 		const aIndex = columnOrder.indexOf(a.name);
 		const bIndex = columnOrder.indexOf(b.name);
@@ -49,6 +51,11 @@
 		if (bIndex === -1) return -1;
 		return aIndex - bIndex;
 	});
+
+	$: {
+		console.log('DataTable selectedColumns changed:', selectedColumns);
+		console.log('Column order:', columnOrder);
+	}
 </script>
 
 <div class="px-3 py-2">
@@ -65,7 +72,7 @@
 					class="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100"
 				/>
 				<Checkbox.Root
-					checked={selectedColumns.has(variable.name)}
+					checked={selectedColumnsArray.includes(variable.name)}
 					onCheckedChange={(checked) => onColumnToggle(variable.name, checked)}
 				/>
 				<div class="flex flex-1 items-center justify-between">
