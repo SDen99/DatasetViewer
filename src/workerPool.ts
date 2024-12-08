@@ -4,8 +4,8 @@ import type { ProcessingResult, WorkerTask, ManagedWorker, DatasetLoadingState }
 
 // This helper function determines if we're in production
 function getWorkerURL(workerPath: string): string {
-    console.log('import.meta', import.meta);
-    console.log(new URL('./fileProcessor.worker.js', import.meta.url).href)
+    //console.log('import.meta', import.meta);
+    //console.log(new URL('./fileProcessor.worker.js', import.meta.url).href)
     //console.log('workerPath', workerPath);
     //console.log('import.meta.env', ${ location.origin });
     return new URL('./fileProcessor.worker.js', import.meta.url).href;
@@ -41,7 +41,7 @@ export class WorkerPool {
         this.maxWorkers = maxWorkers ?? getDefaultWorkerCount();
         this.idleTimeout = idleTimeout;
         this.workerURL = getWorkerURL('fileProcessor.worker.ts');
-        console.log('workerURL', this.workerURL);
+        //console.log('workerURL', this.workerURL);
         // Defer initialization until explicitly called
         this.isInitialized = false;
     }
@@ -64,7 +64,7 @@ export class WorkerPool {
 
         return new Promise((resolve, reject) => {
             try {
-                console.log('Creating worker with URL:', this.workerURL);
+                //console.log('Creating worker with URL:', this.workerURL);
                 const worker = new Worker(this.workerURL, {
                     type: 'module',
                     name: 'fileProcessor'
