@@ -292,132 +292,140 @@
 		);
 	}
 
-	$: console.log('selectedColumns updated:', selectedColumns);
-	$: console.log(
-		'visibleColumns in DataTable:',
-		columnOrder.filter((col) => selectedColumns.has(col))
-	);
+	$: if (browser) {
+		console.log('[Client] selectedColumns updated:', selectedColumns);
+		console.log(
+			'[Client] visibleColumns in DataTable:',
+			columnOrder.filter((col) => selectedColumns.has(col))
+		);
+	}
 </script>
 
-<main class="flex max-h-screen min-h-screen flex-col bg-background">
-	<Navigation {handleFileChangeEvent} isLoading={$isLoadingStore} />
+{#if browser}
+	<main class="flex max-h-screen min-h-screen flex-col bg-background">
+		<Navigation {handleFileChangeEvent} isLoading={$isLoadingStore} />
 
-	<div class="fixed bottom-4 left-4 z-50 flex gap-2">
-		{#if !isLeftSidebarOpen}
-			<Button.Root
-				variant="default"
-				size="icon"
-				on:click={() => (isLeftSidebarOpen = true)}
-				aria-label="Show left sidebar"
-			>
-				<PanelLeftClose class="h-4 w-4" />
-			</Button.Root>
-		{/if}
+		<div class="fixed bottom-4 left-4 z-50 flex gap-2">
+			{#if !isLeftSidebarOpen}
+				<Button.Root
+					variant="default"
+					size="icon"
+					on:click={() => (isLeftSidebarOpen = true)}
+					aria-label="Show left sidebar"
+				>
+					<PanelLeftClose class="h-4 w-4" />
+				</Button.Root>
+			{/if}
 
-		{#if !isRightSidebarOpen}
-			<Button.Root
-				variant="default"
-				size="icon"
-				on:click={() => (isRightSidebarOpen = true)}
-				aria-label="Show right sidebar"
-			>
-				<PanelRightClose class="h-4 w-4" />
-			</Button.Root>
-		{/if}
-	</div>
-
-	<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
-		<!-- Left Sidebar -->
-		<div
-			class="relative {isLeftSidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out"
-		>
-			<ScrollArea.Root class="h-[calc(100vh-8rem)] border-r border-border bg-card">
-				<div class="p-4">
-					<div class="mb-4 flex items-center justify-between">
-						<h2 class="text-lg font-semibold">Datasets</h2>
-						<Button.Root
-							variant="ghost"
-							size="icon"
-							on:click={() => (isLeftSidebarOpen = !isLeftSidebarOpen)}
-						>
-							<PanelLeftOpen class="h-4 w-4" />
-						</Button.Root>
-					</div>
-					<DatasetList
-						{datasets}
-						selectedDataset={selectedDatasetId}
-						{onSelectDataset}
-						{onDeleteDataset}
-						loadingDatasets={$loadingDatasetsStore}
-					/>
-				</div>
-			</ScrollArea.Root>
-		</div>
-
-		<!-- Main Content -->
-		<div class="min-w-0 flex-1 overflow-hidden">
-			{#if selectedDataset}
-				<div class="h-full">
-					<Card.Root class="h-full">
-						<Card.Content class="h-full p-0">
-							<DataTable
-								data={selectedDataset.data}
-								{selectedColumns}
-								{columnOrder}
-								{columnWidths}
-								onReorderColumns={handleColumnReorder}
-								onResizeColumn={handleColumnResize}
-							/>
-						</Card.Content>
-					</Card.Root>
-				</div>
-			{:else}
-				<div class="flex flex-1 items-center justify-center">
-					<div class="text-center text-muted-foreground">
-						<h3 class="text-lg font-medium">No dataset selected</h3>
-						<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
-					</div>
-				</div>
+			{#if !isRightSidebarOpen}
+				<Button.Root
+					variant="default"
+					size="icon"
+					on:click={() => (isRightSidebarOpen = true)}
+					aria-label="Show right sidebar"
+				>
+					<PanelRightClose class="h-4 w-4" />
+				</Button.Root>
 			{/if}
 		</div>
 
-		<!-- Right Sidebar -->
-		<div
-			class="relative {isRightSidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out"
-		>
-			{#if selectedDataset}
-				<ScrollArea.Root class="h-[calc(100vh-8rem)] border-l border-border bg-card">
+		<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
+			<!-- Left Sidebar -->
+			<div
+				class="relative {isLeftSidebarOpen
+					? 'w-80'
+					: 'w-0'} transition-all duration-300 ease-in-out"
+			>
+				<ScrollArea.Root class="h-[calc(100vh-8rem)] border-r border-border bg-card">
 					<div class="p-4">
 						<div class="mb-4 flex items-center justify-between">
-							<h2 class="text-lg font-semibold">Variables</h2>
+							<h2 class="text-lg font-semibold">Datasets</h2>
 							<Button.Root
 								variant="ghost"
 								size="icon"
-								on:click={() => (isRightSidebarOpen = !isRightSidebarOpen)}
+								on:click={() => (isLeftSidebarOpen = !isLeftSidebarOpen)}
 							>
-								<PanelRightOpen class="h-4 w-4" />
+								<PanelLeftOpen class="h-4 w-4" />
 							</Button.Root>
 						</div>
-						<VariableList
-							variables={selectedDataset.details.columns.map((col: string) => ({
-								name: col,
-								dtype: selectedDataset.details.dtypes[col]
-							}))}
-							{selectedColumns}
-							{columnOrder}
-							onColumnToggle={handleColumnToggle}
-							onReorderVariables={handleColumnReorder}
+						<DatasetList
+							{datasets}
+							selectedDataset={selectedDatasetId}
+							{onSelectDataset}
+							{onDeleteDataset}
+							loadingDatasets={$loadingDatasetsStore}
 						/>
 					</div>
 				</ScrollArea.Root>
-			{/if}
-		</div>
-	</div>
+			</div>
 
-	<Footer
-		uploadTime={$processingStatsStore.uploadTime}
-		numColumns={$processingStatsStore.numColumns}
-		numRows={$processingStatsStore.numRows}
-		datasetSize={$processingStatsStore.datasetSize}
-	/>
-</main>
+			<!-- Main Content -->
+			<div class="min-w-0 flex-1 overflow-hidden">
+				{#if selectedDataset}
+					<div class="h-full">
+						<Card.Root class="h-full">
+							<Card.Content class="h-full p-0">
+								<DataTable
+									data={selectedDataset.data}
+									{selectedColumns}
+									{columnOrder}
+									{columnWidths}
+									onReorderColumns={handleColumnReorder}
+									onResizeColumn={handleColumnResize}
+								/>
+							</Card.Content>
+						</Card.Root>
+					</div>
+				{:else}
+					<div class="flex flex-1 items-center justify-center">
+						<div class="text-center text-muted-foreground">
+							<h3 class="text-lg font-medium">No dataset selected</h3>
+							<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Right Sidebar -->
+			<div
+				class="relative {isRightSidebarOpen
+					? 'w-80'
+					: 'w-0'} transition-all duration-300 ease-in-out"
+			>
+				{#if selectedDataset}
+					<ScrollArea.Root class="h-[calc(100vh-8rem)] border-l border-border bg-card">
+						<div class="p-4">
+							<div class="mb-4 flex items-center justify-between">
+								<h2 class="text-lg font-semibold">Variables</h2>
+								<Button.Root
+									variant="ghost"
+									size="icon"
+									on:click={() => (isRightSidebarOpen = !isRightSidebarOpen)}
+								>
+									<PanelRightOpen class="h-4 w-4" />
+								</Button.Root>
+							</div>
+							<VariableList
+								variables={selectedDataset.details.columns.map((col: string) => ({
+									name: col,
+									dtype: selectedDataset.details.dtypes[col]
+								}))}
+								{selectedColumns}
+								{columnOrder}
+								onColumnToggle={handleColumnToggle}
+								onReorderVariables={handleColumnReorder}
+							/>
+						</div>
+					</ScrollArea.Root>
+				{/if}
+			</div>
+		</div>
+
+		<Footer
+			uploadTime={$processingStatsStore.uploadTime}
+			numColumns={$processingStatsStore.numColumns}
+			numRows={$processingStatsStore.numRows}
+			datasetSize={$processingStatsStore.datasetSize}
+		/>
+	</main>
+{/if}
