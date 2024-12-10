@@ -256,7 +256,7 @@
 
 {#if browser}
 	<div class="relative h-full overflow-hidden">
-		<!-- Debug info (temporary) -->
+		<!-- Debug info (temporary) 
 		<pre class="bg-gray-100 p-2 text-xs">
             {JSON.stringify(
 				{ visibleColumns, dataLength: data?.length, firstRow: visibleData[0] },
@@ -264,6 +264,7 @@
 				2
 			)}
         </pre>
+-->
 
 		<!-- Main scroll container -->
 		<div class="overflow-x-auto">
@@ -321,7 +322,7 @@
 									{#each visibleColumns as column}
 										<TableCell
 											style={getColumnStyle(column)}
-											class="border-b border-l border-gray-200"
+											class="border-b border-l border-gray-200 p-1"
 										>
 											{row[column]}
 										</TableCell>

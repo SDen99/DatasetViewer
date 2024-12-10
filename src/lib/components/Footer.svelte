@@ -11,7 +11,7 @@
 <footer
 	class="relative border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 >
-	<div class="container flex h-14 items-center justify-between text-sm">
+	<div class="container flex h-8 items-center justify-between text-sm">
 		<div class="flex items-center gap-4">
 			{#if stats.uploadTime !== null}
 				<div class="text-muted-foreground">
