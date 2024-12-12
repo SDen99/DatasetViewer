@@ -15,47 +15,4 @@
 	<div style="display: contents">%sveltekit.body%</div>
 </body>
 
-<script>
-	if (import.meta.env.PROD) {
-		function detectDevTools() {
-    const widthThreshold = window.outerWidth - window.innerWidth > 160;
-    const heightThreshold = window.outerHeight - window.innerHeight > 160;
-    
-    if(widthThreshold || heightThreshold) {
-        handleDevToolsOpen();
-    }
-}
-
-function handleDevToolsOpen() {
-    window.location.href = '/access-denied';
-    document.body.innerHTML = '';
-}
-
-window.addEventListener('resize', detectDevTools);
-setInterval(detectDevTools, 1000);
-
-// In your app.html or a global script
-window.addEventListener('keydown', function(e) {
-    // Prevent F12
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
-        e.preventDefault();
-    }
-    // Prevent Ctrl+Shift+J
-    if (e.ctrlKey && e.shiftKey && e.key === 'J') {
-        e.preventDefault();
-    }
-    // Prevent Ctrl+U (view source)
-    if (e.ctrlKey && e.key === 'U') {
-        e.preventDefault();
-    }
-});
-
-// Detect right-click
-document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-});
- 
- }
-</script>
-
 </html>
