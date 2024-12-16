@@ -1,6 +1,8 @@
 // src/lib/stores.ts
 import { writable, derived, get } from 'svelte/store';
 import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
+import { DatasetService } from '../datasetService';
+import { UIStateService } from '../UIStateService';
 
 
 function initializeColumnState(dataset: Dataset, columnState: any) {
@@ -66,13 +68,20 @@ export const datasetActions = {
     },
 
     deleteDataset: async (id: string) => {
-        const $datasets = get(datasets);
-        const newDatasets = { ...$datasets };
-        delete newDatasets[id];
-        datasets.set(newDatasets);
+        try {
+            await DatasetService.getInstance().removeDataset(id);
+            await UIStateService.getInstance().clearStateForDataset(id);
 
-        if (get(selectedDatasetId) === id) {
-            selectedDatasetId.set(null);
+            const $datasets = get(datasets);
+            const newDatasets = { ...$datasets };
+            delete newDatasets[id];
+            datasets.set(newDatasets);
+
+            if (get(selectedDatasetId) === id) {
+                selectedDatasetId.set(null);
+            }
+        } catch (error) {
+            console.error('Error deleting dataset:', error);
         }
     },
 
