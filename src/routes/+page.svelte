@@ -2,12 +2,10 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import * as Card from '$lib/components/ui/card';
-	import * as Button from '$lib/components/ui/button';
-	import * as ScrollArea from '$lib/components/ui/scroll-area';
-	import { PanelLeftOpen, PanelRightOpen, PanelLeftClose, PanelRightClose } from 'lucide-svelte';
 	import type { DatasetLoadingState } from '$lib/types';
 
 	import Navigation from '$lib/components/Navigation.svelte';
+	import MainLayout from '$lib/components/MainLayout.svelte';
 	import DatasetList from '$lib/components/DatasetList.svelte';
 	import DataTable from '$lib/components/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
@@ -21,7 +19,6 @@
 		selectedDataset,
 		loadingDatasets,
 		isLoading,
-		uiState,
 		datasetActions
 	} from '$lib/stores';
 
@@ -148,108 +145,45 @@
 </script>
 
 {#if browser}
-	<main class="flex max-h-screen min-h-screen flex-col bg-background">
-		<Navigation {handleFileChangeEvent} isLoading={$isLoading} />
-
-		<!-- Sidebar toggle buttons -->
-		<div class="fixed bottom-4 left-4 z-50 flex gap-2">
-			{#if !$uiState.leftSidebarOpen}
-				<Button.Root
-					variant="default"
-					size="icon"
-					on:click={() => datasetActions.toggleSidebar('left')}
-					aria-label="Show left sidebar"
-				>
-					<PanelLeftClose class="h-4 w-4" />
-				</Button.Root>
-			{/if}
-
-			{#if !$uiState.rightSidebarOpen}
-				<Button.Root
-					variant="default"
-					size="icon"
-					on:click={() => datasetActions.toggleSidebar('right')}
-					aria-label="Show right sidebar"
-				>
-					<PanelRightClose class="h-4 w-4" />
-				</Button.Root>
-			{/if}
+<MainLayout>
+	<Navigation slot="navigation" {handleFileChangeEvent} isLoading={$isLoading} />
+	
+	<!-- Left Sidebar Content -->
+	<svelte:fragment slot="left-sidebar">
+	  <DatasetList />
+	</svelte:fragment>
+	
+	<!-- Main Content -->
+	<svelte:fragment slot="main-content">
+	  {#if $selectedDataset}
+		<div class="h-full">
+		  <Card.Root class="h-full">
+			<Card.Content class="h-full p-0">
+			  <DataTable data={$selectedDataset.data} />
+			</Card.Content>
+		  </Card.Root>
 		</div>
-
-		<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
-			<!-- Left Sidebar -->
-			<div
-				class="relative {$uiState.leftSidebarOpen
-					? 'w-80'
-					: 'w-0'} transition-all duration-300 ease-in-out"
-			>
-				<ScrollArea.Root class="h-[calc(100vh-8rem)] border-r border-border bg-card">
-					<div class="p-4">
-						<div class="mb-4 flex items-center justify-between">
-							<h2 class="text-lg font-semibold">Datasets</h2>
-							<Button.Root
-								variant="ghost"
-								size="icon"
-								on:click={() => datasetActions.toggleSidebar('left')}
-							>
-								<PanelLeftOpen class="h-4 w-4" />
-							</Button.Root>
-						</div>
-						<DatasetList />
-					</div>
-				</ScrollArea.Root>
-			</div>
-
-			<!-- Main Table -->
-			<div class="min-w-0 flex-1 overflow-hidden">
-				{#if $selectedDataset}
-					<div class="h-full">
-						<Card.Root class="h-full">
-							<Card.Content class="h-full p-0">
-								<DataTable data={$selectedDataset.data} />
-							</Card.Content>
-						</Card.Root>
-					</div>
-				{:else}
-					<div class="flex flex-1 items-center justify-center">
-						<div class="text-center text-muted-foreground">
-							<h3 class="text-lg font-medium">No dataset selected</h3>
-							<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
-						</div>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Right Sidebar -->
-			<div
-				class="relative {$uiState.rightSidebarOpen
-					? 'w-80'
-					: 'w-0'} transition-all duration-300 ease-in-out"
-			>
-				{#if $selectedDataset}
-					<ScrollArea.Root class="h-[calc(100vh-8rem)] border-l border-border bg-card">
-						<div class="p-4">
-							<div class="mb-4 flex items-center justify-between">
-								<h2 class="text-lg font-semibold">Variables</h2>
-								<Button.Root
-									variant="ghost"
-									size="icon"
-									on:click={() => datasetActions.toggleSidebar('right')}
-								>
-									<PanelRightOpen class="h-4 w-4" />
-								</Button.Root>
-							</div>
-							<VariableList
-								variables={$selectedDataset.details.columns.map((col: string) => ({
-									name: col,
-									dtype: $selectedDataset.details.dtypes[col]
-								}))}
-							/>
-						</div>
-					</ScrollArea.Root>
-				{/if}
-			</div>
+	  {:else}
+		<div class="flex flex-1 items-center justify-center">
+		  <div class="text-center text-muted-foreground">
+			<h3 class="text-lg font-medium">No dataset selected</h3>
+			<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+		  </div>
 		</div>
-		<Footer />
-	</main>
+	  {/if}
+	</svelte:fragment>
+	
+	<!-- Right Sidebar Content -->
+	<svelte:fragment slot="right-sidebar">
+		{#if $selectedDataset}
+		<VariableList
+		variables={$selectedDataset.details.columns.map((col: string) => ({
+		  name: col,
+		  dtype: $selectedDataset.details.dtypes[col]
+		}))}
+	  />
+	  {/if}
+	</svelte:fragment>
+	<Footer slot="footer" />
+  </MainLayout>
 {/if}

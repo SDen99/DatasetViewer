@@ -4,33 +4,6 @@ import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
 import { DatasetService } from '../datasetService';
 import { UIStateService } from '../UIStateService';
 
-
-function initializeColumnState(dataset: Dataset, columnState: any) {
-    if (!dataset?.data?.[0]) return;
-
-    const defaultColumns = Object.keys(dataset.data[0]);
-
-    // Set column order
-    columnOrder.set(
-        columnState.columnOrder.length > 0
-            ? columnState.columnOrder
-            : defaultColumns
-    );
-
-    // Set selected columns
-    selectedColumns.set(new Set());  // Reset first
-    if (columnState.selectedColumns.length > 0) {
-        columnState.selectedColumns.forEach((col: string) => {
-            datasetActions.updateColumnSelection(col, true);
-        });
-    } else {
-        defaultColumns.slice(0, 5).forEach(col => {
-            datasetActions.updateColumnSelection(col, true);
-        });
-    }
-}
-
-
 // Create the individual stores
 export const datasets = writable<Record<string, Dataset>>({});
 export const selectedDatasetId = writable<string | null>(null);
@@ -50,7 +23,6 @@ export const processingStats = writable<ProcessingStats>({
     datasetSize: null
 });
 
-// Derived store for selected dataset
 export const selectedDataset = derived(
     [datasets, selectedDatasetId],
     ([$datasets, $selectedDatasetId]) =>
@@ -60,11 +32,69 @@ export const selectedDataset = derived(
 // Store actions
 export const datasetActions = {
     selectDataset: (id: string | null) => {
+        console.log('Selecting dataset:', id);
+        const prevId = get(selectedDatasetId);
+        
+        // Save current state before switching
+        if (prevId) {
+            const currentState = {
+                selectedColumns: Array.from(get(selectedColumns)),
+                columnOrder: get(columnOrder),
+                columnWidths: get(columnWidths)
+            };
+            
+            console.log('Saving state for previous dataset:', prevId, currentState);
+            UIStateService.getInstance().setColumnState(
+                prevId,
+                currentState.selectedColumns,
+                currentState.columnOrder,
+                currentState.columnWidths
+            );
+        }
+
+        // Set the new dataset ID
         selectedDatasetId.set(id);
-        // Reset column state when changing datasets
-        selectedColumns.set(new Set());
-        columnOrder.set([]);
-        columnWidths.set({});
+        
+        if (id) {
+            const uiService = UIStateService.getInstance();
+            const savedState = uiService.getColumnState(id);
+            console.log('Loaded saved state for new dataset:', id, savedState);
+            
+            const dataset = get(datasets)[id];
+            
+            if (dataset?.data?.[0]) {
+                const allColumns = Object.keys(dataset.data[0]);
+                
+                if (uiService.hasColumnState(id)) {
+                    console.log('Using saved state');
+                    // Load saved state
+                    selectedColumns.set(new Set(savedState.selectedColumns));
+                    columnOrder.set(savedState.columnOrder);
+                    columnWidths.set(savedState.columnWidths || {});
+                } else {
+                    console.log('Initializing default state');
+                    // Initialize with defaults
+                    selectedColumns.set(new Set(allColumns.slice(0, 5)));
+                    columnOrder.set(allColumns);
+                    columnWidths.set({});
+                }
+
+                // Verify the state was set correctly
+                console.log('Current state after setting:', {
+                    selectedColumns: get(selectedColumns),
+                    columnOrder: get(columnOrder),
+                    columnWidths: get(columnWidths)
+                });
+            }
+            
+            uiService.setSelectedDataset(id);
+        } else {
+            // Reset state if no dataset selected
+            selectedColumns.set(new Set());
+            columnOrder.set([]);
+            columnWidths.set({});
+            UIStateService.getInstance().setSelectedDataset(null);
+        }
     },
 
     deleteDataset: async (id: string) => {
@@ -79,6 +109,9 @@ export const datasetActions = {
 
             if (get(selectedDatasetId) === id) {
                 selectedDatasetId.set(null);
+                selectedColumns.set(new Set());
+                columnOrder.set([]);
+                columnWidths.set({});
             }
         } catch (error) {
             console.error('Error deleting dataset:', error);
@@ -86,6 +119,9 @@ export const datasetActions = {
     },
 
     updateColumnSelection: (column: string, checked: boolean) => {
+        const datasetId = get(selectedDatasetId);
+        if (!datasetId) return;
+
         selectedColumns.update(cols => {
             const newCols = new Set(cols);
             if (checked) {
@@ -95,17 +131,57 @@ export const datasetActions = {
             }
             return newCols;
         });
+
+        // Save to UIService
+        const currentState = {
+            selectedColumns: Array.from(get(selectedColumns)),
+            columnOrder: get(columnOrder),
+            columnWidths: get(columnWidths)
+        };
+        
+        UIStateService.getInstance().setColumnState(
+            datasetId,
+            currentState.selectedColumns,
+            currentState.columnOrder,
+            currentState.columnWidths
+        );
     },
 
     updateColumnOrder: (newOrder: string[]) => {
+        const datasetId = get(selectedDatasetId);
+        if (!datasetId) return;
+
         columnOrder.set(newOrder);
+        
+        // Save to UIService
+        const currentState = {
+            selectedColumns: Array.from(get(selectedColumns)),
+            columnOrder: newOrder,
+            columnWidths: get(columnWidths)
+        };
+        
+        UIStateService.getInstance().setColumnState(
+            datasetId,
+            currentState.selectedColumns,
+            currentState.columnOrder,
+            currentState.columnWidths
+        );
     },
 
     updateColumnWidth: (column: string, width: number) => {
+        const datasetId = get(selectedDatasetId);
+        if (!datasetId) return;
+
         columnWidths.update(widths => ({
             ...widths,
             [column]: width
         }));
+
+        UIStateService.getInstance().updateColumnWidth(
+            datasetId,
+            column,
+            width
+        );
     },
 
     toggleSidebar: (side: 'left' | 'right') => {
@@ -125,6 +201,4 @@ export const datasetActions = {
             ...stats
         }));
     }
-
-
 };

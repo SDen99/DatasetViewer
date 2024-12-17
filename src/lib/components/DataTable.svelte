@@ -30,48 +30,35 @@
 	const DEFAULT_COLUMN_WIDTH = 200;
 
 	onMount(() => {
-		mounted = true;
+    mounted = true;
 
-		if (!browser) return;
+    if (!browser) return;
 
-		// Initialize column selection if empty
-		if (data && data.length > 0 && $selectedColumns.size === 0) {
-			const initialColumns = Object.keys(data[0]).slice(0, 5);
-			initialColumns.forEach((col) => {
-				datasetActions.updateColumnSelection(col, true);
-			});
-		}
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting && currentPage * pageSize < data.length) {
+                    currentPage++;
+                }
+            });
+        },
+        {
+            root: scrollContainer,
+            rootMargin: '100px',
+            threshold: 0
+        }
+    );
 
-		// Initialize column order if empty
-		if (data && data.length > 0 && $columnOrder.length === 0) {
-			datasetActions.updateColumnOrder(Object.keys(data[0]));
-		}
+    if (loadMoreTrigger) {
+        observer.observe(loadMoreTrigger);
+    }
 
-		const observer = new IntersectionObserver(
-			(entries) => {
-				entries.forEach((entry) => {
-					if (entry.isIntersecting && currentPage * pageSize < data.length) {
-						currentPage++;
-					}
-				});
-			},
-			{
-				root: scrollContainer,
-				rootMargin: '100px',
-				threshold: 0
-			}
-		);
-
-		if (loadMoreTrigger) {
-			observer.observe(loadMoreTrigger);
-		}
-
-		return () => {
-			if (loadMoreTrigger) {
-				observer.unobserve(loadMoreTrigger);
-			}
-		};
-	});
+    return () => {
+        if (loadMoreTrigger) {
+            observer.unobserve(loadMoreTrigger);
+        }
+    };
+});
 
 	function handleDragStart(e: DragEvent, column: string) {
 		draggedColumn = column;
@@ -151,11 +138,9 @@
 	}
 
 	$: visibleColumns =
-		$columnOrder.length > 0 && $selectedColumns.size > 0
-			? $columnOrder.filter((col) => $selectedColumns.has(col))
-			: data && data.length > 0
-				? Object.keys(data[0]).slice(0, 5)
-				: [];
+    $columnOrder.length > 0 && $selectedColumns.size > 0
+        ? $columnOrder.filter((col) => $selectedColumns.has(col))
+        : [];
 
 	// Update visibleData to use more reliable visibleColumns
 	$: visibleData =
@@ -179,32 +164,6 @@
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	};
 
-	$: console.log('Core state:', {
-		datasetFirstRow: data?.[0],
-		selectedColumnsSize: $selectedColumns.size,
-		columnOrderLength: $columnOrder.length,
-		mounted,
-		browser
-	});
-
-	$: if (data && data.length > 0) {
-		console.log('Dataset changed, initializing columns');
-
-		// Clear existing state
-		selectedColumns.set(new Set());
-		columnOrder.set([]);
-
-		// Get all possible columns
-		const allColumns = Object.keys(data[0]);
-
-		// Set the column order first
-		datasetActions.updateColumnOrder(allColumns);
-
-		// Then select the first 5 columns
-		allColumns.slice(0, 5).forEach((col) => {
-			datasetActions.updateColumnSelection(col, true);
-		});
-	}
 
 	// Log the visible data mapping
 	$: {
@@ -222,36 +181,18 @@
 		}
 	}
 
-	$: if (data && data.length > 0) {
-		// Clear previous column state when data changes
-		selectedColumns.set(new Set());
-
-		// Initialize columns for new dataset
-		const defaultColumns = Object.keys(data[0]);
-
-		// Set new column order
-		datasetActions.updateColumnOrder(defaultColumns);
-
-		// Select first 5 columns by default
-		defaultColumns.slice(0, 5).forEach((col) => {
-			datasetActions.updateColumnSelection(col, true);
-		});
-	}
-
 	$: {
-		const debugVisibleCols =
-			$columnOrder.length > 0
-				? $columnOrder.filter((col) => $selectedColumns.has(col))
-				: data && data.length > 0
-					? Object.keys(data[0]).filter((col) => $selectedColumns.has(col))
-					: [];
-		console.log('Visible columns calculation:', {
-			usingColumnOrder: $columnOrder.length > 0,
-			columnOrder: $columnOrder,
-			selectedColumns: Array.from($selectedColumns),
-			result: debugVisibleCols
-		});
-	}
+    const debugVisibleCols =
+        $columnOrder.length > 0
+            ? $columnOrder.filter((col) => $selectedColumns.has(col))
+            : [];
+    console.log('Visible columns calculation:', {
+        usingColumnOrder: $columnOrder.length > 0,
+        columnOrder: $columnOrder,
+        selectedColumns: Array.from($selectedColumns),
+        result: debugVisibleCols
+    });
+}
 </script>
 
 {#if browser}
