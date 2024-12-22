@@ -10,15 +10,15 @@ interface UIState {
 export class UIStateService {
     private static instance: UIStateService;
     private readonly storageKey = 'sasViewerUIState';
+    private cachedState: UIState;
 
     private constructor() {
-        // Initialize with empty state if none exists
-        if (!this.getState()) {
-            this.setState({
-                selectedDataset: null,
-                columnStates: {}
-            });
-        }
+        // Initialize state from storage or create new
+        const stored = localStorage.getItem(this.storageKey);
+        this.cachedState = stored ? JSON.parse(stored) : {
+            selectedDataset: null,
+            columnStates: {}
+        };
     }
 
     public static getInstance(): UIStateService {
@@ -29,13 +29,28 @@ export class UIStateService {
     }
 
     private getState(): UIState {
-        const stored = localStorage.getItem(this.storageKey);
-        return stored ? JSON.parse(stored) : null;
+        return this.cachedState;
     }
 
     private setState(state: UIState): void {
-        localStorage.setItem(this.storageKey, JSON.stringify(state));
+        this.cachedState = state;
+        // Debounce localStorage writes
+        this.debouncedSave();
     }
+
+    // Debounced save to localStorage
+    private debouncedSave = (() => {
+        let timeoutId: number | null = null;
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            timeoutId = window.setTimeout(() => {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.cachedState));
+                timeoutId = null;
+            }, 1000); // Save after 1 second of inactivity
+        };
+    })();
 
     public getSelectedDataset(): string | null {
         return this.getState().selectedDataset;
@@ -119,6 +134,15 @@ export class UIStateService {
         this.setState({
             selectedDataset: null,
             columnStates: {}
+        });
+    }
+
+    // Add method to handle storage events from other tabs
+    public initStorageSync(): void {
+        window.addEventListener('storage', (e) => {
+            if (e.key === this.storageKey && e.newValue) {
+                this.cachedState = JSON.parse(e.newValue);
+            }
         });
     }
 }

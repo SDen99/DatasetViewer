@@ -1,4 +1,9 @@
 export class DatasetService {
+    public static async create(): Promise<DatasetService> {
+        const service = new DatasetService();
+        await service.initialize();
+        return service;
+    }
     private static instance: DatasetService;
     private readonly dbName = 'SasDataViewer';
     private readonly version = 1;

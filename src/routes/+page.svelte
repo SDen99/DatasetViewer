@@ -13,8 +13,7 @@
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { createWorkerPool } from '../workerPool';
-	import { DatasetService } from '../datasetService';
-	import { UIStateService } from '../UIStateService';
+	import { ServiceContainer } from '$lib/stores/serviceContainer';
 
 	import {
 		datasets,
@@ -26,40 +25,35 @@
 
 	// Service instances
 	let workerPool: ReturnType<typeof createWorkerPool>;
-	let datasetService: DatasetService;
-	let uiStateService: UIStateService;
+	let serviceContainer: ServiceContainer;
 
-	// Initialize services and load initial data
 	onMount(async () => {
-  if (!browser) return;
+    if (!browser) return;
 
-  await withErrorHandling(async () => {
-    // Initialize services
-    datasetService = DatasetService.getInstance();
-    uiStateService = UIStateService.getInstance();
-    await datasetService.initialize();
+    await withErrorHandling(async () => {
+        const container = await ServiceContainer.initialize({
+            maxWorkers: 4,
+            storagePrefix: 'sas-viewer'
+        });
+        
+        ServiceContainer.initializeCleanup();
 
-    // Initialize worker pool
-    workerPool = createWorkerPool();
-    if (workerPool) {
-      await workerPool.initialize();
-    }
+        const datasetService = container.getDatasetService();
+        const initialDatasets = await datasetService.getAllDatasets();
+        datasets.set(initialDatasets);
 
-    // Load initial datasets
-    const initialDatasets = await datasetService.getAllDatasets();
-    datasets.set(initialDatasets);
-
-    // Load initial UI state
-    const selectedId = uiStateService.getSelectedDataset();
-    if (selectedId) {
-      datasetActions.selectDataset(selectedId);
-    }
-  }, { context: 'application-initialization' });
+        const uiService = container.getUIStateService();
+        const selectedId = uiService.getSelectedDataset();
+        if (selectedId) {
+            datasetActions.selectDataset(selectedId);
+        }
+    });
 });
 
-	onDestroy(() => {
-		workerPool?.terminate();
-	});
+onDestroy(() => {
+    // Cleanup if component is destroyed
+    ServiceContainer.reset().catch(console.error);
+});
 
 	async function processFile(file: File) {
 		loadingDatasets.update((state) => ({

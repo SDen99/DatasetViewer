@@ -8,11 +8,10 @@
 		TableRow
 	} from '$lib/components/ui/table';
 	import { GripVertical } from 'lucide-svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { selectedColumns, columnOrder, columnWidths, datasetActions } from '$lib/stores/stores';
 
-	// Keep data prop as it comes from the selected dataset
 	export let data: any[];
 
 	let draggedColumn: string | null = null;
@@ -20,45 +19,48 @@
 	let resizingColumn: string | null = null;
 	let startX: number = 0;
 	let startWidth: number = 0;
-	let loadMoreTrigger: HTMLElement;
 	let scrollContainer: HTMLElement;
-	let pageSize = 50;
-	let currentPage = 1;
 	let mounted = false;
+
+	// Virtualization constants
+	const ROW_HEIGHT = 35; // Height of each row in pixels
+	const BUFFER_SIZE = 5; // Number of rows to render above/below viewport
+	let viewportHeight = 0;
+	let scrollTop = 0;
+	let visibleStartIndex = 0;
+	let visibleEndIndex = 0;
 
 	const MIN_COLUMN_WIDTH = 100;
 	const DEFAULT_COLUMN_WIDTH = 200;
 
+	// Virtualization state
+	$: {
+		if (mounted && scrollContainer) {
+			viewportHeight = scrollContainer.clientHeight;
+			const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
+			visibleStartIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_SIZE);
+			visibleEndIndex = Math.min(
+				data.length,
+				visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
+			);
+		}
+	}
+
+	function handleScroll(event: Event) {
+		scrollTop = (event.target as HTMLElement).scrollTop;
+	}
+
 	onMount(() => {
-    mounted = true;
+		mounted = true;
+		if (!browser) return;
 
-    if (!browser) return;
-
-    const observer = new IntersectionObserver(
-        (entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting && currentPage * pageSize < data.length) {
-                    currentPage++;
-                }
-            });
-        },
-        {
-            root: scrollContainer,
-            rootMargin: '100px',
-            threshold: 0
-        }
-    );
-
-    if (loadMoreTrigger) {
-        observer.observe(loadMoreTrigger);
-    }
-
-    return () => {
-        if (loadMoreTrigger) {
-            observer.unobserve(loadMoreTrigger);
-        }
-    };
-});
+		// Initial viewport calculation
+		if (scrollContainer) {
+			viewportHeight = scrollContainer.clientHeight;
+			const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
+			visibleEndIndex = Math.min(data.length, visibleRows + 2 * BUFFER_SIZE);
+		}
+	});
 
 	function handleDragStart(e: DragEvent, column: string) {
 		draggedColumn = column;
@@ -138,20 +140,20 @@
 	}
 
 	$: visibleColumns =
-    $columnOrder.length > 0 && $selectedColumns.size > 0
-        ? $columnOrder.filter((col) => $selectedColumns.has(col))
-        : [];
+		$columnOrder.length > 0 && $selectedColumns.size > 0
+			? $columnOrder.filter((col) => $selectedColumns.has(col))
+			: [];
 
-	// Update visibleData to use more reliable visibleColumns
+	// Updated visibleData computation using virtualization
 	$: visibleData =
 		mounted && browser && data && visibleColumns.length > 0
-			? data.slice(0, currentPage * pageSize).map((row) => {
+			? data.slice(visibleStartIndex, visibleEndIndex).map((row) => {
 					const visibleRowData: Record<string, any> = {};
 					visibleColumns.forEach((col) => {
 						visibleRowData[col] = row[col];
 					});
 					return visibleRowData;
-				})
+			  })
 			: [];
 
 	$: totalWidth = visibleColumns.reduce(
@@ -159,54 +161,21 @@
 		0
 	);
 
+	$: totalHeight = data ? data.length * ROW_HEIGHT : 0;
+
 	$: getColumnStyle = (column: string) => {
 		const width = $columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	};
 
-
-	// Log the visible data mapping
-	$: {
-		if (mounted && browser && data) {
-			const sampleRow = data[0];
-			const mappedRow: Record<string, any> = {};
-			visibleColumns.forEach((col) => {
-				mappedRow[col] = sampleRow[col];
-			});
-			console.log('Visible data mapping:', {
-				originalRow: sampleRow,
-				visibleColumns,
-				mappedResult: mappedRow
-			});
-		}
-	}
-
-	$: {
-    const debugVisibleCols =
-        $columnOrder.length > 0
-            ? $columnOrder.filter((col) => $selectedColumns.has(col))
-            : [];
-    console.log('Visible columns calculation:', {
-        usingColumnOrder: $columnOrder.length > 0,
-        columnOrder: $columnOrder,
-        selectedColumns: Array.from($selectedColumns),
-        result: debugVisibleCols
-    });
-}
+	onDestroy(() => {
+		document.removeEventListener('mousemove', handleMouseMove);
+		document.removeEventListener('mouseup', stopResize);
+	});
 </script>
 
 {#if browser}
 	<div class="relative h-full overflow-hidden">
-		<!-- Debug info (temporary) 
-		<pre class="bg-gray-100 p-2 text-xs">
-            {JSON.stringify(
-				{ visibleColumns, dataLength: data?.length, firstRow: visibleData[0] },
-				null,
-				2
-			)}
-        </pre>
--->
-
 		<!-- Main scroll container -->
 		<div class="overflow-x-auto">
 			<div style="width: {totalWidth}px">
@@ -241,7 +210,7 @@
 												class="absolute right-0 top-0 h-full w-0.5 cursor-col-resize bg-gray-300 p-0 hover:w-1 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 												on:mousedown={(e) => startResize(e, column)}
 												on:keydown={(e) => handleKeyResize(e, column)}
-											></button>
+											/>
 										</div>
 									</TableHead>
 								{/each}
@@ -250,29 +219,33 @@
 					</Table>
 				</div>
 
-				<!-- Scrollable body -->
+				<!-- Scrollable body with virtualization -->
 				<div
 					bind:this={scrollContainer}
 					class="overflow-y-auto"
 					style="max-height: calc(100vh - 41px);"
+					on:scroll={handleScroll}
 				>
-					<Table>
-						<TableBody>
-							{#each visibleData as row}
-								<TableRow>
-									{#each visibleColumns as column}
-										<TableCell
-											style={getColumnStyle(column)}
-											class="border-b border-l border-gray-200 p-1"
-										>
-											{row[column]}
-										</TableCell>
+					<div style="height: {totalHeight}px; position: relative;">
+						<div style="position: absolute; top: {visibleStartIndex * ROW_HEIGHT}px; left: 0; right: 0;">
+							<Table>
+								<TableBody>
+									{#each visibleData as row, i (visibleStartIndex + i)}
+										<TableRow style="height: {ROW_HEIGHT}px;">
+											{#each visibleColumns as column}
+												<TableCell
+													style={getColumnStyle(column)}
+													class="border-b border-l border-gray-200 p-1 truncate"
+												>
+													{row[column]}
+												</TableCell>
+											{/each}
+										</TableRow>
 									{/each}
-								</TableRow>
-							{/each}
-							<tr bind:this={loadMoreTrigger} class="h-1"></tr>
-						</TableBody>
-					</Table>
+								</TableBody>
+							</Table>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
