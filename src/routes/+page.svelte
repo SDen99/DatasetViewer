@@ -12,7 +12,6 @@
 	import DataTable from '$lib/components/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { createWorkerPool } from '../workerPool';
 	import { ServiceContainer } from '$lib/stores/serviceContainer';
 
 	import {
@@ -28,7 +27,7 @@
     let servicesInitialized = false;
 
     let initializationInProgress = false;
-    const MAX_FILE_SIZE = 100 * 1024 * 1024; 
+    const MAX_FILE_SIZE = 500 * 1024 * 1024; 
 
 async function initializeServices() {
     if (!browser || initializationInProgress) return;
