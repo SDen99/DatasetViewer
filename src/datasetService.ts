@@ -71,14 +71,34 @@ export class DatasetService {
         processingTime: number;
     }): Promise<void> {
         if (!this.db) throw new Error('Database not initialized');
-
+    
         return new Promise((resolve, reject) => {
             const transaction = this.db!.transaction('datasets', 'readwrite');
+            
+            // Add transaction error handling
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(new Error('Transaction aborted'));
+    
             const store = transaction.objectStore('datasets');
-            const request = store.put(dataset);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            
+            // Check if dataset already exists
+            const getRequest = store.get(dataset.fileName);
+            
+            getRequest.onsuccess = () => {
+                if (getRequest.result) {
+                    // If exists, update it
+                    const putRequest = store.put(dataset);
+                    putRequest.onsuccess = () => resolve();
+                    putRequest.onerror = () => reject(putRequest.error);
+                } else {
+                    // If new, add it
+                    const addRequest = store.add(dataset);
+                    addRequest.onsuccess = () => resolve();
+                    addRequest.onerror = () => reject(addRequest.error);
+                }
+            };
+            
+            getRequest.onerror = () => reject(getRequest.error);
         });
     }
 

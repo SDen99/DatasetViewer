@@ -24,87 +24,133 @@
 	} from '$lib/stores/stores';
 
 	// Service instances
-	let workerPool: ReturnType<typeof createWorkerPool>;
 	let serviceContainer: ServiceContainer;
-	let servicesInitialized = false;
+    let servicesInitialized = false;
 
-	
-	onMount(async () => {
-        if (!browser) return;
+    let initializationInProgress = false;
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; 
 
-        try {
-            serviceContainer = await ServiceContainer.initialize();
-            
-            // Load initial datasets
-            const datasetService = serviceContainer.getDatasetService();
-            const initialDatasets = await datasetService.getAllDatasets();
-            datasets.set(initialDatasets);
+async function initializeServices() {
+    if (!browser || initializationInProgress) return;
+    
+    initializationInProgress = true;
+    try {
+        serviceContainer = await ServiceContainer.initialize();
+        const datasetService = serviceContainer.getDatasetService();
+        const initialDatasets = await datasetService.getAllDatasets();
+        datasets.set(initialDatasets);
 
-            // Load initial UI state
-            const selectedId = serviceContainer.getUIStateService().getSelectedDataset();
-            if (selectedId) {
-                datasetActions.selectDataset(selectedId);
-            }
-
-			servicesInitialized = true;
-        } catch (error) {
-			console.error('Service initialization error:', error);
-            errorStore.addError({
-                message: 'Failed to initialize application services',
-                severity: ErrorSeverity.ERROR,
-                context: { error }
-            });
+        const selectedId = serviceContainer.getUIStateService().getSelectedDataset();
+        if (selectedId) {
+            await datasetActions.selectDataset(selectedId);
         }
-    });
 
+        servicesInitialized = true;
+    } catch (error) {
+        console.error('Service initialization error:', error);
+        errorStore.addError({
+            message: 'Failed to initialize application services',
+            severity: ErrorSeverity.ERROR,
+            context: { error }
+        });
+    } finally {
+        initializationInProgress = false;
+    }
+}
 
-	async function handleFileChangeEvent(event: Event) {
-        if (!servicesInitialized) {
+onMount(() => {
+    initializeServices();
+});
+
+onDestroy(() => {
+    if (serviceContainer) {
+        serviceContainer.dispose();
+    }
+});
+
+async function handleFileChangeEvent(event: Event) {
+    if (!servicesInitialized) {
+        errorStore.addError({
+            message: 'Please wait for application services to initialize',
+            severity: ErrorSeverity.WARNING
+        });
+        return;
+    }
+
+    const files = (event.target as HTMLInputElement).files;
+    if (!files?.length) return;
+
+    const validFiles = Array.from(files).filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
             errorStore.addError({
-                message: 'Please wait for application services to initialize',
+                message: `File ${file.name} exceeds maximum size limit of 100MB`,
                 severity: ErrorSeverity.WARNING
             });
-            return;
+            return false;
         }
-
-        const workerPool = serviceContainer.getWorkerPool();
-        if (!workerPool) {
+        if (!file.name.endsWith('.sas7bdat')) {
             errorStore.addError({
-                message: 'Worker pool is not initialized',
-                severity: ErrorSeverity.ERROR
+                message: `File ${file.name} is not a valid SAS dataset`,
+                severity: ErrorSeverity.WARNING
             });
-            return;
+            return false;
         }
+        return true;
+    });
 
-        const files = (event.target as HTMLInputElement).files;
-        if (!files?.length) return;
+    if (!validFiles.length) return;
 
-        datasetActions.setLoadingState(true);
-
-        try {
-            for (const file of files) {
-                if (!file.name.endsWith('.sas7bdat')) {
-                    errorStore.addError({
-                        message: `File ${file.name} is not a valid SAS dataset`,
-                        severity: ErrorSeverity.WARNING
-                    });
-                    continue;
-                }
+    datasetActions.setLoadingState(true);
+    
+    try {
+        // Process files concurrently
+        const processingPromises = validFiles.map(async (file) => {
+            try {
+                loadingDatasets.update(state => ({
+                    ...state,
+                    [file.name]: { status: 'queued', fileName: file.name }
+                }));
 
                 const result = await processFile(file);
                 await handleProcessingSuccess(file, result);
+                return { file, status: 'success' };
+            } catch (error) {
+                handleProcessingError(file, error);
+                return { file, status: 'error', error };
             }
-        } catch (error) {
-            console.error('File processing error:', error);
+        });
+
+        const results = await Promise.allSettled(processingPromises);
+        
+        // Count failures
+        const failures = results.filter(
+            r => r.status === 'fulfilled' && r.value.status === 'error'
+        );
+        
+        if (failures.length > 0) {
             errorStore.addError({
-                message: 'Error processing file',
-                severity: ErrorSeverity.ERROR,
-                context: { error }
+                message: `Failed to process ${failures.length} file(s)`,
+                severity: ErrorSeverity.WARNING,
+                context: { failures }
             });
-        } finally {
-            datasetActions.setLoadingState(false);
         }
+
+        // Refresh dataset list after all processing is complete
+        const datasetService = serviceContainer.getDatasetService();
+        const updatedDatasets = await datasetService.getAllDatasets();
+        datasets.set(updatedDatasets);
+        
+    } catch (error) {
+        console.error('File processing error:', error);
+        errorStore.addError({
+            message: 'Error processing files',
+            severity: ErrorSeverity.ERROR,
+            context: { error }
+        });
+    } finally {
+        datasetActions.setLoadingState(false);
     }
+}
 
 async function processFile(file: File) {
     const workerPool = serviceContainer.getWorkerPool();

@@ -36,22 +36,71 @@ export class ServiceContainer {
         }
         return ServiceContainer.instance;
     }
+    private clearSubscriptions(): void {
+        // Clear any subscriptions
+    }
+
+    public getWorkerPool(): WorkerPool {
+        this.throwIfDisposed();
+        if (!this.workerPool) {
+            throw new Error('Worker pool not initialized');
+        }
+        return this.workerPool;
+    }
 
     public getDatasetService(): DatasetService {
+        this.throwIfDisposed();
         if (!this.datasetService) {
-            throw new Error('DatasetService not initialized');
+            throw new Error('Dataset service not initialized');
         }
         return this.datasetService;
     }
 
     public getUIStateService(): UIStateService {
+        this.throwIfDisposed();
         if (!this.uiStateService) {
-            throw new Error('UIStateService not initialized');
+            throw new Error('UI state service not initialized');
         }
         return this.uiStateService;
     }
 
-    public getWorkerPool(): WorkerPool | null {
-        return this.workerPool;
+    private throwIfDisposed(): void {
+        if (this.isDisposed) {
+            throw new Error('Service container has been disposed');
+        }
+    }
+
+    public dispose(): void {
+        if (this.isDisposed) {
+            return;
+        }
+
+        try {
+            // Terminate worker pool
+            if (this.workerPool) {
+                this.workerPool.terminate();
+                this.workerPool = null;
+            }
+
+            // Clean up dataset service
+            if (this.datasetService) {
+                this.datasetService.dispose();
+                this.datasetService = null;
+            }
+
+            // Clean up UI state service
+            if (this.uiStateService) {
+                this.uiStateService.dispose();
+                this.uiStateService = null;
+            }
+
+            // Clear any event listeners or subscriptions
+            this.clearSubscriptions();
+
+        } catch (error) {
+            console.error('Error during service container disposal:', error);
+        } finally {
+            this.isDisposed = true;
+        }
     }
 }
