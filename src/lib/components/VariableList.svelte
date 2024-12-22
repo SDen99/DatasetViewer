@@ -2,7 +2,7 @@
 	import { GripVertical } from 'lucide-svelte';
 	import * as Checkbox from '$lib/components/ui/checkbox';
 	import { Badge } from '$lib/components/ui/badge';
-	import { selectedColumns, columnOrder, datasetActions } from '$lib/stores';
+	import { selectedColumns, columnOrder, datasetActions } from '$lib/stores/stores';
 	import type { VariableType } from '$lib/types';
 
 	// We still need the variables prop as it's computed from the selected dataset

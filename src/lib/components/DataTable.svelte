@@ -10,7 +10,7 @@
 	import { GripVertical } from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { selectedColumns, columnOrder, columnWidths, datasetActions } from '$lib/stores';
+	import { selectedColumns, columnOrder, columnWidths, datasetActions } from '$lib/stores/stores';
 
 	// Keep data prop as it comes from the selected dataset
 	export let data: any[];

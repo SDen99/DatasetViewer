@@ -1,4 +1,6 @@
 <script lang="ts">
+    import  ErrorToast  from '$lib/components/ErrorToast.svelte';
+    import { errorStore, withErrorHandling, ErrorSeverity } from '$lib/stores/errorStore';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import * as Card from '$lib/components/ui/card';
@@ -20,7 +22,7 @@
 		loadingDatasets,
 		isLoading,
 		datasetActions
-	} from '$lib/stores';
+	} from '$lib/stores/stores';
 
 	// Service instances
 	let workerPool: ReturnType<typeof createWorkerPool>;
@@ -29,59 +31,35 @@
 
 	// Initialize services and load initial data
 	onMount(async () => {
-		if (!browser) return;
+  if (!browser) return;
 
-		try {
-			// Initialize services
-			datasetService = DatasetService.getInstance();
-			uiStateService = UIStateService.getInstance();
-			await datasetService.initialize();
+  await withErrorHandling(async () => {
+    // Initialize services
+    datasetService = DatasetService.getInstance();
+    uiStateService = UIStateService.getInstance();
+    await datasetService.initialize();
 
-			// Initialize worker pool
-			workerPool = createWorkerPool();
-			if (workerPool) {
-				await workerPool.initialize();
-			}
+    // Initialize worker pool
+    workerPool = createWorkerPool();
+    if (workerPool) {
+      await workerPool.initialize();
+    }
 
-			// Load initial datasets
-			const initialDatasets = await datasetService.getAllDatasets();
-			datasets.set(initialDatasets);
+    // Load initial datasets
+    const initialDatasets = await datasetService.getAllDatasets();
+    datasets.set(initialDatasets);
 
-			// Load initial UI state
-			const selectedId = uiStateService.getSelectedDataset();
-			if (selectedId) {
-				datasetActions.selectDataset(selectedId);
-			}
-		} catch (error) {
-			console.error('Error during initialization:', error);
-		}
-	});
+    // Load initial UI state
+    const selectedId = uiStateService.getSelectedDataset();
+    if (selectedId) {
+      datasetActions.selectDataset(selectedId);
+    }
+  }, { context: 'application-initialization' });
+});
 
 	onDestroy(() => {
 		workerPool?.terminate();
 	});
-
-	async function handleFileChangeEvent(event: Event) {
-		if (!workerPool || !datasetService) return;
-
-		const files = (event.target as HTMLInputElement).files;
-		if (!files?.length) return;
-
-		datasetActions.setLoadingState(true);
-
-		for (const file of files) {
-			if (!file.name.endsWith('.sas7bdat')) continue;
-
-			try {
-				const result = await processFile(file);
-				await handleProcessingSuccess(file, result);
-			} catch (error) {
-				handleProcessingError(file, error);
-			}
-		}
-
-		datasetActions.setLoadingState(false);
-	}
 
 	async function processFile(file: File) {
 		loadingDatasets.update((state) => ({
@@ -142,6 +120,45 @@
 		}));
 	}
 
+	async function handleFileChangeEvent(event: Event) {
+    if (!workerPool || !datasetService) {
+      errorStore.addError({
+        message: 'Application services are not initialized',
+        severity: ErrorSeverity.ERROR
+      });
+      return;
+    }
+
+    const files = (event.target as HTMLInputElement).files;
+    if (!files?.length) return;
+
+    datasetActions.setLoadingState(true);
+
+    for (const file of files) {
+      if (!file.name.endsWith('.sas7bdat')) {
+        errorStore.addError({
+          message: `File ${file.name} is not a valid SAS dataset`,
+          severity: ErrorSeverity.WARNING
+        });
+        continue;
+      }
+
+      await withErrorHandling(
+        async () => {
+          const result = await processFile(file);
+          await handleProcessingSuccess(file, result);
+        },
+        {
+          fileName: file.name,
+          fileSize: file.size,
+          operation: 'processFile'
+        }
+      );
+    }
+
+    datasetActions.setLoadingState(false);
+  }
+
 </script>
 
 {#if browser}
@@ -184,6 +201,9 @@
 	  />
 	  {/if}
 	</svelte:fragment>
+
+
 	<Footer slot="footer" />
   </MainLayout>
-{/if}
+  <ErrorToast/>
+  {/if}

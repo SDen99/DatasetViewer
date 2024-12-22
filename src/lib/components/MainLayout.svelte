@@ -1,7 +1,7 @@
 <script lang="ts">
     import Sidebar from '$lib/components/Sidebar.svelte';
     import SidebarToggleButtons from '$lib/components/SidebarToggleButtons.svelte';
-    import { uiState, selectedDataset } from '$lib/stores';
+    import { uiState, selectedDataset } from '$lib/stores/stores';
 </script>
   
   <main class="flex max-h-screen min-h-screen flex-col bg-background">

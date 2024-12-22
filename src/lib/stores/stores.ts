@@ -1,8 +1,8 @@
 // src/lib/stores.ts
 import { writable, derived, get } from 'svelte/store';
 import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
-import { DatasetService } from '../datasetService';
-import { UIStateService } from '../UIStateService';
+import { DatasetService } from '../../datasetService';
+import { UIStateService } from '../../UIStateService';
 
 // Create the individual stores
 export const datasets = writable<Record<string, Dataset>>({});

@@ -2,7 +2,7 @@
   import {ScrollArea} from '$lib/components/ui/scroll-area';
   import { Button } from '$lib/components/ui/button';
   import { PanelLeftOpen, PanelRightOpen } from 'lucide-svelte';
-  import { datasetActions } from '$lib/stores';
+  import { datasetActions } from '$lib/stores/stores';
   
   export let position: 'left' | 'right';
   export let open: boolean;

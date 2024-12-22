@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatStorageSize } from '$lib/utils';
 	import { Separator } from '$lib/components/ui/separator';
-	import { selectedDataset, processingStats } from '$lib/stores';
+	import { selectedDataset, processingStats } from '$lib/stores/stores';
 
 	$: stats = $selectedDataset
 		? $selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected

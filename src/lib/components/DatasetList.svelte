@@ -4,7 +4,7 @@
 	import * as Button from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
 	import { Badge } from '$lib/components/ui/badge';
-	import { datasets, loadingDatasets, selectedDatasetId, datasetActions } from '$lib/stores';
+	import { datasets, loadingDatasets, selectedDatasetId, datasetActions } from '$lib/stores/stores';
 
 	let datasetToDelete: string | null = null;
 	let dialogOpen = false;
