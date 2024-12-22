@@ -29,6 +29,13 @@ function createErrorStore() {
     hasUnreadErrors: false
   });
 
+  const removeError = (errorId: string) => {
+    update(state => ({
+      ...state,
+      errors: state.errors.filter(e => e.id !== errorId)
+    }));
+  };
+
   return {
     subscribe,
     addError: (error: Omit<AppError, 'id' | 'timestamp'>) => {
@@ -52,12 +59,7 @@ function createErrorStore() {
 
       return newError.id;
     },
-    removeError: (errorId: string) => {
-      update(state => ({
-        ...state,
-        errors: state.errors.filter(e => e.id !== errorId)
-      }));
-    },
+    removeError,
     clearErrors: () => {
       update(() => ({
         errors: [],

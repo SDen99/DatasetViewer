@@ -1,43 +1,45 @@
 const PYODIDE_VERSION = 'v0.24.1';
 const PYODIDE_BASE_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
 
-self.loadPyodide = await import(`${PYODIDE_BASE_URL}pyodide.mjs`);
-
 let pyodide = null;
 
-// Create an initialization function that wraps everything in an async function
-function initialize() {
-    async function initializePyodideInWorker() {
-        try {
-            const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
-
-            pyodide = await pyodideModule.loadPyodide({
-                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
-                stderr: (msg) => console.error('Python Error:', msg)
-            });
-
-            await pyodide.loadPackage('pandas');
-
-            self.postMessage({
-                type: 'PYODIDE_READY',
-                taskId: 'init'
-            });
-        } catch (error) {
-            console.error('Pyodide initialization error:', error);
-            self.postMessage({
-                type: 'PYODIDE_ERROR',
-                taskId: 'init',
-                error: error.message
-            });
-        }
+async function loadPyodideModule() {
+    try {
+        /* @vite-ignore */
+        const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
+        return pyodideModule;
+    } catch (error) {
+        console.error('Failed to load Pyodide module:', error);
+        throw error;
     }
+}
+async function initializePyodideInWorker() {
+    try {
+        const pyodideModule = await loadPyodideModule();
+        
+        pyodide = await pyodideModule.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+            stderr: (msg) => console.error('Python Error:', msg)
+        });
 
-    // Start initialization
-    initializePyodideInWorker();
+        await pyodide.loadPackage('pandas');
+
+        self.postMessage({
+            type: 'PYODIDE_READY',
+            taskId: 'init'
+        });
+    } catch (error) {
+        console.error('Pyodide initialization error:', error);
+        self.postMessage({
+            type: 'PYODIDE_ERROR',
+            taskId: 'init',
+            error: error.message
+        });
+    }
 }
 
-// Call initialize function instead of having top-level await
-initialize();
+// Start initialization immediately
+initializePyodideInWorker();
 
 async function processSasFile(arrayBuffer) {
     if (!pyodide) {

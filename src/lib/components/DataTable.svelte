@@ -210,7 +210,7 @@
 												class="absolute right-0 top-0 h-full w-0.5 cursor-col-resize bg-gray-300 p-0 hover:w-1 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 												on:mousedown={(e) => startResize(e, column)}
 												on:keydown={(e) => handleKeyResize(e, column)}
-											/>
+											></button>
 										</div>
 									</TableHead>
 								{/each}
