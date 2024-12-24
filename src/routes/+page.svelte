@@ -228,7 +228,6 @@ async function handleProcessingSuccess(file: File, result: any) {
       {/snippet}
 	
 	<!-- Main Content -->
-	<!-- @migration-task: migrate this slot by hand, `main-content` is an invalid identifier -->
   {#snippet maincontent()}
       
   	  {#if $selectedDataset}
@@ -251,7 +250,6 @@ async function handleProcessingSuccess(file: File, result: any) {
       {/snippet}
 	
 	<!-- Right Sidebar Content -->
-	<!-- @migration-task: migrate this slot by hand, `right-sidebar` is an invalid identifier -->
   {#snippet rightbar()}
       
   		{#if $selectedDataset}
