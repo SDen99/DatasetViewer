@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
   export interface ToastProps {
     position?: 'top-right' | 'bottom-right' | 'top-left' | 'bottom-left';
   }
@@ -81,7 +81,7 @@
         </div>
         <button 
           class="absolute right-2 top-2 opacity-70 ring-offset-background transition-opacity hover:opacity-100"
-          on:click={() => errorStore.removeError(error.id)}
+          onclick={() => errorStore.removeError(error.id)}
           aria-label="Close"
         >
           <svg

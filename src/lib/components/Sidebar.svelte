@@ -4,13 +4,23 @@
   import { PanelLeftOpen, PanelRightOpen } from 'lucide-svelte';
   import { datasetActions } from '$lib/stores/stores';
   
-  export let position: 'left' | 'right';
-  export let open: boolean;
-  export let title: string;
+  interface Props {
+    position: 'left' | 'right';
+    open: boolean;
+    title: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let {
+    position,
+    open,
+    title,
+    children
+  }: Props = $props();
   
   const Icon = position === 'left' ? PanelLeftOpen : PanelRightOpen;
   
-  $: borderClass = position === 'right' ? 'border-l' : 'border-r';
+  let borderClass = $derived(position === 'right' ? 'border-l' : 'border-r');
 </script>
 
 <div class="relative {open ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out">
@@ -26,7 +36,7 @@
                   <Icon class="h-4 w-4" />
               </Button>
           </div>
-          <slot />
+          {@render children?.()}
       </div>
   </ScrollArea>
 </div>

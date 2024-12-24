@@ -215,47 +215,60 @@ async function handleProcessingSuccess(file: File, result: any) {
 
 {#if browser}
 <MainLayout>
-	<Navigation slot="navigation" {handleFileChangeEvent} isLoading={$isLoading} />
+	{#snippet navigation()}
+        <Navigation  {handleFileChangeEvent} isLoading={$isLoading} />
+      {/snippet}
 	
 	<!-- Left Sidebar Content -->
-	<svelte:fragment slot="left-sidebar">
-	  <DatasetList />
-	</svelte:fragment>
+	<!-- @migration-task: migrate this slot by hand, `left-sidebar` is an invalid identifier -->
+  {#snippet leftbar()}
+      
+  	  <DatasetList />
+  	
+      {/snippet}
 	
 	<!-- Main Content -->
-	<svelte:fragment slot="main-content">
-	  {#if $selectedDataset}
-		<div class="h-full">
-		  <Card.Root class="h-full">
-			<Card.Content class="h-full p-0">
-			  <DataTable data={$selectedDataset.data} />
-			</Card.Content>
-		  </Card.Root>
-		</div>
-	  {:else}
-		<div class="flex flex-1 items-center justify-center">
-		  <div class="text-center text-muted-foreground">
-			<h3 class="text-lg font-medium">No dataset selected</h3>
-			<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
-		  </div>
-		</div>
-	  {/if}
-	</svelte:fragment>
+	<!-- @migration-task: migrate this slot by hand, `main-content` is an invalid identifier -->
+  {#snippet maincontent()}
+      
+  	  {#if $selectedDataset}
+  		<div class="h-full">
+  		  <Card.Root class="h-full">
+  			<Card.Content class="h-full p-0">
+  			  <DataTable data={$selectedDataset.data} />
+  			</Card.Content>
+  		  </Card.Root>
+  		</div>
+  	  {:else}
+  		<div class="flex flex-1 items-center justify-center">
+  		  <div class="text-center text-muted-foreground">
+  			<h3 class="text-lg font-medium">No dataset selected</h3>
+  			<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+  		  </div>
+  		</div>
+  	  {/if}
+  	
+      {/snippet}
 	
 	<!-- Right Sidebar Content -->
-	<svelte:fragment slot="right-sidebar">
-		{#if $selectedDataset}
-		<VariableList
-		variables={$selectedDataset.details.columns.map((col: string) => ({
-		  name: col,
-		  dtype: $selectedDataset.details.dtypes[col]
-		}))}
-	  />
-	  {/if}
-	</svelte:fragment>
+	<!-- @migration-task: migrate this slot by hand, `right-sidebar` is an invalid identifier -->
+  {#snippet rightbar()}
+      
+  		{#if $selectedDataset}
+  		<VariableList
+  		variables={$selectedDataset.details.columns.map((col: string) => ({
+  		  name: col,
+  		  dtype: $selectedDataset.details.dtypes[col]
+  		}))}
+  	  />
+  	  {/if}
+  	
+      {/snippet}
 
 
-	<Footer slot="footer" />
+	{#snippet footer()}
+        <Footer  />
+      {/snippet}
   </MainLayout>
   <ErrorToast/>
   {/if}

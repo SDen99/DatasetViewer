@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import {
 		Table,
 		TableBody,
@@ -12,29 +14,33 @@
 	import { browser } from '$app/environment';
 	import { selectedColumns, columnOrder, columnWidths, datasetActions } from '$lib/stores/stores';
 
-	export let data: any[];
+	interface Props {
+		data: any[];
+	}
+
+	let { data }: Props = $props();
 
 	let draggedColumn: string | null = null;
-	let dragOverColumn: string | null = null;
+	let dragOverColumn: string | null = $state(null);
 	let resizingColumn: string | null = null;
 	let startX: number = 0;
 	let startWidth: number = 0;
-	let scrollContainer: HTMLElement;
-	let mounted = false;
+	let scrollContainer: HTMLElement = $state();
+	let mounted = $state(false);
 
 	// Virtualization constants
 	const ROW_HEIGHT = 35; // Height of each row in pixels
 	const BUFFER_SIZE = 5; // Number of rows to render above/below viewport
-	let viewportHeight = 0;
-	let scrollTop = 0;
-	let visibleStartIndex = 0;
-	let visibleEndIndex = 0;
+	let viewportHeight = $state(0);
+	let scrollTop = $state(0);
+	let visibleStartIndex = $state(0);
+	let visibleEndIndex = $state(0);
 
 	const MIN_COLUMN_WIDTH = 100;
 	const DEFAULT_COLUMN_WIDTH = 200;
 
 	// Virtualization state
-	$: {
+	run(() => {
 		if (mounted && scrollContainer) {
 			viewportHeight = scrollContainer.clientHeight;
 			const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
@@ -44,7 +50,7 @@
 				visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
 			);
 		}
-	}
+	});
 
 	function handleScroll(event: Event) {
 		scrollTop = (event.target as HTMLElement).scrollTop;
@@ -139,14 +145,14 @@
 		}
 	}
 
-	$: visibleColumns =
-		$columnOrder.length > 0 && $selectedColumns.size > 0
+	let visibleColumns =
+		$derived($columnOrder.length > 0 && $selectedColumns.size > 0
 			? $columnOrder.filter((col) => $selectedColumns.has(col))
-			: [];
+			: []);
 
 	// Updated visibleData computation using virtualization
-	$: visibleData =
-		mounted && browser && data && visibleColumns.length > 0
+	let visibleData =
+		$derived(mounted && browser && data && visibleColumns.length > 0
 			? data.slice(visibleStartIndex, visibleEndIndex).map((row) => {
 					const visibleRowData: Record<string, any> = {};
 					visibleColumns.forEach((col) => {
@@ -154,19 +160,19 @@
 					});
 					return visibleRowData;
 			  })
-			: [];
+			: []);
 
-	$: totalWidth = visibleColumns.reduce(
+	let totalWidth = $derived(visibleColumns.reduce(
 		(sum, col) => sum + ($columnWidths[col] || DEFAULT_COLUMN_WIDTH),
 		0
-	);
+	));
 
-	$: totalHeight = data ? data.length * ROW_HEIGHT : 0;
+	let totalHeight = $derived(data ? data.length * ROW_HEIGHT : 0);
 
-	$: getColumnStyle = (column: string) => {
+	let getColumnStyle = $derived((column: string) => {
 		const width = $columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
-	};
+	});
 
 	onDestroy(() => {
 		document.removeEventListener('mousemove', handleMouseMove);
@@ -194,11 +200,11 @@
 											draggable={true}
 											role="button"
 											tabindex="0"
-											on:dragstart={(e) => handleDragStart(e, column)}
-											on:dragover={(e) => handleDragOver(e, column)}
-											on:dragleave={handleDragLeave}
-											on:drop={(e) => handleDrop(e, column)}
-											on:dragend={handleDragEnd}
+											ondragstart={(e) => handleDragStart(e, column)}
+											ondragover={(e) => handleDragOver(e, column)}
+											ondragleave={handleDragLeave}
+											ondrop={(e) => handleDrop(e, column)}
+											ondragend={handleDragEnd}
 										>
 											<div class="cursor-move rounded p-1 hover:bg-muted">
 												<GripVertical class="h-4 w-4 text-muted-foreground" />
@@ -208,8 +214,8 @@
 												type="button"
 												aria-label="Resize column"
 												class="absolute right-0 top-0 h-full w-0.5 cursor-col-resize bg-gray-300 p-0 hover:w-1 hover:bg-primary focus:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-												on:mousedown={(e) => startResize(e, column)}
-												on:keydown={(e) => handleKeyResize(e, column)}
+												onmousedown={(e) => startResize(e, column)}
+												onkeydown={(e) => handleKeyResize(e, column)}
 											></button>
 										</div>
 									</TableHead>
@@ -224,7 +230,7 @@
 					bind:this={scrollContainer}
 					class="overflow-y-auto"
 					style="max-height: calc(100vh - 41px);"
-					on:scroll={handleScroll}
+					onscroll={handleScroll}
 				>
 					<div style="height: {totalHeight}px; position: relative;">
 						<div style="position: absolute; top: {visibleStartIndex * ROW_HEIGHT}px; left: 0; right: 0;">

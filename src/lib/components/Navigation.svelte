@@ -5,10 +5,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Upload } from 'lucide-svelte'; // Removed Input import since we don't need it
 
-	export let handleFileChangeEvent: (event: Event) => void;
-	export let isLoading: boolean;
+	interface Props {
+		handleFileChangeEvent: (event: Event) => void;
+		isLoading: boolean;
+	}
 
-	let storageUsage = '';
+	let { handleFileChangeEvent, isLoading }: Props = $props();
+
+	let storageUsage = $state('');
 	let storageUpdateInterval: number;
 
 	async function updateStorageUsage() {

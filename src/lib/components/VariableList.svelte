@@ -5,8 +5,13 @@
 	import { selectedColumns, columnOrder, datasetActions } from '$lib/stores/stores';
 	import type { VariableType } from '$lib/types';
 
-	// We still need the variables prop as it's computed from the selected dataset
-	export let variables: VariableType[];
+	
+	interface Props {
+		// We still need the variables prop as it's computed from the selected dataset
+		variables: VariableType[];
+	}
+
+	let { variables }: Props = $props();
 
 	let draggedVariable: string | null = null;
 
@@ -40,13 +45,13 @@
 		draggedVariable = null;
 	}
 
-	$: sortedVariables = [...variables].sort((a, b) => {
+	let sortedVariables = $derived([...variables].sort((a, b) => {
 		const aIndex = $columnOrder.indexOf(a.name);
 		const bIndex = $columnOrder.indexOf(b.name);
 		if (aIndex === -1) return 1;
 		if (bIndex === -1) return -1;
 		return aIndex - bIndex;
-	});
+	}));
 </script>
 
 <div class="px-3 py-2">
@@ -55,9 +60,9 @@
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				draggable="true"
-				on:dragstart={(e) => handleDragStart(e, variable.name)}
-				on:dragover={handleDragOver}
-				on:drop={(e) => handleDrop(e, variable.name)}
+				ondragstart={(e) => handleDragStart(e, variable.name)}
+				ondragover={handleDragOver}
+				ondrop={(e) => handleDrop(e, variable.name)}
 				class="group flex items-center gap-2 rounded-lg border border-transparent p-2 hover:border-border hover:bg-accent"
 			>
 				<GripVertical

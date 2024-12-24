@@ -3,9 +3,9 @@
 	import { Separator } from '$lib/components/ui/separator';
 	import { selectedDataset, processingStats } from '$lib/stores/stores';
 
-	$: stats = $selectedDataset
+	let stats = $derived($selectedDataset
 		? $selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected
-		: $processingStats;
+		: $processingStats);
 </script>
 
 <footer

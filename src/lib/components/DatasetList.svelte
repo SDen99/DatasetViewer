@@ -6,8 +6,8 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { datasets, loadingDatasets, selectedDatasetId, datasetActions } from '$lib/stores/stores';
 
-	let datasetToDelete: string | null = null;
-	let dialogOpen = false;
+	let datasetToDelete: string | null = $state(null);
+	let dialogOpen = $state(false);
 
 	function handleConfirmDelete() {
 		if (datasetToDelete) {
@@ -28,7 +28,7 @@
 		dialogOpen = false;
 	}
 
-	$: allDatasetEntries = [...Object.keys($datasets), ...Object.keys($loadingDatasets)];
+	let allDatasetEntries = $derived([...Object.keys($datasets), ...Object.keys($loadingDatasets)]);
 </script>
 
 <div class="px-3 py-2">
@@ -45,7 +45,7 @@
 							<button
 								type="button"
 								class="flex-1 text-left hover:text-primary"
-								on:click={() => datasetActions.selectDataset(datasetName)}
+								onclick={() => datasetActions.selectDataset(datasetName)}
 								disabled={$loadingDatasets[datasetName]}
 							>
 								<div class="flex items-center gap-2">
