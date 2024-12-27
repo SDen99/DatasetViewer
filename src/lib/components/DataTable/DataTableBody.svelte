@@ -9,6 +9,7 @@
 		visibleEndIndex = 0,
 		rowHeight = 35,
 		totalHeight = 0,
+		totalWidth,
 		onScroll
 	} = $props<{
 		data: Record<string, any>[];
@@ -17,11 +18,12 @@
 		visibleEndIndex: number;
 		rowHeight: number;
 		totalHeight: number;
+		totalWidth: number;
 		onScroll: (e: Event) => void;
 	}>();
 
 	// Add more debugging
-	/*	$effect(() => {
+	$effect(() => {
 		console.log('DataTableBody render:', {
 			dataLength: data?.length,
 			columnsLength: columns?.length,
@@ -31,19 +33,21 @@
 			rowHeight,
 			shouldShowRows: data?.length > 0 && columns?.length > 0
 		});
-	});*/
+	});
 </script>
 
-<div class="flex-1 overflow-y-auto" onscroll={onScroll}>
-	<div style="height: {totalHeight}px; position: relative;">
-		<div style="position: absolute; top: {visibleStartIndex * rowHeight}px; left: 0; right: 0;">
-			<Table>
-				<TableBody>
-					{#each data as row, i (visibleStartIndex + i)}
-						<DataTableRow {row} {columns} height={rowHeight} index={visibleStartIndex + i} />
-					{/each}
-				</TableBody>
-			</Table>
+<div class="h-full w-full overflow-y-auto" onscroll={onScroll}>
+	<div style="width: {totalWidth}px">
+		<div style="height: {totalHeight}px; position: relative;">
+			<div style="position: absolute; top: {visibleStartIndex * rowHeight}px; left: 0; right: 0;">
+				<Table>
+					<TableBody>
+						{#each data as row, i (visibleStartIndex + i)}
+							<DataTableRow {row} {columns} height={rowHeight} index={visibleStartIndex + i} />
+						{/each}
+					</TableBody>
+				</Table>
+			</div>
 		</div>
 	</div>
 </div>

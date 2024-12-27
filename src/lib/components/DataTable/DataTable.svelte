@@ -4,6 +4,8 @@
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 	import DataTableHeader from './DataTableHeader.svelte';
 	import DataTableBody from './DataTableBody.svelte';
+	import { Table } from '$lib/components/ui/table';
+	import { TableHeader, TableRow, TableHead, TableBody, TableCell } from '$lib/components/ui/table';
 
 	let lastStoreState = $state<{
 		columnOrder: string[];
@@ -101,6 +103,8 @@
 
 	// Event handlers
 	function handleScroll(event: Event) {
+		if (!scrollContainer) return;
+
 		scrollTop = (event.target as HTMLElement).scrollTop;
 		const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
 		visibleStartIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_SIZE);
@@ -108,6 +112,13 @@
 			sortedData.length,
 			visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
 		);
+
+		console.log('Scroll event:', {
+			scrollTop,
+			visibleRows,
+			visibleStartIndex,
+			visibleEndIndex
+		});
 	}
 
 	function handleColumnReorder(fromColumn: string, toColumn: string) {
@@ -158,39 +169,57 @@
 
 	$effect(() => {
 		if (mounted && scrollContainer && Array.isArray(sortedData)) {
-			viewportHeight = scrollContainer.clientHeight;
+			// Get the actual visible height of the scroll container
+			const containerHeight = scrollContainer.getBoundingClientRect().height;
+			viewportHeight = containerHeight;
+
 			const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
 			visibleStartIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_SIZE);
 			visibleEndIndex = Math.min(
 				sortedData.length,
 				visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
 			);
+
+			console.log('Updated viewport:', {
+				containerHeight,
+				viewportHeight,
+				visibleRows,
+				visibleStartIndex,
+				visibleEndIndex
+			});
 		}
 	});
 </script>
 
 {#if browser}
-	<div class="relative flex h-full w-full flex-col overflow-hidden" bind:this={scrollContainer}>
-		<div class="flex-1 overflow-x-auto">
+	<div class="relative flex h-full w-full flex-col overflow-hidden">
+		<!-- Fixed header -->
+		<div class="w-full overflow-x-auto bg-white">
 			<div style="width: {totalWidth}px">
-				<DataTableHeader
-					columns={visibleColumns}
-					{sort}
-					onSort={toggleSort}
-					onColumnReorder={handleColumnReorder}
-					onColumnResize={handleColumnResize}
-				/>
-
-				<DataTableBody
-					data={visibleData}
-					columns={visibleColumns}
-					{visibleStartIndex}
-					{visibleEndIndex}
-					rowHeight={ROW_HEIGHT}
-					{totalHeight}
-					onScroll={handleScroll}
-				/>
+				<Table>
+					<DataTableHeader
+						columns={visibleColumns}
+						{sort}
+						onSort={toggleSort}
+						onColumnReorder={handleColumnReorder}
+						onColumnResize={handleColumnResize}
+					/>
+				</Table>
 			</div>
+		</div>
+
+		<!-- Scrollable body -->
+		<div class="flex-1 overflow-hidden" bind:this={scrollContainer}>
+			<DataTableBody
+				data={visibleData}
+				columns={visibleColumns}
+				{visibleStartIndex}
+				{visibleEndIndex}
+				rowHeight={ROW_HEIGHT}
+				{totalHeight}
+				{totalWidth}
+				onScroll={handleScroll}
+			/>
 		</div>
 	</div>
 {/if}
