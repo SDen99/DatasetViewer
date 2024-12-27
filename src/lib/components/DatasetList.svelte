@@ -4,14 +4,14 @@
 	import * as Button from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
 	import { Badge } from '$lib/components/ui/badge';
-	import { datasets, loadingDatasets, selectedDatasetId, datasetActions } from '$lib/stores/stores';
+	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 
 	let datasetToDelete: string | null = $state(null);
 	let dialogOpen = $state(false);
 
 	function handleConfirmDelete() {
 		if (datasetToDelete) {
-			datasetActions.deleteDataset(datasetToDelete);
+			dataTableStore.deleteDataset(datasetToDelete);
 			datasetToDelete = null;
 			dialogOpen = false;
 		}
@@ -28,7 +28,10 @@
 		dialogOpen = false;
 	}
 
-	let allDatasetEntries = $derived([...Object.keys($datasets), ...Object.keys($loadingDatasets)]);
+	let allDatasetEntries = $derived([
+		...Object.keys(dataTableStore.datasets),
+		...Object.keys(dataTableStore.loadingDatasets)
+	]);
 </script>
 
 <div class="px-3 py-2">
@@ -36,7 +39,7 @@
 		<div class="space-y-2">
 			{#each allDatasetEntries as datasetName}
 				<div
-					class="overflow-hidden rounded-lg border {datasetName === $selectedDatasetId
+					class="overflow-hidden rounded-lg border {datasetName === dataTableStore.selectedDatasetId
 						? 'border-primary'
 						: 'border-border'}"
 				>
@@ -45,20 +48,20 @@
 							<button
 								type="button"
 								class="flex-1 text-left hover:text-primary"
-								onclick={() => datasetActions.selectDataset(datasetName)}
-								disabled={$loadingDatasets[datasetName]}
+								onclick={() => dataTableStore.selectDataset(datasetName)}
+								disabled={dataTableStore.loadingDatasets[datasetName]}
 							>
 								<div class="flex items-center gap-2">
 									<span class="truncate font-medium">
 										{datasetName}
 									</span>
-									{#if $loadingDatasets[datasetName]}
+									{#if dataTableStore.loadingDatasets[datasetName]}
 										<Badge variant="secondary">Loading</Badge>
 									{/if}
 								</div>
 							</button>
 
-							{#if !$loadingDatasets[datasetName]}
+							{#if !dataTableStore.loadingDatasets[datasetName]}
 								<AlertDialog.Root bind:open={dialogOpen}>
 									<AlertDialog.Trigger asChild>
 										<Button.Root
@@ -94,9 +97,9 @@
 							{/if}
 						</div>
 
-						{#if $loadingDatasets[datasetName]}
+						{#if dataTableStore.loadingDatasets[datasetName]}
 							<div class="px-3 pb-3">
-								<Progress value={$loadingDatasets[datasetName].progress} />
+								<Progress value={dataTableStore.loadingDatasets[datasetName].progress} />
 							</div>
 						{/if}
 					</div>

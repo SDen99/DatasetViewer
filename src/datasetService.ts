@@ -1,192 +1,188 @@
 export class DatasetService {
-    public static async create(): Promise<DatasetService> {
-        const service = new DatasetService();
-        await service.initialize();
-        return service;
-    }
-    private static instance: DatasetService;
-    private readonly dbName = 'SasDataViewer';
-    private readonly version = 1;
-    private db: IDBDatabase | null = null;
+	public static async create(): Promise<DatasetService> {
+		const service = new DatasetService();
+		await service.initialize();
+		return service;
+	}
+	private static instance: DatasetService;
+	private readonly dbName = 'SasDataViewer';
+	private readonly version = 1;
+	private db: IDBDatabase | null = null;
 
-    private constructor() { }
+	private constructor() {}
 
-    public static getInstance(): DatasetService {
-        if (!DatasetService.instance) {
-            DatasetService.instance = new DatasetService();
-        }
-        return DatasetService.instance;
-    }
+	public static getInstance(): DatasetService {
+		if (!DatasetService.instance) {
+			DatasetService.instance = new DatasetService();
+		}
+		return DatasetService.instance;
+	}
 
-    public async initialize(): Promise<void> {
-        if (this.db) return;
+	public async initialize(): Promise<void> {
+		if (this.db) return;
 
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.version);
+		return new Promise((resolve, reject) => {
+			const request = indexedDB.open(this.dbName, this.version);
 
-            request.onerror = () => reject(new Error('Failed to open database'));
+			request.onerror = () => reject(new Error('Failed to open database'));
 
-            request.onsuccess = (event) => {
-                this.db = (event.target as IDBOpenDBRequest).result;
-                resolve();
-            };
+			request.onsuccess = (event) => {
+				this.db = (event.target as IDBOpenDBRequest).result;
+				resolve();
+			};
 
-            request.onupgradeneeded = (event) => {
-                const db = (event.target as IDBOpenDBRequest).result;
+			request.onupgradeneeded = (event) => {
+				const db = (event.target as IDBOpenDBRequest).result;
 
-                // Create the datasets store if it doesn't exist
-                if (!db.objectStoreNames.contains('datasets')) {
-                    db.createObjectStore('datasets', { keyPath: 'fileName' });
-                }
-            };
-        });
-    }
+				// Create the datasets store if it doesn't exist
+				if (!db.objectStoreNames.contains('datasets')) {
+					db.createObjectStore('datasets', { keyPath: 'fileName' });
+				}
+			};
+		});
+	}
 
-    private async transaction<T>(
-        mode: IDBTransactionMode,
-        callback: (store: IDBObjectStore) => IDBRequest<T>
-    ): Promise<T> {
-        if (!this.db) throw new Error('Database not initialized');
+	private async transaction<T>(
+		mode: IDBTransactionMode,
+		callback: (store: IDBObjectStore) => IDBRequest<T>
+	): Promise<T> {
+		if (!this.db) throw new Error('Database not initialized');
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db!.transaction('datasets', mode);
-            const store = transaction.objectStore('datasets');
-            const request = callback(store);
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', mode);
+			const store = transaction.objectStore('datasets');
+			const request = callback(store);
 
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-    }
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+	}
 
-    public async addDataset(dataset: {
-        fileName: string;
-        data: any[];
-        details: {
-            num_rows: number;
-            num_columns: number;
-            columns: string[];
-            dtypes: Record<string, string>;
-            summary: Record<string, any>;
-        };
-        processingTime: number;
-    }): Promise<void> {
-        if (!this.db) throw new Error('Database not initialized');
-    
-        return new Promise((resolve, reject) => {
-            const transaction = this.db!.transaction('datasets', 'readwrite');
-            
-            // Add transaction error handling
-            transaction.onerror = () => reject(transaction.error);
-            transaction.onabort = () => reject(new Error('Transaction aborted'));
-    
-            const store = transaction.objectStore('datasets');
-            
-            // Check if dataset already exists
-            const getRequest = store.get(dataset.fileName);
-            
-            getRequest.onsuccess = () => {
-                if (getRequest.result) {
-                    // If exists, update it
-                    const putRequest = store.put(dataset);
-                    putRequest.onsuccess = () => resolve();
-                    putRequest.onerror = () => reject(putRequest.error);
-                } else {
-                    // If new, add it
-                    const addRequest = store.add(dataset);
-                    addRequest.onsuccess = () => resolve();
-                    addRequest.onerror = () => reject(addRequest.error);
-                }
-            };
-            
-            getRequest.onerror = () => reject(getRequest.error);
-        });
-    }
+	public async addDataset(dataset: {
+		fileName: string;
+		data: any[];
+		details: {
+			num_rows: number;
+			num_columns: number;
+			columns: string[];
+			dtypes: Record<string, string>;
+			summary: Record<string, any>;
+		};
+		processingTime: number;
+	}): Promise<void> {
+		if (!this.db) throw new Error('Database not initialized');
 
-    public async getDataset(fileName: string): Promise<any> {
-        return this.transaction<any>(
-            'readonly',
-            (store) => store.get(fileName)
-        );
-    }
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', 'readwrite');
 
-    public async getAllDatasets(): Promise<Record<string, any>> {
-        if (!this.db) throw new Error('Database not initialized');
+			// Add transaction error handling
+			transaction.onerror = () => reject(transaction.error);
+			transaction.onabort = () => reject(new Error('Transaction aborted'));
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db!.transaction('datasets', 'readonly');
-            const store = transaction.objectStore('datasets');
-            const request = store.getAll();
+			const store = transaction.objectStore('datasets');
 
-            request.onsuccess = () => {
-                // Convert the array of datasets to a Record object
-                const datasets: Record<string, any> = {};
-                request.result.forEach(dataset => {
-                    datasets[dataset.fileName] = dataset;
-                });
-                resolve(datasets);
-            };
+			// Check if dataset already exists
+			const getRequest = store.get(dataset.fileName);
 
-            request.onerror = () => reject(request.error);
-        });
-    }
+			getRequest.onsuccess = () => {
+				if (getRequest.result) {
+					// If exists, update it
+					const putRequest = store.put(dataset);
+					putRequest.onsuccess = () => resolve();
+					putRequest.onerror = () => reject(putRequest.error);
+				} else {
+					// If new, add it
+					const addRequest = store.add(dataset);
+					addRequest.onsuccess = () => resolve();
+					addRequest.onerror = () => reject(addRequest.error);
+				}
+			};
 
+			getRequest.onerror = () => reject(getRequest.error);
+		});
+	}
 
-    public async removeDataset(fileName: string): Promise<void> {
-        if (!this.db) {
-            console.error('🔴 DatasetService: Database not initialized for deletion');
-            throw new Error('Database not initialized');
-        }
+	public async getDataset(fileName: string): Promise<any> {
+		return this.transaction<any>('readonly', (store) => store.get(fileName));
+	}
 
-        //console.log('🟡 DatasetService: Starting removal of dataset:', fileName);
+	public async getAllDatasets(): Promise<Record<string, any>> {
+		if (!this.db) throw new Error('Database not initialized');
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db!.transaction('datasets', 'readwrite');
-            const store = transaction.objectStore('datasets');
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', 'readonly');
+			const store = transaction.objectStore('datasets');
+			const request = store.getAll();
 
-            //console.log('🟡 DatasetService: Created transaction for deletion');
+			request.onsuccess = () => {
+				// Convert the array of datasets to a Record object
+				const datasets: Record<string, any> = {};
+				request.result.forEach((dataset) => {
+					datasets[dataset.fileName] = dataset;
+				});
+				resolve(datasets);
+			};
 
-            transaction.oncomplete = () => {
-                //console.log('🟢 DatasetService: Transaction completed successfully');
-                resolve();
-            };
+			request.onerror = () => reject(request.error);
+		});
+	}
 
-            transaction.onerror = (event) => {
-                //console.error('🔴 DatasetService: Transaction error:', event);
-                reject(transaction.error);
-            };
+	public async removeDataset(fileName: string): Promise<void> {
+		if (!this.db) {
+			console.error('🔴 DatasetService: Database not initialized for deletion');
+			throw new Error('Database not initialized');
+		}
 
-            transaction.onabort = () => {
-                //console.error('🔴 DatasetService: Transaction aborted');
-                reject(new Error('Transaction aborted'));
-            };
+		//console.log('🟡 DatasetService: Starting removal of dataset:', fileName);
 
-            const request = store.delete(fileName);
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', 'readwrite');
+			const store = transaction.objectStore('datasets');
 
-            request.onsuccess = () => {
-                //console.log('🟢 DatasetService: Delete request successful for:', fileName);
-            };
+			//console.log('🟡 DatasetService: Created transaction for deletion');
 
-            request.onerror = () => {
-                //console.error('🔴 DatasetService: Delete request failed for:', fileName);
-                reject(request.error);
-            };
-        });
-    }
+			transaction.oncomplete = () => {
+				//console.log('🟢 DatasetService: Transaction completed successfully');
+				resolve();
+			};
 
-    public async getDatabaseSize(): Promise<number> {
-        if (!this.db) throw new Error('Database not initialized');
+			transaction.onerror = (event) => {
+				//console.error('🔴 DatasetService: Transaction error:', event);
+				reject(transaction.error);
+			};
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db!.transaction('datasets', 'readonly');
-            const store = transaction.objectStore('datasets');
-            const request = store.getAll();
+			transaction.onabort = () => {
+				//console.error('🔴 DatasetService: Transaction aborted');
+				reject(new Error('Transaction aborted'));
+			};
 
-            request.onsuccess = () => {
-                const size = new Blob([JSON.stringify(request.result)]).size;
-                resolve(size);
-            };
+			const request = store.delete(fileName);
 
-            request.onerror = () => reject(request.error);
-        });
-    }
+			request.onsuccess = () => {
+				//console.log('🟢 DatasetService: Delete request successful for:', fileName);
+			};
+
+			request.onerror = () => {
+				//console.error('🔴 DatasetService: Delete request failed for:', fileName);
+				reject(request.error);
+			};
+		});
+	}
+
+	public async getDatabaseSize(): Promise<number> {
+		if (!this.db) throw new Error('Database not initialized');
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', 'readonly');
+			const store = transaction.objectStore('datasets');
+			const request = store.getAll();
+
+			request.onsuccess = () => {
+				const size = new Blob([JSON.stringify(request.result)]).size;
+				resolve(size);
+			};
+
+			request.onerror = () => reject(request.error);
+		});
+	}
 }

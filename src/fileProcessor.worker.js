@@ -4,55 +4,55 @@ const PYODIDE_BASE_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/fu
 let pyodide = null;
 
 async function loadPyodideModule() {
-    try {
-        /* @vite-ignore */
-        const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
-        return pyodideModule;
-    } catch (error) {
-        console.error('Failed to load Pyodide module:', error);
-        throw error;
-    }
+	try {
+		/* @vite-ignore */
+		const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
+		return pyodideModule;
+	} catch (error) {
+		console.error('Failed to load Pyodide module:', error);
+		throw error;
+	}
 }
 async function initializePyodideInWorker() {
-    try {
-        const pyodideModule = await loadPyodideModule();
-        
-        pyodide = await pyodideModule.loadPyodide({
-            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
-            stderr: (msg) => console.error('Python Error:', msg)
-        });
+	try {
+		const pyodideModule = await loadPyodideModule();
 
-        await pyodide.loadPackage('pandas');
+		pyodide = await pyodideModule.loadPyodide({
+			indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+			stderr: (msg) => console.error('Python Error:', msg)
+		});
 
-        self.postMessage({
-            type: 'PYODIDE_READY',
-            taskId: 'init'
-        });
-    } catch (error) {
-        console.error('Pyodide initialization error:', error);
-        self.postMessage({
-            type: 'PYODIDE_ERROR',
-            taskId: 'init',
-            error: error.message
-        });
-    }
+		await pyodide.loadPackage('pandas');
+
+		self.postMessage({
+			type: 'PYODIDE_READY',
+			taskId: 'init'
+		});
+	} catch (error) {
+		console.error('Pyodide initialization error:', error);
+		self.postMessage({
+			type: 'PYODIDE_ERROR',
+			taskId: 'init',
+			error: error.message
+		});
+	}
 }
 
 // Start initialization immediately
 initializePyodideInWorker();
 
 async function processSasFile(arrayBuffer) {
-    if (!pyodide) {
-        throw new Error('Pyodide not initialized');
-    }
+	if (!pyodide) {
+		throw new Error('Pyodide not initialized');
+	}
 
-    try {
-        // Write the input file to Pyodide's virtual filesystem
-        const uint8Array = new Uint8Array(arrayBuffer);
-        pyodide.FS.writeFile('/tmpfile.sas7bdat', uint8Array);
+	try {
+		// Write the input file to Pyodide's virtual filesystem
+		const uint8Array = new Uint8Array(arrayBuffer);
+		pyodide.FS.writeFile('/tmpfile.sas7bdat', uint8Array);
 
-        // Now we'll run your Python code, with a few adjustments to work in Pyodide
-        const result = await pyodide.runPythonAsync(`
+		// Now we'll run your Python code, with a few adjustments to work in Pyodide
+		const result = await pyodide.runPythonAsync(`
             import pandas as pd
             import warnings
             import json
@@ -106,57 +106,57 @@ async function processSasFile(arrayBuffer) {
             result  # Return the JSON string
         `);
 
-        // Parse the JSON string we got from Python
-        const parsedResult = JSON.parse(result);
+		// Parse the JSON string we got from Python
+		const parsedResult = JSON.parse(result);
 
-        // If there was an error in Python, throw it
-        if (parsedResult.error) {
-            throw new Error(parsedResult.error);
-        }
+		// If there was an error in Python, throw it
+		if (parsedResult.error) {
+			throw new Error(parsedResult.error);
+		}
 
-        // Parse the nested data JSON string
-        parsedResult.data = JSON.parse(parsedResult.data);
+		// Parse the nested data JSON string
+		parsedResult.data = JSON.parse(parsedResult.data);
 
-        return parsedResult;
-    } catch (error) {
-        console.error('Processing error:', error);
-        throw error;
-    } finally {
-        // Clean up the temporary file
-        try {
-            pyodide.FS.unlink('/tmpfile.sas7bdat');
-        } catch (cleanupError) {
-            console.warn('Cleanup error:', cleanupError);
-        }
-    }
+		return parsedResult;
+	} catch (error) {
+		console.error('Processing error:', error);
+		throw error;
+	} finally {
+		// Clean up the temporary file
+		try {
+			pyodide.FS.unlink('/tmpfile.sas7bdat');
+		} catch (cleanupError) {
+			console.warn('Cleanup error:', cleanupError);
+		}
+	}
 }
 
 // Handle messages from the main thread
 self.onmessage = async (e) => {
-    const { type, taskId, file, fileName } = e.data;
+	const { type, taskId, file, fileName } = e.data;
 
-    if (type === 'PROCESS_FILE') {
-        const startTime = performance.now();
+	if (type === 'PROCESS_FILE') {
+		const startTime = performance.now();
 
-        try {
-            const result = await processSasFile(file);
-            const processingTime = (performance.now() - startTime) / 1000;
+		try {
+			const result = await processSasFile(file);
+			const processingTime = (performance.now() - startTime) / 1000;
 
-            self.postMessage({
-                type: 'PROCESSING_COMPLETE',
-                taskId,
-                result: {
-                    ...result,
-                    processingTime
-                }
-            });
-        } catch (error) {
-            self.postMessage({
-                type: 'PROCESSING_ERROR',
-                taskId,
-                error: error.message,
-                processingTime: (performance.now() - startTime) / 1000
-            });
-        }
-    }
+			self.postMessage({
+				type: 'PROCESSING_COMPLETE',
+				taskId,
+				result: {
+					...result,
+					processingTime
+				}
+			});
+		} catch (error) {
+			self.postMessage({
+				type: 'PROCESSING_ERROR',
+				taskId,
+				error: error.message,
+				processingTime: (performance.now() - startTime) / 1000
+			});
+		}
+	}
 };

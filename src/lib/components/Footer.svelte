@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { formatStorageSize } from '$lib/utils';
 	import { Separator } from '$lib/components/ui/separator';
-	import { selectedDataset, processingStats } from '$lib/stores/stores';
+	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 
-	let stats = $derived($selectedDataset
-		? $selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected
-		: $processingStats);
+	let stats = $derived(
+		dataTableStore.selectedDataset
+			? dataTableStore.selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected
+			: dataTableStore.processingStats
+	);
 </script>
 
 <footer

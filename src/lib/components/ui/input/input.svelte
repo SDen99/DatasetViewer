@@ -2,31 +2,34 @@
 	import { createBubbler, passive } from 'svelte/legacy';
 
 	const bubble = createBubbler();
-	import type { HTMLInputAttributes } from "svelte/elements";
-	import type { InputEvents } from "./index.js";
-	import { cn } from "$lib/utils.js";
+	import type { HTMLInputAttributes } from 'svelte/elements';
+	import type { InputEvents } from './index.js';
+	import { cn } from '$lib/utils.js';
 
 	type $$Props = HTMLInputAttributes;
 	type $$Events = InputEvents;
 
-	
-
 	// Workaround for https://github.com/sveltejs/svelte/issues/9305
-	
+
 	interface Props {
-		class?: $$Props["class"];
-		value?: $$Props["value"];
+		class?: $$Props['class'];
+		value?: $$Props['value'];
 		// Fixed in Svelte 5, but not backported to 4.x.
-		readonly?: $$Props["readonly"];
-		[key: string]: any
+		readonly?: $$Props['readonly'];
+		[key: string]: any;
 	}
 
-	let { class: className = undefined, value = $bindable(undefined), readonly = undefined, ...rest }: Props = $props();
+	let {
+		class: className = undefined,
+		value = $bindable(undefined),
+		readonly = undefined,
+		...rest
+	}: Props = $props();
 </script>
 
 <input
 	class={cn(
-		"border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+		'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
 		className
 	)}
 	bind:value

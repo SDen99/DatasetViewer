@@ -2,26 +2,25 @@
 	import { createBubbler } from 'svelte/legacy';
 
 	const bubble = createBubbler();
-	import type { HTMLAttributes } from "svelte/elements";
-	import { cn } from "$lib/utils.js";
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { cn } from '$lib/utils.js';
 
 	type $$Props = HTMLAttributes<HTMLTableRowElement> & {
-		"data-state"?: unknown;
+		'data-state'?: unknown;
 	};
 
 	interface Props {
-		class?: $$Props["class"];
+		class?: $$Props['class'];
 		children?: import('svelte').Snippet;
-		[key: string]: any
+		[key: string]: any;
 	}
 
 	let { class: className = undefined, children, ...rest }: Props = $props();
-	
 </script>
 
 <tr
 	class={cn(
-		"hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors",
+		'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
 		className
 	)}
 	{...rest}
