@@ -8,6 +8,7 @@
 	let startWidth = $state(0);
 
 	function handleMouseDown(e: MouseEvent) {
+		e.preventDefault();
 		e.stopPropagation();
 		startResizing(e.pageX);
 	}
@@ -51,15 +52,16 @@
 	}
 </script>
 
-<button
-	type="button"
-	aria-label="Resize column"
-	class="absolute right-0 top-0 h-full w-1 cursor-col-resize
-		   bg-border transition-[width,background-color] hover:w-2
-		   hover:bg-primary focus-visible:w-2 focus-visible:bg-primary
-		   focus-visible:outline-none"
+<div
+	class="absolute right-0 top-0 h-full w-4 cursor-col-resize
+         hover:bg-primary/10 active:bg-primary/20"
 	onmousedown={handleMouseDown}
 	onkeydown={handleKeyDown}
+	role="separator"
+	aria-orientation="vertical"
 >
-	<span class="sr-only">Drag to resize</span>
-</button>
+	<div
+		class="absolute right-0 top-0 h-full w-0.5 bg-border
+              group-hover/header:bg-primary/50"
+	></div>
+</div>

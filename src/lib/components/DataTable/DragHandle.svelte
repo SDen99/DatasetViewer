@@ -7,8 +7,9 @@
 </script>
 
 <div
-	class="cursor-move rounded p-1 transition-colors hover:bg-muted
-				 {disabled ? 'cursor-not-allowed opacity-50' : ''}"
+	class="cursor-move rounded p-1.5 transition-colors
+         hover:bg-muted/80 active:bg-muted
+         {disabled ? 'cursor-not-allowed opacity-50' : ''}"
 	role="button"
 	aria-label="Drag to reorder column"
 	tabindex={disabled ? -1 : 0}

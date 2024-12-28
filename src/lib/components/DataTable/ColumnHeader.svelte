@@ -14,12 +14,16 @@
 	}>();
 
 	function handleDragStart(e: DragEvent) {
+		if ((e.target as HTMLElement).closest('[role="separator"]')) {
+			e.preventDefault();
+			return;
+		}
 		onDragStart(e);
 	}
 </script>
 
 <div
-	class="flex h-full select-none items-center gap-2"
+	class="group/header flex h-full select-none items-center gap-2 px-2"
 	draggable={true}
 	role="button"
 	tabindex="0"
@@ -27,9 +31,13 @@
 	ondragover={onDragOver}
 	ondrop={onDrop}
 >
-	<div class="drag-handle">
+	<div class="drag-handle flex-none">
 		<DragHandle />
 	</div>
-	<SortButton {column} {sort} {onSort} />
+
+	<div class="flex-1">
+		<SortButton {column} {sort} {onSort} />
+	</div>
+
 	<ResizeHandle {onResize} />
 </div>
