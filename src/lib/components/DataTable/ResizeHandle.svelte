@@ -6,21 +6,17 @@
 	let isResizing = $state(false);
 	let startX = $state(0);
 	let startWidth = $state(0);
+	let resizeHandle = $state<HTMLElement | null>(null);
 
 	function handleMouseDown(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		startResizing(e.pageX);
-	}
 
-	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
-			const headerCell = (e.target as HTMLElement).closest('th');
-			if (headerCell) {
-				// Resize by 10px on keyboard interaction
-				onResize(headerCell.offsetWidth + (e.shiftKey ? -10 : 10));
-			}
+		const handleRect = resizeHandle?.getBoundingClientRect();
+		if (!handleRect) return;
+
+		if (e.clientX >= handleRect.left && e.clientX <= handleRect.right) {
+			startResizing(e.pageX);
 		}
 	}
 
@@ -28,7 +24,7 @@
 		isResizing = true;
 		startX = pageX;
 
-		const headerCell = document.activeElement?.closest('th');
+		const headerCell = resizeHandle?.closest('th');
 		if (headerCell) {
 			startWidth = headerCell.offsetWidth;
 		}
@@ -41,7 +37,9 @@
 		if (!isResizing) return;
 
 		const diff = e.pageX - startX;
-		const newWidth = Math.max(50, startWidth + diff);
+		const clampedDiff = Math.max(-startWidth + 50, diff);
+		const newWidth = startWidth + clampedDiff;
+
 		onResize(newWidth);
 	}
 
@@ -50,18 +48,30 @@
 		window.removeEventListener('mousemove', handleMouseMove);
 		window.removeEventListener('mouseup', handleMouseUp);
 	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			const headerCell = resizeHandle?.closest('th');
+			if (headerCell) {
+				onResize(headerCell.offsetWidth + (e.shiftKey ? -10 : 10));
+			}
+		}
+	}
 </script>
 
-<div
-	class="absolute right-0 top-0 h-full w-4 cursor-col-resize
-         hover:bg-primary/10 active:bg-primary/20"
+<button
+	bind:this={resizeHandle}
+	type="button"
+	class="absolute right-0 top-0 h-full w-4 cursor-col-resize border-none bg-transparent
+		   hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2
+		   focus-visible:ring-primary active:bg-primary/20"
 	onmousedown={handleMouseDown}
 	onkeydown={handleKeyDown}
-	role="separator"
-	aria-orientation="vertical"
+	aria-label="Resize column"
 >
 	<div
 		class="absolute right-0 top-0 h-full w-0.5 bg-border
-              group-hover/header:bg-primary/50"
+			 group-hover/header:bg-primary/50"
 	></div>
-</div>
+</button>
