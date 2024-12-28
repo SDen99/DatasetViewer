@@ -11,7 +11,7 @@
 		columnOrder: string[];
 		selectedColumns: Set<string>;
 	}>({ columnOrder: [], selectedColumns: new Set() });
-
+	/*
 	$effect(() => {
 		$inspect({
 			columnOrder: dataTableStore.columnOrder,
@@ -19,7 +19,7 @@
 			data: data?.length
 		});
 	});
-
+*/
 	// Props and state
 	let { data = [] } = $props<{
 		data: Record<string, any>[];
@@ -112,13 +112,13 @@
 			sortedData.length,
 			visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
 		);
-
+		/*
 		console.log('Scroll event:', {
 			scrollTop,
 			visibleRows,
 			visibleStartIndex,
 			visibleEndIndex
-		});
+		});*/
 	}
 
 	function handleColumnReorder(fromColumn: string, toColumn: string) {
@@ -179,14 +179,14 @@
 				sortedData.length,
 				visibleStartIndex + visibleRows + 2 * BUFFER_SIZE
 			);
-
+			/*
 			console.log('Updated viewport:', {
 				containerHeight,
 				viewportHeight,
 				visibleRows,
 				visibleStartIndex,
 				visibleEndIndex
-			});
+			});*/
 		}
 	});
 </script>

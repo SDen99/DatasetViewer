@@ -23,7 +23,7 @@
 	}>();
 
 	// Add more debugging
-	$effect(() => {
+	/*	$effect(() => {
 		console.log('DataTableBody render:', {
 			dataLength: data?.length,
 			columnsLength: columns?.length,
@@ -33,7 +33,7 @@
 			rowHeight,
 			shouldShowRows: data?.length > 0 && columns?.length > 0
 		});
-	});
+	});*/
 </script>
 
 <div class="h-full w-full overflow-y-auto" onscroll={onScroll}>
