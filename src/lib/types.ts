@@ -19,15 +19,6 @@ export interface PyodideInterface {
 	};
 }
 
-export interface DatasetLoadingState {
-	progress: number; // 0 to 100
-	fileName: string;
-	totalSize: number;
-	loadedSize: number;
-	status: 'loading' | 'processing' | 'complete' | 'error';
-	error?: string;
-}
-
 export interface WorkerTask {
 	id: string;
 	file: ArrayBuffer;
@@ -71,12 +62,11 @@ export interface Dataset {
 		datasetSize: number;
 	};
 }
-
 export interface DatasetLoadingState {
-	progress: number;
+	progress: number; // 0 to 100
 	fileName: string;
 	totalSize: number;
 	loadedSize: number;
-	status: 'loading' | 'error' | 'complete';
+	status: 'queued' | 'loading' | 'processing' | 'complete' | 'error';
 	error?: string;
 }

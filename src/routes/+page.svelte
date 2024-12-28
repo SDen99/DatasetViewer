@@ -103,14 +103,20 @@
 					// Instead of .update, directly assign
 					dataTableStore.loadingDatasets = {
 						...dataTableStore.loadingDatasets,
-						[file.name]: { status: 'queued', fileName: file.name }
+						[file.name]: {
+							status: 'queued',
+							fileName: file.name,
+							progress: 0,
+							totalSize: file.size,
+							loadedSize: 0
+						}
 					};
 
 					const result = await processFile(file);
 					await handleProcessingSuccess(file, result);
 					return { file, status: 'success' };
 				} catch (error) {
-					handleProcessingError(file, error);
+					handleProcessingError(file, error instanceof Error ? error : new Error(String(error)));
 					return { file, status: 'error', error };
 				}
 			});
@@ -183,8 +189,13 @@
 		dataTableStore.updateLoadingDatasets(file.name);
 	}
 
-	function handleProcessingError(file: File, error: Error) {
-		dataTableStore.setLoadingDatasetError(file.name, error);
+	function ensureError(error: unknown): Error {
+		if (error instanceof Error) return error;
+		return new Error(typeof error === 'string' ? error : 'An unknown error occurred');
+	}
+
+	function handleProcessingError(file: File, error: unknown) {
+		dataTableStore.setLoadingDatasetError(file.name, ensureError(error));
 	}
 </script>
 
@@ -225,7 +236,7 @@
 				<VariableList
 					variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
 						name: col,
-						dtype: dataTableStore.selectedDataset.details.dtypes[col]
+						dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
 					}))}
 				/>
 			{/if}
