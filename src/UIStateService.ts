@@ -1,15 +1,4 @@
-interface UIState {
-	selectedDataset: string | null;
-	columnStates: Record<
-		string,
-		{
-			selectedColumns: string[];
-			columnOrder: string[];
-			columnWidths: Record<string, number>;
-			sort: SortConfig[];
-		}
-	>;
-}
+import type { SortConfig, UIState } from '$lib/types';
 
 export class UIStateService {
 	private static instance: UIStateService;

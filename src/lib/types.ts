@@ -79,5 +79,18 @@ export interface PersistedState {
 	selectedColumns: string[];
 	columnOrder: string[];
 	columnWidths: Record<string, number>;
-	sort: SortConfig[]; // Add this
+	sort: SortConfig[];
+}
+
+export interface UIState {
+	selectedDataset: string | null;
+	columnStates: Record<
+		string,
+		{
+			selectedColumns: string[];
+			columnOrder: string[];
+			columnWidths: Record<string, number>;
+			sort: SortConfig[];
+		}
+	>;
 }

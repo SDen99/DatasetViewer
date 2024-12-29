@@ -2,8 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { formatStorageSize } from '$lib/utils';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
-	import { Upload } from 'lucide-svelte'; // Removed Input import since we don't need it
+	import FileUpload from '$lib/components/FileUpload.svelte';
 
 	interface Props {
 		handleFileChangeEvent: (event: Event) => void;
@@ -37,34 +36,25 @@
 			clearInterval(storageUpdateInterval);
 		}
 	});
-
-	function triggerFileInput() {
-		const input = document.createElement('input');
-		input.type = 'file';
-		input.accept = '.sas7bdat';
-		input.multiple = true;
-		input.onchange = handleFileChangeEvent;
-		input.click();
-	}
 </script>
 
 <header
 	class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
 >
-	<div class="container flex h-14 items-center">
-		<div class="flex flex-1 items-center justify-between">
-			<div class="flex items-center gap-2">
+	<div class="container flex h-14 max-w-none px-6">
+		<div class="flex w-full items-center justify-between">
+			<div class="gap-100 flex items-center">
+				<FileUpload {handleFileChangeEvent} />
+			</div>
+			<!-- Left side with fixed positioning -->
+			<div class="flex items-center gap-2 pl-0">
 				<h1 class="text-xl font-semibold">Data Viewer</h1>
 				<Badge variant="outline" class="font-mono">v0.1</Badge>
 			</div>
 
-			<div class="flex items-center gap-4">
-				<Button on:click={triggerFileInput} variant="outline" class="gap-2">
-					<Upload class="h-4 w-4" />
-					Upload Files
-				</Button>
-
-				<Badge variant="secondary">
+			<!-- Right side content -->
+			<div class="flex items-center gap-6">
+				<Badge variant="secondary" class="ml-auto">
 					DB Size: {storageUsage}
 				</Badge>
 			</div>

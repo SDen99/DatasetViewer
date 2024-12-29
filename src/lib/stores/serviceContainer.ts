@@ -2,11 +2,11 @@ import { DatasetService } from '../../datasetService';
 import { UIStateService } from '../../UIStateService';
 import { createWorkerPool } from '../../workerPool';
 import { WorkerPool } from '../../workerPool';
-import type { BrowserWindow } from '$lib/types';
 
 export class ServiceContainer {
 	private static instance: ServiceContainer | null = null;
 	private datasetService: DatasetService | null = null;
+	private isDisposed: boolean = false;
 	private uiStateService: UIStateService | null = null;
 	private workerPool: WorkerPool | null = null;
 
@@ -74,7 +74,7 @@ export class ServiceContainer {
 		if (this.isDisposed) {
 			return;
 		}
-
+		/*
 		try {
 			// Terminate worker pool
 			if (this.workerPool) {
@@ -100,6 +100,6 @@ export class ServiceContainer {
 			console.error('Error during service container disposal:', error);
 		} finally {
 			this.isDisposed = true;
-		}
+		} */
 	}
 }
