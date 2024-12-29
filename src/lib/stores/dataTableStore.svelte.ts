@@ -1,5 +1,5 @@
 // src/lib/stores/dataTableStore.ts
-import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
+import type { Dataset, DatasetLoadingState, ProcessingStats, SortConfig } from '$lib/types';
 import { DatasetService } from '../../datasetService';
 import { UIStateService } from '../../UIStateService';
 export class DataTableStore {
@@ -22,10 +22,6 @@ export class DataTableStore {
 		numColumns: null,
 		numRows: null,
 		datasetSize: null
-	});
-	sort = $state<{ column: string | null; direction: 'asc' | 'desc' | null }>({
-		column: null,
-		direction: null
 	});
 
 	selectedDataset = $derived(this.selectedDatasetId ? this.datasets[this.selectedDatasetId] : null);
@@ -50,14 +46,16 @@ export class DataTableStore {
 			const currentState = {
 				selectedColumns: Array.from(this.selectedColumns),
 				columnOrder: this.columnOrder,
-				columnWidths: this.columnWidths
+				columnWidths: this.columnWidths,
+				sort: this.sort
 			};
 
 			UIStateService.getInstance().setColumnState(
 				prevId,
 				currentState.selectedColumns,
 				currentState.columnOrder,
-				currentState.columnWidths
+				currentState.columnWidths,
+				currentState.sort
 			);
 		}
 
@@ -75,10 +73,12 @@ export class DataTableStore {
 					this.selectedColumns = new Set(state.selectedColumns);
 					this.columnOrder = state.columnOrder;
 					this.columnWidths = state.columnWidths || {};
+					this.sort = state.sort || [];
 				} else {
 					this.selectedColumns = new Set(allColumns.slice(0, 5));
 					this.columnOrder = allColumns;
 					this.columnWidths = {};
+					this.sort = [];
 				}
 			}
 
@@ -87,6 +87,7 @@ export class DataTableStore {
 			this.selectedColumns = new Set();
 			this.columnOrder = [];
 			this.columnWidths = {};
+			this.sort = [];
 			UIStateService.getInstance().setSelectedDataset(null);
 		}
 	}
@@ -216,6 +217,49 @@ export class DataTableStore {
 			...this.loadingDatasets,
 			[fileName]: state
 		};
+	}
+
+	// Sort by multiple columns
+	sort = $state<SortConfig[]>([]);
+
+	// Remove the old toggleSort method and add these helper methods:
+	addSort(column: string) {
+		this.sort = [...this.sort, { column, direction: 'asc' }];
+		if (this.selectedDatasetId) {
+			UIStateService.getInstance().setColumnState(
+				this.selectedDatasetId,
+				Array.from(this.selectedColumns),
+				this.columnOrder,
+				this.columnWidths,
+				this.sort
+			);
+		}
+	}
+
+	updateSort(column: string, direction: 'asc' | 'desc') {
+		this.sort = this.sort.map((s) => (s.column === column ? { ...s, direction } : s));
+		if (this.selectedDatasetId) {
+			UIStateService.getInstance().setColumnState(
+				this.selectedDatasetId,
+				Array.from(this.selectedColumns),
+				this.columnOrder,
+				this.columnWidths,
+				this.sort
+			);
+		}
+	}
+
+	removeSort(column: string) {
+		this.sort = this.sort.filter((s) => s.column !== column);
+		if (this.selectedDatasetId) {
+			UIStateService.getInstance().setColumnState(
+				this.selectedDatasetId,
+				Array.from(this.selectedColumns),
+				this.columnOrder,
+				this.columnWidths,
+				this.sort
+			);
+		}
 	}
 }
 

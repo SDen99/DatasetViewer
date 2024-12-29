@@ -6,7 +6,6 @@
 	import type { VariableType } from '$lib/types';
 
 	interface Props {
-		// We still need the variables prop as it's computed from the selected dataset
 		variables: VariableType[];
 	}
 

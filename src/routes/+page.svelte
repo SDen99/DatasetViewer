@@ -15,6 +15,8 @@
 	import { ServiceContainer } from '$lib/stores/serviceContainer';
 
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
 	// Service instances
 	let serviceContainer: ServiceContainer;
@@ -232,14 +234,33 @@
 
 		<!-- Right Sidebar Content -->
 		{#snippet rightbar()}
-			{#if dataTableStore.selectedDataset}
-				<VariableList
-					variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
-						name: col,
-						dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
-					}))}
-				/>
-			{/if}
+			<div class="h-full">
+				<Tabs.Root value="columns">
+					<Tabs.List>
+						<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
+						<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="columns">
+						{#if dataTableStore.selectedDataset}
+							<VariableList
+								variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+									name: col,
+									dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
+								}))}
+							/>
+						{/if}
+					</Tabs.Content>
+					<Tabs.Content value="sort"
+						>{#if dataTableStore.selectedDataset}
+							<MultiColumnSort
+								variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+									name: col
+								}))}
+							/>
+						{/if}
+					</Tabs.Content>
+				</Tabs.Root>
+			</div>
 		{/snippet}
 
 		{#snippet footer()}

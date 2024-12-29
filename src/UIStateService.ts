@@ -6,6 +6,7 @@ interface UIState {
 			selectedColumns: string[];
 			columnOrder: string[];
 			columnWidths: Record<string, number>;
+			sort: SortConfig[];
 		}
 	>;
 }
@@ -71,13 +72,15 @@ export class UIStateService {
 		selectedColumns: string[];
 		columnOrder: string[];
 		columnWidths: Record<string, number>;
+		sort: SortConfig[];
 	} {
 		const state = this.getState();
 		return (
 			state.columnStates[datasetId] || {
 				selectedColumns: [],
 				columnOrder: [],
-				columnWidths: {}
+				columnWidths: {},
+				sort: []
 			}
 		);
 	}
@@ -97,13 +100,15 @@ export class UIStateService {
 		fileName: string,
 		selectedColumns: string[],
 		columnOrder: string[],
-		columnWidths: Record<string, number> = {}
+		columnWidths: Record<string, number> = {},
+		sort: SortConfig[] = []
 	): void {
 		const state = this.getState();
 		state.columnStates[fileName] = {
 			selectedColumns,
 			columnOrder,
-			columnWidths
+			columnWidths,
+			sort
 		};
 		this.setState(state);
 	}

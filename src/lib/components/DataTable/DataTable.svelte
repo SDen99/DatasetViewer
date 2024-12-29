@@ -58,23 +58,24 @@
 
 	// Sorting logic
 	let sortedData = $derived.by(() => {
-		/*	console.log('Computing sortedData:', {
-			inputData: data,
-			hasSort: sort.column && sort.direction
-		});*/
 		if (!Array.isArray(data)) return [];
-		if (!sort.column || !sort.direction) return data;
+		if (dataTableStore.sort.length === 0) return data;
 
 		return [...data].sort((a, b) => {
-			const aVal = a[sort.column!];
-			const bVal = b[sort.column!];
+			for (const { column, direction } of dataTableStore.sort) {
+				const aVal = a[column];
+				const bVal = b[column];
 
-			if (aVal == null && bVal == null) return 0;
-			if (aVal == null) return sort.direction === 'asc' ? -1 : 1;
-			if (bVal == null) return sort.direction === 'asc' ? 1 : -1;
+				if (aVal == null && bVal == null) continue;
+				if (aVal == null) return direction === 'asc' ? -1 : 1;
+				if (bVal == null) return direction === 'asc' ? 1 : -1;
 
-			const comparison = String(aVal).localeCompare(String(bVal));
-			return sort.direction === 'asc' ? comparison : -comparison;
+				const comparison = String(aVal).localeCompare(String(bVal));
+				if (comparison !== 0) {
+					return direction === 'asc' ? comparison : -comparison;
+				}
+			}
+			return 0;
 		});
 	});
 

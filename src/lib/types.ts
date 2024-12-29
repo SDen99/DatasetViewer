@@ -70,3 +70,14 @@ export interface DatasetLoadingState {
 	status: 'queued' | 'loading' | 'processing' | 'complete' | 'error';
 	error?: string;
 }
+export type SortConfig = {
+	column: string;
+	direction: 'asc' | 'desc';
+};
+
+export interface PersistedState {
+	selectedColumns: string[];
+	columnOrder: string[];
+	columnWidths: Record<string, number>;
+	sort: SortConfig[]; // Add this
+}
