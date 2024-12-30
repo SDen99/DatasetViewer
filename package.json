@@ -12,7 +12,6 @@
 		"format": "prettier --write \"src/**/*.{js,ts,svelte,css,html,json,md}\""
 	},
 	"devDependencies": {
-		"@melt-ui/svelte": "^0.86.2",
 		"@sveltejs/adapter-auto": "^3.0.0",
 		"@sveltejs/kit": "^2.15.1",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
@@ -22,7 +21,6 @@
 		"@tailwindcss/typography": "^0.5.15",
 		"@types/eslint": "^9.6.0",
 		"autoprefixer": "^10.4.20",
-		"bits-ui": "^0.21.16",
 		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -42,7 +40,9 @@
 		"vite": "^5.4.4"
 	},
 	"dependencies": {
+		"@melt-ui/svelte": "^0.86.2",
 		"@sveltejs/adapter-vercel": "^5.4.8",
+		"bits-ui": "^0.22.0",
 		"class-variance-authority": "^0.7.1",
 		"pyodide": "^0.26.3",
 		"vaul-svelte": "^0.3.2"
@@ -58,5 +58,10 @@
 	"bugs": {
 		"url": "https://github.com/SDen99/DatasetViewer/issues"
 	},
-	"homepage": "https://github.com/SDen99/DatasetViewer#readme"
+	"homepage": "https://github.com/SDen99/DatasetViewer#readme",
+	"overrides": {
+		"bits-ui": {
+			"@melt-ui/svelte": "^0.86.2"
+		}
+	}
 }
