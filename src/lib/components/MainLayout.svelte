@@ -1,38 +1,47 @@
-<!-- @migration-task Error while migrating Svelte code: This migration would change the name of a slot making the component unusable -->
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import SidebarToggleButtons from '$lib/components/SidebarToggleButtons.svelte';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
-	interface Props {
-		navigation?: import('svelte').Snippet;
-		leftbar?: import('svelte').Snippet;
-		maincontent?: import('svelte').Snippet;
-		rightbar?: import('svelte').Snippet;
-		footer?: import('svelte').Snippet;
-	}
 
-	let { navigation, leftbar, maincontent, rightbar, footer }: Props = $props();
+	let { navigation, leftbar, mainContent, rightbar, footer } = $props<{
+		navigation: Snippet;
+		leftbar: Snippet;
+		mainContent: Snippet;
+		rightbar: Snippet;
+	}>();
+
+	$effect(() => {
+		$inspect({
+			'Navigation snippet exists': !!navigation,
+			'leftbar snippet exists': !!leftbar,
+			'Test snippet exists': !!mainContent,
+			'rightbar snippet exists': !!rightbar,
+			'footer snippet exists': !!footer
+		});
+	});
 </script>
 
 <main class="flex max-h-screen min-h-screen flex-col bg-background">
-	{@render navigation?.()}
-	<SidebarToggleButtons />
+	{@render navigation()}
 
 	<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
 		<Sidebar position="left" open={dataTableStore.uiState.leftSidebarOpen} title="Datasets">
-			{@render leftbar?.()}
+			{@render leftbar()}
 		</Sidebar>
 
 		<div class="min-w-0 flex-1 overflow-hidden">
-			{@render maincontent?.()}
+			{@render mainContent()}
 		</div>
 
 		{#if dataTableStore.selectedDataset}
 			<Sidebar position="right" open={dataTableStore.uiState.rightSidebarOpen} title="Variables">
-				{@render rightbar?.()}
+				{@render rightbar()}
 			</Sidebar>
 		{/if}
 	</div>
 
-	{@render footer?.()}
+	{@render footer()}
+
+	<SidebarToggleButtons />
 </main>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GripVertical } from 'lucide-svelte';
+	import { GripVertical } from 'svelte-lucide';
 	import * as Checkbox from '$lib/components/ui/checkbox';
 	import { Badge } from '$lib/components/ui/badge';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';

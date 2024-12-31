@@ -1,10 +1,9 @@
 <script lang="ts">
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
-	import { errorStore, withErrorHandling, ErrorSeverity } from '$lib/stores/errorStore';
-	import { onMount, onDestroy } from 'svelte';
+	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import * as Card from '$lib/components/ui/card';
-	import type { DatasetLoadingState } from '$lib/types';
 
 	import Navigation from '$lib/components/Navigation.svelte';
 	import MainLayout from '$lib/components/MainLayout.svelte';
@@ -13,59 +12,49 @@
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import { ServiceContainer } from '$lib/stores/serviceContainer';
+	import { DatasetManager } from '$lib/services/DatasetManager';
 
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
-	// Service instances
-	let serviceContainer: ServiceContainer;
-	let servicesInitialized = false;
+	let datasetManager = $state<DatasetManager | null>(null);
+	let initializationInProgress = $state(false);
 
-	let initializationInProgress = false;
-	const MAX_FILE_SIZE = 500 * 1024 * 1024;
-
-	async function initializeServices() {
+	// Initialize services
+	async function initializeApp() {
 		if (!browser || initializationInProgress) return;
 
 		initializationInProgress = true;
 		try {
-			serviceContainer = await ServiceContainer.initialize();
-			const datasetService = serviceContainer.getDatasetService();
-			const initialDatasets = await datasetService.getAllDatasets();
-			//	console.log('Initial datasets:', initialDatasets, dataTableStore);
-			dataTableStore.datasets = initialDatasets;
+			const container = await ServiceContainer.initialize();
+			const manager = new DatasetManager(container);
 
-			const selectedId = serviceContainer.getUIStateService().getSelectedDataset();
+			// Initialize data
+			const datasetService = container.getDatasetService();
+			const datasets = await datasetService.getAllDatasets();
+			dataTableStore.datasets = datasets;
+
+			const selectedId = container.getUIStateService().getSelectedDataset();
 			if (selectedId) {
 				await dataTableStore.selectDataset(selectedId);
 			}
 
-			servicesInitialized = true;
+			return manager;
 		} catch (error) {
-			console.error('Service initialization error:', error);
 			errorStore.addError({
 				message: 'Failed to initialize application services',
 				severity: ErrorSeverity.ERROR,
 				context: { error }
 			});
+			return null;
 		} finally {
 			initializationInProgress = false;
 		}
 	}
 
-	onMount(() => {
-		initializeServices();
-	});
-
-	onDestroy(() => {
-		if (serviceContainer) {
-			serviceContainer.dispose();
-		}
-	});
-
 	async function handleFileChangeEvent(event: Event) {
-		if (!servicesInitialized) {
+		if (!datasetManager) {
 			errorStore.addError({
 				message: 'Please wait for application services to initialize',
 				severity: ErrorSeverity.WARNING
@@ -77,21 +66,14 @@
 		if (!files?.length) return;
 
 		const validFiles = Array.from(files).filter((file) => {
-			if (file.size > MAX_FILE_SIZE) {
+			const validation = datasetManager.validateFile(file);
+			if (!validation.valid && validation.error) {
 				errorStore.addError({
-					message: `File ${file.name} exceeds maximum size limit of 100MB`,
+					message: validation.error,
 					severity: ErrorSeverity.WARNING
 				});
-				return false;
 			}
-			if (!file.name.endsWith('.sas7bdat')) {
-				errorStore.addError({
-					message: `File ${file.name} is not a valid SAS dataset`,
-					severity: ErrorSeverity.WARNING
-				});
-				return false;
-			}
-			return true;
+			return validation.valid;
 		});
 
 		if (!validFiles.length) return;
@@ -99,36 +81,11 @@
 		dataTableStore.setLoadingState(true);
 
 		try {
-			// Process files concurrently
-			const processingPromises = validFiles.map(async (file) => {
-				try {
-					// Instead of .update, directly assign
-					dataTableStore.loadingDatasets = {
-						...dataTableStore.loadingDatasets,
-						[file.name]: {
-							status: 'queued',
-							fileName: file.name,
-							progress: 0,
-							totalSize: file.size,
-							loadedSize: 0
-						}
-					};
-
-					const result = await processFile(file);
-					await handleProcessingSuccess(file, result);
-					return { file, status: 'success' };
-				} catch (error) {
-					handleProcessingError(file, error instanceof Error ? error : new Error(String(error)));
-					return { file, status: 'error', error };
-				}
-			});
-
-			const results = await Promise.allSettled(processingPromises);
-
-			// Count failures
-			const failures = results.filter(
-				(r) => r.status === 'fulfilled' && r.value.status === 'error'
+			const results = await Promise.allSettled(
+				validFiles.map((file) => datasetManager.processFile(file))
 			);
+
+			const failures = results.filter((r) => r.status === 'fulfilled' && !r.value.success);
 
 			if (failures.length > 0) {
 				errorStore.addError({
@@ -137,68 +94,235 @@
 					context: { failures }
 				});
 			}
-
-			// Refresh dataset list after all processing is complete
-			const datasetService = serviceContainer.getDatasetService();
-			const updatedDatasets = await datasetService.getAllDatasets();
-			dataTableStore.datasets = updatedDatasets;
-		} catch (error) {
-			console.error('File processing error:', error);
-			errorStore.addError({
-				message: 'Error processing files',
-				severity: ErrorSeverity.ERROR,
-				context: { error }
-			});
 		} finally {
 			dataTableStore.setLoadingState(false);
 		}
 	}
 
-	async function processFile(file: File) {
-		const workerPool = serviceContainer.getWorkerPool();
-		if (!workerPool) {
-			throw new Error('Worker pool not initialized');
+	let isInitializing = $state(false);
+
+	onMount(() => {
+		console.log('Component mounted, browser:', browser);
+		if (browser) {
+			console.log('Starting initialization');
+			isInitializing = true;
+			initializeApp()
+				.then((manager) => {
+					console.log('App initialized with manager:', manager);
+					if (manager) {
+						datasetManager = manager;
+					}
+				})
+				.finally(() => {
+					console.log('Initialization complete');
+					isInitializing = false;
+				});
+		}
+	});
+
+	$effect(() => {
+		$inspect('Page effect running, datasetManager:', datasetManager);
+		$inspect('Selected dataset:', dataTableStore.selectedDataset);
+	});
+</script>
+
+{#if browser}
+	{#snippet navigation()}
+		<Navigation {handleFileChangeEvent} isLoading={false} />
+	{/snippet}
+
+	{#snippet leftbar()}
+		<DatasetList />
+	{/snippet}
+
+	{#snippet mainContent()}
+		{#if dataTableStore.selectedDataset}
+			<div class="h-full">
+				<Card.Root class="h-full">
+					<Card.Content class="h-full p-0">
+						<DataTable data={dataTableStore.selectedDataset.data} />
+					</Card.Content>
+				</Card.Root>
+			</div>
+		{:else}
+			<div class="flex flex-1 items-center justify-center">
+				<div class="text-center text-muted-foreground">
+					<h3 class="text-lg font-medium">No dataset selected</h3>
+					<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+				</div>
+			</div>
+		{/if}
+	{/snippet}
+
+	{#snippet rightbar()}
+		<div class="h-full">
+			<Tabs.Root value="columns">
+				<Tabs.List>
+					<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
+					<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="columns">
+					{#if dataTableStore.selectedDataset}
+						<VariableList
+							variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+								name: col,
+								dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
+							}))}
+						/>
+					{/if}
+				</Tabs.Content>
+				<Tabs.Content value="sort">
+					{#if dataTableStore.selectedDataset}
+						<MultiColumnSort
+							variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+								name: col
+							}))}
+						/>
+					{/if}
+				</Tabs.Content>
+			</Tabs.Root>
+		</div>
+	{/snippet}
+
+	{#snippet footer()}
+		<Footer />
+	{/snippet}
+
+	{#if isInitializing}
+		<div class="flex h-full items-center justify-center">
+			<p>Initializing application...</p>
+		</div>
+	{/if}
+
+	<MainLayout {navigation} {leftbar} {mainContent} {rightbar} {footer} />
+{/if}
+
+<!-- <script lang="ts">
+	import ErrorToast from '$lib/components/ErrorToast.svelte';
+	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import * as Card from '$lib/components/ui/card';
+
+	import Navigation from '$lib/components/Navigation.svelte';
+	import MainLayout from '$lib/components/MainLayout.svelte';
+	import DatasetList from '$lib/components/DatasetList.svelte';
+	import DataTable from '$lib/components/DataTable/DataTable.svelte';
+	import VariableList from '$lib/components/VariableList.svelte';
+	import Footer from '$lib/components/Footer.svelte';
+	import { ServiceContainer } from '$lib/stores/serviceContainer';
+	import { DatasetManager } from '$lib/services/DatasetManager';
+
+	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
+
+	let datasetManager = $state<DatasetManager | null>(null);
+	let initializationInProgress = $state(false);
+
+	// Initialize services
+	async function initializeApp() {
+		if (!browser || initializationInProgress) return;
+
+		initializationInProgress = true;
+		try {
+			const container = await ServiceContainer.initialize();
+			const manager = new DatasetManager(container);
+
+			// Initialize data
+			const datasetService = container.getDatasetService();
+			const datasets = await datasetService.getAllDatasets();
+			dataTableStore.datasets = datasets;
+
+			const selectedId = container.getUIStateService().getSelectedDataset();
+			if (selectedId) {
+				await dataTableStore.selectDataset(selectedId);
+			}
+
+			return manager;
+		} catch (error) {
+			errorStore.addError({
+				message: 'Failed to initialize application services',
+				severity: ErrorSeverity.ERROR,
+				context: { error }
+			});
+			return null;
+		} finally {
+			initializationInProgress = false;
+		}
+	}
+
+	async function handleFileChangeEvent(event: Event) {
+		if (!datasetManager) {
+			errorStore.addError({
+				message: 'Please wait for application services to initialize',
+				severity: ErrorSeverity.WARNING
+			});
+			return;
 		}
 
-		return workerPool.processFile(file, file.name, (state: DatasetLoadingState) => {
-			dataTableStore.updateLoadingDatasetState(file.name, state);
-		});
-	}
+		const files = (event.target as HTMLInputElement).files;
+		if (!files?.length) return;
 
-	async function handleProcessingSuccess(file: File, result: any) {
-		const datasetService = serviceContainer.getDatasetService(); // Get from container
-
-		const processingStats = {
-			uploadTime: Number(result.processingTime?.toFixed(2)),
-			numColumns: result.details?.num_columns,
-			numRows: result.details?.num_rows,
-			datasetSize: file.size
-		};
-
-		dataTableStore.updateProcessingStats(processingStats);
-
-		await datasetService.addDataset({
-			fileName: file.name,
-			...result,
-			processingStats
+		const validFiles = Array.from(files).filter((file) => {
+			const validation = datasetManager.validateFile(file);
+			if (!validation.valid && validation.error) {
+				errorStore.addError({
+					message: validation.error,
+					severity: ErrorSeverity.WARNING
+				});
+			}
+			return validation.valid;
 		});
 
-		// Update datasets store
-		const updatedDatasets = await datasetService.getAllDatasets();
-		dataTableStore.datasets = updatedDatasets;
+		if (!validFiles.length) return;
 
-		// Clear loading state
-		dataTableStore.updateLoadingDatasets(file.name);
+		dataTableStore.setLoadingState(true);
+
+		try {
+			const results = await Promise.allSettled(
+				validFiles.map((file) => datasetManager.processFile(file))
+			);
+
+			const failures = results.filter((r) => r.status === 'fulfilled' && !r.value.success);
+
+			if (failures.length > 0) {
+				errorStore.addError({
+					message: `Failed to process ${failures.length} file(s)`,
+					severity: ErrorSeverity.WARNING,
+					context: { failures }
+				});
+			}
+		} finally {
+			dataTableStore.setLoadingState(false);
+		}
 	}
 
-	function ensureError(error: unknown): Error {
-		if (error instanceof Error) return error;
-		return new Error(typeof error === 'string' ? error : 'An unknown error occurred');
-	}
+	let isInitializing = $state(false);
 
-	function handleProcessingError(file: File, error: unknown) {
-		dataTableStore.setLoadingDatasetError(file.name, ensureError(error));
-	}
+	onMount(() => {
+		console.log('Component mounted, browser:', browser);
+		if (browser) {
+			console.log('Starting initialization');
+			isInitializing = true;
+			initializeApp()
+				.then((manager) => {
+					console.log('App initialized with manager:', manager);
+					if (manager) {
+						datasetManager = manager;
+					}
+				})
+				.finally(() => {
+					console.log('Initialization complete');
+					isInitializing = false;
+				});
+		}
+	});
+
+	$effect(() => {
+		$inspect('Page effect running, datasetManager:', datasetManager);
+		$inspect('Selected dataset:', dataTableStore.selectedDataset);
+	});
 </script>
 
 {#if browser}
@@ -207,13 +331,11 @@
 			<Navigation {handleFileChangeEvent} isLoading={dataTableStore.isLoading} />
 		{/snippet}
 
-		<!-- Left Sidebar Content -->
 		{#snippet leftbar()}
 			<DatasetList />
 		{/snippet}
 
-		<!-- Main Content -->
-		{#snippet maincontent()}
+		{#snippet mainContent()}
 			{#if dataTableStore.selectedDataset}
 				<div class="h-full">
 					<Card.Root class="h-full">
@@ -232,7 +354,6 @@
 			{/if}
 		{/snippet}
 
-		<!-- Right Sidebar Content -->
 		{#snippet rightbar()}
 			<div class="h-full">
 				<Tabs.Root value="columns">
@@ -250,8 +371,8 @@
 							/>
 						{/if}
 					</Tabs.Content>
-					<Tabs.Content value="sort"
-						>{#if dataTableStore.selectedDataset}
+					<Tabs.Content value="sort">
+						{#if dataTableStore.selectedDataset}
 							<MultiColumnSort
 								variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
 									name: col
@@ -266,6 +387,13 @@
 		{#snippet footer()}
 			<Footer />
 		{/snippet}
+
+		{#if isInitializing}
+			<div class="flex h-full items-center justify-center">
+				<p>Initializing application...</p>
+			</div>
+		{/if}
 	</MainLayout>
 	<ErrorToast />
 {/if}
+ -->

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Trash2 } from 'lucide-svelte';
+	import { Trash2 } from 'svelte-lucide';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Button from '$lib/components/ui/button';
 	import { Progress } from '$lib/components/ui/progress';
@@ -32,6 +32,8 @@
 		...Object.keys(dataTableStore.datasets),
 		...Object.keys(dataTableStore.loadingDatasets)
 	]);
+
+	console.log('dataTableStore', dataTableStore);
 </script>
 
 <div class="px-3 py-2">

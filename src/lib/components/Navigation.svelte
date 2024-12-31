@@ -11,6 +11,10 @@
 
 	let { handleFileChangeEvent, isLoading }: Props = $props();
 
+	$effect(() => {
+		$inspect('Navigation props:', { handleFileChangeEvent, isLoading });
+	});
+
 	let storageUsage = $state('');
 	let storageUpdateInterval: number;
 

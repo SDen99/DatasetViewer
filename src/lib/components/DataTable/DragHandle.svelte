@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GripVertical } from 'lucide-svelte';
+	import { GripVertical } from 'svelte-lucide';
 
 	let { disabled = false } = $props<{
 		disabled?: boolean;

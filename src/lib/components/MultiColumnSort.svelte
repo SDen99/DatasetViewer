@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { GripVertical, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-svelte';
+	import { GripVertical, ArrowUpDown, ArrowDown, ArrowUp } from 'svelte-lucide';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 
 	interface Props {

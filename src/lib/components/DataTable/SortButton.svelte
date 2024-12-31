@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ArrowUp, ArrowDown } from 'lucide-svelte';
+	import { ArrowUp, ArrowDown } from 'svelte-lucide';
 
 	let { column, sorts } = $props<{
 		column: string;

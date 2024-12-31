@@ -2,11 +2,10 @@
 // for information about these interfaces
 declare global {
 	namespace App {
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
+		interface HTMLAttributes<T> {
+			// For snippets
+			'onrender:': (e: CustomEvent) => void;
+		}
 	}
 }
 

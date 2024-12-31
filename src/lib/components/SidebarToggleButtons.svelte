@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { PanelLeftClose, PanelRightClose, PanelLeftOpen, PanelRightOpen } from 'lucide-svelte';
+	import { PanelLeftClose, PanelRightClose, PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 </script>
 
@@ -9,7 +9,7 @@
 		<Button
 			variant="default"
 			size="icon"
-			on:click={() => dataTableStore.toggleSidebar('left')}
+			onclick={() => dataTableStore.toggleSidebar('left')}
 			aria-label="Hide left sidebar"
 		>
 			<PanelLeftOpen class="h-4 w-4" />
@@ -18,7 +18,7 @@
 		<Button
 			variant="default"
 			size="icon"
-			on:click={() => dataTableStore.toggleSidebar('left')}
+			onclick={() => dataTableStore.toggleSidebar('left')}
 			aria-label="Show left sidebar"
 		>
 			<PanelLeftClose class="h-4 w-4" />
@@ -29,7 +29,7 @@
 		<Button
 			variant="default"
 			size="icon"
-			on:click={() => dataTableStore.toggleSidebar('right')}
+			onclick={() => dataTableStore.toggleSidebar('right')}
 			aria-label="Hide right sidebar"
 		>
 			<PanelRightOpen class="h-4 w-4" />
@@ -38,7 +38,7 @@
 		<Button
 			variant="default"
 			size="icon"
-			on:click={() => dataTableStore.toggleSidebar('right')}
+			onclick={() => dataTableStore.toggleSidebar('right')}
 			aria-label="Show right sidebar"
 		>
 			<PanelRightClose class="h-4 w-4" />

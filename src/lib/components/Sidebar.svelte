@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Button } from '$lib/components/ui/button';
-	import { PanelLeftOpen, PanelRightOpen } from 'lucide-svelte';
+	import { PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 
 	interface Props {
@@ -23,7 +23,7 @@
 		<div class="p-4">
 			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-lg font-semibold">{title}</h2>
-				<Button variant="ghost" size="icon" on:click={() => dataTableStore.toggleSidebar(position)}>
+				<Button variant="ghost" size="icon" onclick={() => dataTableStore.toggleSidebar(position)}>
 					<Icon class="h-4 w-4" />
 				</Button>
 			</div>
