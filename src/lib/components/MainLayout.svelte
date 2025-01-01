@@ -9,6 +9,7 @@
 		leftbar: Snippet;
 		mainContent: Snippet;
 		rightbar: Snippet;
+		footer: Snippet;
 	}>();
 
 	$effect(() => {
