@@ -68,7 +68,7 @@
 					</div>
 					{#if error.retry}
 						<div class="mt-2">
-							<Button variant="outline" size="sm" on:click={error.retry} class="h-8">Retry</Button>
+							<Button variant="outline" size="sm" onclick={error.retry} class="h-8">Retry</Button>
 						</div>
 					{/if}
 				</div>

@@ -70,7 +70,7 @@
 											variant="ghost"
 											size="icon"
 											class="h-8 w-8 text-muted-foreground hover:text-destructive"
-											on:click={(e) => handleDeleteClick(e, datasetName)}
+											onclick={(e) => handleDeleteClick(e, datasetName)}
 										>
 											<Trash2 class="h-4 w-4" />
 										</Button.Root>
@@ -86,10 +86,10 @@
 										</AlertDialog.Header>
 
 										<AlertDialog.Footer>
-											<AlertDialog.Cancel on:click={handleCancelClick}>Cancel</AlertDialog.Cancel>
+											<AlertDialog.Cancel onclick={handleCancelClick}>Cancel</AlertDialog.Cancel>
 											<AlertDialog.Action
 												class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-												on:click={handleConfirmDelete}
+												onclick={handleConfirmDelete}
 											>
 												Delete
 											</AlertDialog.Action>
