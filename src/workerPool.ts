@@ -202,7 +202,7 @@ export class WorkerPool {
 		return new Promise((resolve, reject) => {
 			const task: WorkerTask = {
 				id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-				file: null, // We'll read the file progressively
+				file: null,
 				fileName,
 				resolve,
 				reject

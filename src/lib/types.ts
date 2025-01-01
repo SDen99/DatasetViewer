@@ -21,7 +21,7 @@ export interface PyodideInterface {
 
 export interface WorkerTask {
 	id: string;
-	file: ArrayBuffer;
+	file: ArrayBuffer | null;
 	fileName: string;
 	resolve: (result: ProcessingResult) => void;
 	reject: (error: Error) => void;
