@@ -2,20 +2,18 @@
 	import DragHandle from './DragHandle.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import SortButton from './SortButton.svelte';
+	import type { sortConfigs } from '../types';
 
 	let {
 		column,
-		sort,
+		sorts,
 		onSort,
 		onResizeStart,
 		onKeyResize,
 		isDraggable = true
 	} = $props<{
 		column: string;
-		sort: {
-			column: string | null;
-			direction: 'asc' | 'desc' | null;
-		};
+		sorts: sortConfigs;
 		onSort: () => void;
 		onResizeStart: (e: MouseEvent) => void;
 		onKeyResize: (e: KeyboardEvent) => void;
