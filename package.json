@@ -61,8 +61,7 @@
 	},
 	"homepage": "https://github.com/SDen99/DatasetViewer#readme",
 	"overrides": {
-		"bits-ui": {
-			"@melt-ui/svelte": "^0.86.2"
-		}
+		"svelte": "^5.0.0",
+		"glob": "^9.0.0"
 	}
 }
