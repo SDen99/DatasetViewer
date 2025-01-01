@@ -66,9 +66,6 @@
 	"homepage": "https://github.com/SDen99/DatasetViewer#readme",
 	"overrides": {
 		"svelte": "^5.0.0",
-		"glob": "^9.0.0",
-		"bits-ui": {
-			"svelte-toolbelt": "0.7.0"
-		}
+		"glob": "^9.0.0"
 	}
 }
