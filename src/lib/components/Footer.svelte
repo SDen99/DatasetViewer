@@ -4,9 +4,7 @@
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 
 	let stats = $derived(
-		dataTableStore.selectedDataset
-			? dataTableStore.selectedDataset.processingStats // Use dataset's stored stats if a dataset is selected
-			: dataTableStore.processingStats
+		dataTableStore.selectedDataset?.processingStats ?? dataTableStore.processingStats
 	);
 </script>
 

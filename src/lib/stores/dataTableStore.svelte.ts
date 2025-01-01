@@ -182,16 +182,16 @@ export class DataTableStore {
 	}
 
 	toggleSort(column: string) {
-		if (this.sort.column === column) {
-			if (this.sort.direction === 'asc') {
-				this.sort = { column, direction: 'desc' };
-			} else if (this.sort.direction === 'desc') {
-				this.sort = { column: null, direction: null };
+		const existingSort = this.sort.find((s) => s.column === column);
+
+		if (existingSort) {
+			if (existingSort.direction === 'asc') {
+				this.updateSort(column, 'desc');
 			} else {
-				this.sort = { column, direction: 'asc' };
+				this.removeSort(column);
 			}
 		} else {
-			this.sort = { column, direction: 'asc' };
+			this.addSort(column);
 		}
 	}
 
