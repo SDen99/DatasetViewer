@@ -62,7 +62,8 @@
 	"homepage": "https://github.com/SDen99/DatasetViewer#readme",
 	"overrides": {
 		"svelte": "^5.0.0",
-		"glob": "^9.0.0"
+		"glob": "^9.0.0",
+		"svelte-toolbelt": "^0.7.0"
 	},
 	"resolutions": {
 		"svelte-toolbelt/runed": "latest"
