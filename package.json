@@ -46,7 +46,12 @@
 		"@sveltejs/adapter-vercel": "^5.4.8",
 		"class-variance-authority": "^0.7.1",
 		"pyodide": "^0.26.3",
-		"vaul-svelte": "^0.3.2"
+		"vaul-svelte": "^0.3.2",
+		"bits-ui": "^1.0.0-next.76",
+		"svelte-toolbelt": "^0.7.0"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0"
 	},
 	"description": "Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).",
 	"main": "index.ts",
