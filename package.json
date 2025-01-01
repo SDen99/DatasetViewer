@@ -70,8 +70,5 @@
 		"bits-ui": {
 			"svelte-toolbelt": "0.7.0"
 		}
-	},
-	"resolutions": {
-		"svelte-toolbelt/runed": "latest"
 	}
 }
