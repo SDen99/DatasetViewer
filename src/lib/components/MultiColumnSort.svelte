@@ -104,9 +104,7 @@
 								{getSortIndex(variable.name)}
 							</span>
 						{/if}
-						{#if getSortIcon(variable.name) === 'ArrowsUpDown'}
-							<ArrowUpDown class="h-4 w-4 text-muted-foreground" />
-						{:else if getSortIcon(variable.name) === 'ArrowUp'}
+						{#if getSortIcon(variable.name) === 'ArrowUp'}
 							<ArrowUp class="h-4 w-4 text-muted-foreground" />
 						{:else if getSortIcon(variable.name) === 'ArrowDown'}
 							<ArrowDown class="h-4 w-4 text-muted-foreground" />

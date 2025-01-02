@@ -19,10 +19,6 @@
 	let visibleStartIndex = $state(0);
 	let visibleEndIndex = $state(0);
 	let mounted = $state(false);
-	let sort = $state<{ column: string | null; direction: 'asc' | 'desc' | null }>({
-		column: null,
-		direction: null
-	});
 
 	// Constants
 	const ROW_HEIGHT = 35;
@@ -53,11 +49,19 @@
 				const aVal = a[column];
 				const bVal = b[column];
 
-				if (aVal == null && bVal == null) continue;
-				if (aVal == null) return direction === 'asc' ? -1 : 1;
-				if (bVal == null) return direction === 'asc' ? 1 : -1;
+				// Improved null handling
+				if (aVal === null || aVal === undefined) {
+					if (bVal === null || bVal === undefined) continue;
+					return direction === 'asc' ? -1 : 1;
+				}
+				if (bVal === null || bVal === undefined) return direction === 'asc' ? 1 : -1;
 
-				const comparison = String(aVal).localeCompare(String(bVal));
+				// Type-aware comparison
+				const comparison =
+					typeof aVal === 'number' && typeof bVal === 'number'
+						? aVal - bVal
+						: String(aVal).localeCompare(String(bVal));
+
 				if (comparison !== 0) {
 					return direction === 'asc' ? comparison : -comparison;
 				}
@@ -65,6 +69,8 @@
 			return 0;
 		});
 	});
+
+	let totalHeight = $derived(Array.isArray(sortedData) ? sortedData.length * ROW_HEIGHT : 0);
 
 	// Visible data calculation
 	let visibleData = $derived.by(() => {
@@ -112,20 +118,6 @@
 		dataTableStore.updateColumnWidth(column, width);
 	}
 
-	function toggleSort(column: string) {
-		if (sort.column === column) {
-			if (sort.direction === 'asc') {
-				sort = { column, direction: 'desc' };
-			} else if (sort.direction === 'desc') {
-				sort = { column: null, direction: null };
-			} else {
-				sort = { column, direction: 'asc' };
-			}
-		} else {
-			sort = { column, direction: 'asc' };
-		}
-	}
-
 	onMount(() => {
 		mounted = true;
 		if (!browser) return;
@@ -144,7 +136,9 @@
 		}
 	});
 
-	let totalHeight = $derived(Array.isArray(sortedData) ? sortedData.length * ROW_HEIGHT : 0);
+	function handleSort(column: string) {
+		dataTableStore.toggleSort(column);
+	}
 
 	$effect(() => {
 		if (mounted && scrollContainer && Array.isArray(sortedData)) {
@@ -177,8 +171,8 @@
 					<table class="w-full caption-bottom text-sm">
 						<DataTableHeader
 							columns={visibleColumns}
-							{sort}
-							onSort={toggleSort}
+							sort={dataTableStore.sort}
+							onSort={handleSort}
 							onColumnReorder={handleColumnReorder}
 							onColumnResize={handleColumnResize}
 						/>
@@ -189,7 +183,7 @@
 				<div
 					bind:this={scrollContainer}
 					class="overflow-y-auto"
-					style="height: calc(100vh - 4rem);"
+					style="height: calc(100vh - 8rem);"
 					onscroll={handleScroll}
 				>
 					<DataTableBody

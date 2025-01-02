@@ -2,10 +2,11 @@
 	import { TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 	import ColumnHeader from './ColumnHeader.svelte';
+	import type { SortConfig } from '$lib/types';
 
-	let { columns, sort, onSort, onColumnResize } = $props<{
+	let { columns, sort, onSort, onColumnReorder, onColumnResize } = $props<{
 		columns: string[];
-		sort: { column: string | null; direction: 'asc' | 'desc' | null };
+		sort: SortConfig[];
 		onSort: (column: string) => void;
 		onColumnReorder: (from: string, to: string) => void;
 		onColumnResize: (column: string, width: number) => void;
@@ -16,7 +17,6 @@
 
 	const DEFAULT_COLUMN_WIDTH = 200;
 
-	// Drag and drop handlers...
 	function handleDragStart(e: DragEvent, column: string) {
 		draggedColumn = column;
 		if (e.dataTransfer) {
@@ -39,18 +39,13 @@
 			return;
 		}
 
-		// Get the current order
 		const newOrder = [...dataTableStore.columnOrder];
-
-		// Find positions
 		const fromIndex = newOrder.indexOf(draggedColumn);
 		const toIndex = newOrder.indexOf(targetColumn);
 
-		// Remove dragged item and insert at new position
 		newOrder.splice(fromIndex, 1);
 		newOrder.splice(toIndex, 0, draggedColumn);
 
-		// Update store with new order
 		dataTableStore.updateColumnOrder(newOrder);
 
 		dragOverColumn = null;
@@ -72,8 +67,6 @@
 			>
 				<ColumnHeader
 					{column}
-					{sort}
-					onSort={() => onSort(column)}
 					onDragStart={(e) => handleDragStart(e, column)}
 					onDragOver={(e) => handleDragOver(e, column)}
 					onDrop={(e) => handleDrop(e, column)}

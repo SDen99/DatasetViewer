@@ -18,27 +18,22 @@
 		onRowClick?: (row: Record<string, any>) => void;
 	}>();
 
-	// Cell styling including width from store
 	let getCellStyle = (column: string) => {
 		const width = dataTableStore.columnWidths[column] || 200;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	};
 
-	// Format cell content based on data type
 	function formatCellContent(value: any, column: string): string {
 		if (value == null) return '';
 
-		// Handle dates
 		if (value instanceof Date) {
 			return value.toLocaleString();
 		}
 
-		// Handle numbers
 		if (typeof value === 'number') {
 			return new Intl.NumberFormat().format(value);
 		}
 
-		// Handle booleans
 		if (typeof value === 'boolean') {
 			return value ? 'Yes' : 'No';
 		}
@@ -46,7 +41,6 @@
 		return String(value);
 	}
 
-	// Optional: Custom cell rendering based on column/content
 	function getCellClass(value: any, column: string): string {
 		const classes = ['truncate'];
 
@@ -70,7 +64,7 @@
 	onclick={() => onRowClick?.(row)}
 	role="row"
 	aria-selected={isSelected}
-	tabindex="0"
+	tabindex={0}
 >
 	{#each columns as column}
 		<TableCell

@@ -32,41 +32,41 @@
 			});
 			return;
 		}
+		{
+			const dm = datasetManager;
+			const files = (event.target as HTMLInputElement).files;
+			if (!files?.length) return;
 
-		const files = (event.target as HTMLInputElement).files;
-		if (!files?.length) return;
+			const validFiles = Array.from(files).filter((file) => {
+				const validation = dm.validateFile(file);
+				if (!validation.valid && validation.error) {
+					errorStore.addError({
+						message: validation.error,
+						severity: ErrorSeverity.WARNING
+					});
+				}
+				return validation.valid;
+			});
 
-		const validFiles = Array.from(files).filter((file) => {
-			const validation = datasetManager.validateFile(file);
-			if (!validation.valid && validation.error) {
-				errorStore.addError({
-					message: validation.error,
-					severity: ErrorSeverity.WARNING
-				});
+			if (!validFiles.length) return;
+
+			dataTableStore.setLoadingState(true);
+
+			try {
+				const results = await Promise.allSettled(validFiles.map((file) => dm.processFile(file)));
+
+				const failures = results.filter((r) => r.status === 'fulfilled' && !r.value.success);
+
+				if (failures.length > 0) {
+					errorStore.addError({
+						message: `Failed to process ${failures.length} file(s)`,
+						severity: ErrorSeverity.WARNING,
+						context: { failures }
+					});
+				}
+			} finally {
+				dataTableStore.setLoadingState(false);
 			}
-			return validation.valid;
-		});
-
-		if (!validFiles.length) return;
-
-		dataTableStore.setLoadingState(true);
-
-		try {
-			const results = await Promise.allSettled(
-				validFiles.map((file) => datasetManager.processFile(file))
-			);
-
-			const failures = results.filter((r) => r.status === 'fulfilled' && !r.value.success);
-
-			if (failures.length > 0) {
-				errorStore.addError({
-					message: `Failed to process ${failures.length} file(s)`,
-					severity: ErrorSeverity.WARNING,
-					context: { failures }
-				});
-			}
-		} finally {
-			dataTableStore.setLoadingState(false);
 		}
 	}
 

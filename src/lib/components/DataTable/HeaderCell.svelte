@@ -2,29 +2,25 @@
 	import DragHandle from './DragHandle.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import SortButton from './SortButton.svelte';
-	import type { sortConfigs } from '../types';
+	import type { SortConfig } from '$lib/types';
 
 	let {
 		column,
 		sorts,
 		onSort,
-		onResizeStart,
-		onKeyResize,
+		onResize,
 		isDraggable = true
 	} = $props<{
 		column: string;
-		sorts: sortConfigs;
+		sorts: SortConfig[];
 		onSort: () => void;
-		onResizeStart: (e: MouseEvent) => void;
-		onKeyResize: (e: KeyboardEvent) => void;
+		onResize: (width: number) => void;
 		isDraggable?: boolean;
 	}>();
 </script>
 
 <div class="flex h-full select-none items-center gap-2">
 	<DragHandle disabled={!isDraggable} />
-
-	<SortButton {column} {sort} {onSort} />
-
-	<ResizeHandle {onResizeStart} {onKeyResize} />
+	<SortButton {column} {sorts} />
+	<ResizeHandle {onResize} />
 </div>

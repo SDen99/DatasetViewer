@@ -16,7 +16,7 @@
 	});
 
 	let storageUsage = $state('');
-	let storageUpdateInterval: number;
+	let storageUpdateInterval: any;
 
 	async function updateStorageUsage() {
 		try {

@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Upload } from 'svelte-lucide';
 
-	let { handleFileChangeEvent }: Props = $props();
+	let { handleFileChangeEvent } = $props();
 	let fileInput = $state<HTMLInputElement | null>(null);
 
 	function triggerFileInput() {

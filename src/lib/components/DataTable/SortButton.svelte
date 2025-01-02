@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { ArrowUp, ArrowDown } from 'svelte-lucide';
+	import type { SortConfig } from '$lib/types';
 
 	let { column, sorts } = $props<{
 		column: string;
-		sorts: Array<{ column: string; direction: 'asc' | 'desc' }>;
+		sorts: SortConfig[];
 	}>();
 
-	// Find if this column is in the sort configuration
-	let sortConfig = $derived(sorts.find((s) => s.column === column));
-	let sortIndex = $derived(sorts.findIndex((s) => s.column === column) + 1);
+	let sortConfig = $derived(sorts.find((s: SortConfig) => s.column === column));
+	let sortIndex = $derived(sorts.findIndex((s: SortConfig) => s.column === column) + 1);
 
 	let showUp = $derived(sortConfig?.direction === 'asc');
 	let showDown = $derived(sortConfig?.direction === 'desc');
