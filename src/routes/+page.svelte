@@ -18,14 +18,16 @@
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
+	type InitState = 'idle' | 'initializing' | 'ready' | 'error';
+	let initState = $state<InitState>('idle');
 	let datasetManager = $state<DatasetManager | null>(null);
-	let initializationInProgress = $state(false);
 
 	// Initialize services
 	async function initializeApp() {
-		if (!browser || initializationInProgress) return;
+		if (!browser || initState === 'initializing') return;
 
-		initializationInProgress = true;
+		initState = 'initializing';
+
 		try {
 			const container = await ServiceContainer.initialize();
 			const manager = new DatasetManager(container);
@@ -40,16 +42,17 @@
 				await dataTableStore.selectDataset(selectedId);
 			}
 
+			datasetManager = manager;
+			initState = 'ready';
 			return manager;
 		} catch (error) {
+			initState = 'error';
 			errorStore.addError({
 				message: 'Failed to initialize application services',
 				severity: ErrorSeverity.ERROR,
 				context: { error }
 			});
 			return null;
-		} finally {
-			initializationInProgress = false;
 		}
 	}
 
@@ -102,21 +105,8 @@
 	let isInitializing = $state(false);
 
 	onMount(() => {
-		console.log('Component mounted, browser:', browser);
 		if (browser) {
-			console.log('Starting initialization');
-			isInitializing = true;
-			initializeApp()
-				.then((manager) => {
-					console.log('App initialized with manager:', manager);
-					if (manager) {
-						datasetManager = manager;
-					}
-				})
-				.finally(() => {
-					console.log('Initialization complete');
-					isInitializing = false;
-				});
+			initializeApp();
 		}
 	});
 
@@ -188,11 +178,15 @@
 		<Footer />
 	{/snippet}
 
-	{#if isInitializing}
+	{#if initState === 'initializing'}
 		<div class="flex h-full items-center justify-center">
 			<p>Initializing application...</p>
 		</div>
+	{:else if initState === 'error'}
+		<div class="flex h-full items-center justify-center">
+			<p>Failed to initialize application. Please refresh the page.</p>
+		</div>
+	{:else if initState === 'ready'}
+		<MainLayout {navigation} {leftbar} {mainContent} {rightbar} {footer} />
 	{/if}
-
-	<MainLayout {navigation} {leftbar} {mainContent} {rightbar} {footer} />
 {/if}
