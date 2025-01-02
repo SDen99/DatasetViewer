@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatStorageSize } from '$lib/utils';
+	import { formatStorageSize } from '$lib/utilFunctions';
 	import { Separator } from '$lib/components/ui/separator';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
 

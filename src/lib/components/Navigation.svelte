@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { formatStorageSize } from '$lib/utils';
+	import { formatStorageSize } from '$lib/utilFunctions';
 	import { Badge } from '$lib/components/ui/badge';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 
