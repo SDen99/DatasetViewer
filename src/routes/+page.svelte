@@ -1,6 +1,4 @@
 <script lang="ts">
-	import ErrorToast from '$lib/components/ErrorToast.svelte';
-	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import * as Card from '$lib/components/ui/card';
@@ -11,50 +9,18 @@
 	import DataTable from '$lib/components/DataTable/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { ServiceContainer } from '$lib/stores/serviceContainer';
-	import { DatasetManager } from '$lib/services/DatasetManager';
 
+	import { DatasetManager } from '$lib/services/DatasetManager';
+	import { initManager } from '$lib/services/InitializationService.svelte';
 	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
 	type InitState = 'idle' | 'initializing' | 'ready' | 'error';
 	let initState = $state<InitState>('idle');
 	let datasetManager = $state<DatasetManager | null>(null);
-
-	// Initialize services
-	async function initializeApp() {
-		if (!browser || initState === 'initializing') return;
-
-		initState = 'initializing';
-
-		try {
-			const container = await ServiceContainer.initialize();
-			const manager = new DatasetManager(container);
-
-			// Initialize data
-			const datasetService = container.getDatasetService();
-			const datasets = await datasetService.getAllDatasets();
-			dataTableStore.datasets = datasets;
-
-			const selectedId = container.getUIStateService().getSelectedDataset();
-			if (selectedId) {
-				await dataTableStore.selectDataset(selectedId);
-			}
-
-			datasetManager = manager;
-			initState = 'ready';
-			return manager;
-		} catch (error) {
-			initState = 'error';
-			errorStore.addError({
-				message: 'Failed to initialize application services',
-				severity: ErrorSeverity.ERROR,
-				context: { error }
-			});
-			return null;
-		}
-	}
 
 	async function handleFileChangeEvent(event: Event) {
 		if (!datasetManager) {
@@ -102,11 +68,13 @@
 		}
 	}
 
-	let isInitializing = $state(false);
-
 	onMount(() => {
 		if (browser) {
-			initializeApp();
+			initManager.initialize().then((container) => {
+				if (container) {
+					datasetManager = new DatasetManager(container);
+				}
+			});
 		}
 	});
 
@@ -178,15 +146,24 @@
 		<Footer />
 	{/snippet}
 
-	{#if initState === 'initializing'}
-		<div class="flex h-full items-center justify-center">
+	{#if initManager.status.status === 'initializing'}
+		<div class="flex h-full flex-col items-center justify-center gap-2">
 			<p>Initializing application...</p>
+			{#if initManager.status.progress}
+				<p class="text-sm text-muted-foreground">
+					{initManager.status.progress.message}
+				</p>
+			{/if}
 		</div>
-	{:else if initState === 'error'}
-		<div class="flex h-full items-center justify-center">
-			<p>Failed to initialize application. Please refresh the page.</p>
+	{:else if initManager.status.status === 'error'}
+		<div class="flex h-full flex-col items-center justify-center gap-4">
+			<p class="text-destructive">Failed to initialize application</p>
+			<p class="text-sm text-muted-foreground">
+				{initManager.status.error?.message}
+			</p>
+			<button class="btn" onclick={() => initManager.reset()}> Retry </button>
 		</div>
-	{:else if initState === 'ready'}
+	{:else if initManager.status.status === 'ready'}
 		<MainLayout {navigation} {leftbar} {mainContent} {rightbar} {footer} />
 	{/if}
 {/if}

@@ -9,6 +9,9 @@ const config = {
 		alias: {
 			$workers: 'src/lib/workers',
 			$config: 'src/config.js'
+		},
+		files: {
+			assets: 'static' // explicitly set static files directory
 		}
 	}
 };
