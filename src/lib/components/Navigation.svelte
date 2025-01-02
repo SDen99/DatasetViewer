@@ -47,11 +47,20 @@
 >
 	<div class="container flex h-14 max-w-none px-6">
 		<div class="flex w-full items-center justify-between">
-			<div class="gap-100 flex items-center">
+			<div class="flex items-center gap-4">
 				<FileUpload {handleFileChangeEvent} />
+				{#if isLoading}
+					<div class="flex items-center gap-2 text-sm text-muted-foreground">
+						<div
+							class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"
+						></div>
+						<span>Processing files...</span>
+					</div>
+				{/if}
 			</div>
+
 			<!-- Left side with fixed positioning -->
-			<div class="flex items-center gap-2 pl-0">
+			<div class="absolute left-1/2 flex -translate-x-1/2 transform items-center gap-2">
 				<h1 class="text-xl font-semibold">Data Viewer</h1>
 				<Badge variant="outline" class="font-mono">v0.1</Badge>
 			</div>
@@ -64,15 +73,4 @@
 			</div>
 		</div>
 	</div>
-
-	{#if isLoading}
-		<div class="container py-2">
-			<div class="flex items-center gap-2 text-sm text-muted-foreground">
-				<div
-					class="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"
-				></div>
-				<span>Processing files...</span>
-			</div>
-		</div>
-	{/if}
 </header>

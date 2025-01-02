@@ -18,9 +18,10 @@
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
-	type InitState = 'idle' | 'initializing' | 'ready' | 'error';
-	let initState = $state<InitState>('idle');
 	let datasetManager = $state<DatasetManager | null>(null);
+	let isLoading = $derived(
+		dataTableStore.isLoading || Object.keys(dataTableStore.loadingDatasets).length > 0
+	);
 
 	async function handleFileChangeEvent(event: Event) {
 		if (!datasetManager) {
@@ -86,7 +87,7 @@
 
 {#if browser}
 	{#snippet navigation()}
-		<Navigation {handleFileChangeEvent} isLoading={false} />
+		<Navigation {handleFileChangeEvent} {isLoading} />
 	{/snippet}
 
 	{#snippet leftbar()}
