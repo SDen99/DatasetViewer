@@ -22,6 +22,7 @@
 	let isLoading = $derived(
 		dataTableStore.isLoading || Object.keys(dataTableStore.loadingDatasets).length > 0
 	);
+	let initializationError = $state<Error | null>(null);
 
 	async function handleFileChangeEvent(event: Event) {
 		if (!datasetManager) {
@@ -69,13 +70,26 @@
 		}
 	}
 
+	async function initializeApp() {
+		try {
+			const container = await initManager.initialize();
+			if (!container) {
+				throw new Error('Failed to initialize application container');
+			}
+			datasetManager = new DatasetManager(container);
+		} catch (error) {
+			initializationError = error instanceof Error ? error : new Error(String(error));
+			errorStore.addError({
+				message: 'Failed to initialize application',
+				severity: ErrorSeverity.ERROR,
+				context: { error: initializationError }
+			});
+		}
+	}
+
 	onMount(() => {
 		if (browser) {
-			initManager.initialize().then((container) => {
-				if (container) {
-					datasetManager = new DatasetManager(container);
-				}
-			});
+			initializeApp();
 		}
 	});
 
@@ -85,84 +99,92 @@
 	});
 </script>
 
-{#if browser}
-	{#snippet navigation()}
-		<Navigation {handleFileChangeEvent} {isLoading} />
-	{/snippet}
+{#snippet navigation()}
+	<Navigation {handleFileChangeEvent} {isLoading} />
+{/snippet}
 
-	{#snippet leftbar()}
-		<DatasetList />
-	{/snippet}
+{#snippet leftbar()}
+	<DatasetList />
+{/snippet}
 
-	{#snippet mainContent()}
-		{#if dataTableStore.selectedDataset}
-			<div class="h-full">
-				<Card.Root class="h-full">
-					<Card.Content class="h-full p-0">
-						<DataTable data={dataTableStore.selectedDataset.data} />
-					</Card.Content>
-				</Card.Root>
-			</div>
-		{:else}
-			<div class="flex flex-1 items-center justify-center">
-				<div class="text-center text-muted-foreground">
-					<h3 class="text-lg font-medium">No dataset selected</h3>
-					<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
-				</div>
-			</div>
-		{/if}
-	{/snippet}
-
-	{#snippet rightbar()}
+{#snippet mainContent()}
+	{#if dataTableStore.selectedDataset}
 		<div class="h-full">
-			<Tabs.Root value="columns">
-				<Tabs.List>
-					<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
-					<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
-				</Tabs.List>
-				<Tabs.Content value="columns">
-					{#if dataTableStore.selectedDataset}
-						<VariableList
-							variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
-								name: col,
-								dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
-							}))}
-						/>
-					{/if}
-				</Tabs.Content>
-				<Tabs.Content value="sort">
-					{#if dataTableStore.selectedDataset}
-						<MultiColumnSort
-							variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
-								name: col
-							}))}
-						/>
-					{/if}
-				</Tabs.Content>
-			</Tabs.Root>
+			<Card.Root class="h-full">
+				<Card.Content class="h-full p-0">
+					<DataTable data={dataTableStore.selectedDataset.data} />
+				</Card.Content>
+			</Card.Root>
 		</div>
-	{/snippet}
+	{:else}
+		<div class="flex flex-1 items-center justify-center">
+			<div class="text-center text-muted-foreground">
+				<h3 class="text-lg font-medium">No dataset selected</h3>
+				<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+			</div>
+		</div>
+	{/if}
+{/snippet}
 
-	{#snippet footer()}
-		<Footer />
-	{/snippet}
+{#snippet rightbar()}
+	<div class="h-full">
+		<Tabs.Root value="columns">
+			<Tabs.List>
+				<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
+				<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="columns">
+				{#if dataTableStore.selectedDataset}
+					<VariableList
+						variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+							name: col,
+							dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
+						}))}
+					/>
+				{/if}
+			</Tabs.Content>
+			<Tabs.Content value="sort">
+				{#if dataTableStore.selectedDataset}
+					<MultiColumnSort
+						variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+							name: col
+						}))}
+					/>
+				{/if}
+			</Tabs.Content>
+		</Tabs.Root>
+	</div>
+{/snippet}
 
+{#snippet footer()}
+	<Footer />
+{/snippet}
+
+{#if browser}
 	{#if initManager.status.status === 'initializing'}
 		<div class="flex h-full flex-col items-center justify-center gap-2">
-			<p>Initializing application...</p>
+			<p class="text-lg font-medium">Initializing application...</p>
 			{#if initManager.status.progress}
 				<p class="text-sm text-muted-foreground">
 					{initManager.status.progress.message}
 				</p>
 			{/if}
 		</div>
-	{:else if initManager.status.status === 'error'}
+	{:else if initializationError}
 		<div class="flex h-full flex-col items-center justify-center gap-4">
-			<p class="text-destructive">Failed to initialize application</p>
+			<p class="text-lg font-medium text-destructive">Failed to initialize application</p>
 			<p class="text-sm text-muted-foreground">
-				{initManager.status.error?.message}
+				{initializationError.message}
 			</p>
-			<button class="btn" onclick={() => initManager.reset()}> Retry </button>
+			<button
+				class="btn variant-filled"
+				onclick={() => {
+					initializationError = null;
+					initializeApp();
+				}}
+			>
+				Retry
+			</button>
 		</div>
 	{:else if initManager.status.status === 'ready'}
 		<MainLayout {navigation} {leftbar} {mainContent} {rightbar} {footer} />
