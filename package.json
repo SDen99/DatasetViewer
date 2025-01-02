@@ -48,7 +48,8 @@
 		"class-variance-authority": "^0.7.1",
 		"pyodide": "^0.26.3",
 		"shadcn-svelte": "^1.0.0-next.4",
-		"vaul-svelte": "^0.3.2"
+		"vaul-svelte": "^0.3.2",
+		"bits-ui": "npm:@bits-ui/server@next"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
