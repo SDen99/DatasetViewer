@@ -12,18 +12,16 @@
 		"format": "prettier --write \"src/**/*.{js,ts,svelte,css,html,json,md}\""
 	},
 	"devDependencies": {
+		"@melt-ui/svelte": "^0.86.2",
 		"@sveltejs/adapter-auto": "^3.0.0",
-		"@sveltejs/adapter-static": "^3.0.8",
-		"@sveltejs/kit": "2.15.1",
+		"@sveltejs/kit": "^2.15.1",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@tailwindcss/aspect-ratio": "^0.4.2",
 		"@tailwindcss/container-queries": "^0.1.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
 		"@types/eslint": "^9.6.0",
-		"@types/node": "^22.10.3",
 		"autoprefixer": "^10.4.20",
-		"bits-ui": "1.0.0-next.76",
 		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -44,16 +42,12 @@
 		"vite": "^5.4.4"
 	},
 	"dependencies": {
-		"@melt-ui/svelte": "^0.86.2",
 		"@sveltejs/adapter-vercel": "^5.4.8",
-		"bits-ui": "npm:@bits-ui/server@next",
+		"bits-ui": "^1.0.0-next.76",
 		"class-variance-authority": "^0.7.1",
 		"pyodide": "^0.26.3",
-		"shadcn-svelte": "^1.0.0-next.4",
+		"runed": "^0.22.0",
 		"vaul-svelte": "^0.3.2"
-	},
-	"peerDependencies": {
-		"svelte": "^5.0.0"
 	},
 	"description": "Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).",
 	"main": "index.ts",
@@ -66,11 +60,5 @@
 	"bugs": {
 		"url": "https://github.com/SDen99/DatasetViewer/issues"
 	},
-	"homepage": "https://github.com/SDen99/DatasetViewer#readme",
-	"overrides": {
-		"svelte": "^5.0.0",
-		"glob": "^9.0.0",
-		"svelte-toolbelt": "^0.3.0",
-		"runed": "^0.2.0-next.0"
-	}
+	"homepage": "https://github.com/SDen99/DatasetViewer#readme"
 }
