@@ -9,6 +9,7 @@
 	import DataTable from '$lib/components/DataTable/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import DataAnalysis from '$lib/components/DataAnalysis.svelte';
 
 	import { DatasetManager } from '$lib/services/DatasetManager';
 	import { initManager } from '$lib/services/InitializationService.svelte';
@@ -132,6 +133,7 @@
 			<Tabs.List>
 				<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
 				<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
+				<Tabs.Trigger value="analysis">Analysis</Tabs.Trigger>
 			</Tabs.List>
 			<Tabs.Content value="columns">
 				{#if dataTableStore.selectedDataset}
@@ -151,6 +153,9 @@
 						}))}
 					/>
 				{/if}
+			</Tabs.Content>
+			<Tabs.Content value="analysis">
+				<DataAnalysis />
 			</Tabs.Content>
 		</Tabs.Root>
 	</div>
