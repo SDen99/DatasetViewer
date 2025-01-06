@@ -4,18 +4,18 @@
 	import * as Button from '$lib/components/ui/button/index.js';
 	import { Progress } from '$lib/components/ui/progress';
 	import { Badge } from '$lib/components/ui/badge';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { datasetStore } from '$lib/stores/datasetStore.svelte';
 
 	let datasetToDelete: string | null = $state(null);
 	let dialogOpen = $state(false);
 
 	$effect(() => {
-		console.log('DatasetList rerender:', Object.keys(dataTableStore.datasets));
+		console.log('DatasetList rerender:', Object.keys(datasetStore.datasets));
 	});
 
 	function handleConfirmDelete() {
 		if (datasetToDelete) {
-			dataTableStore.deleteDataset(datasetToDelete);
+			datasetStore.deleteDataset(datasetToDelete);
 			datasetToDelete = null;
 			dialogOpen = false;
 		}
@@ -33,8 +33,8 @@
 	}
 
 	let allDatasetEntries = $derived([
-		...Object.keys(dataTableStore.datasets),
-		...Object.keys(dataTableStore.loadingDatasets)
+		...Object.keys(datasetStore.datasets),
+		...Object.keys(datasetStore.loadingDatasets)
 	]);
 </script>
 
@@ -43,7 +43,7 @@
 		<div class="space-y-2">
 			{#each allDatasetEntries as datasetName}
 				<div
-					class="overflow-hidden rounded-lg border {datasetName === dataTableStore.selectedDatasetId
+					class="overflow-hidden rounded-lg border {datasetName === datasetStore.selectedDatasetId
 						? 'border-primary'
 						: 'border-border'}"
 				>
@@ -52,20 +52,20 @@
 							<button
 								type="button"
 								class="flex-1 text-left hover:text-primary"
-								onclick={() => dataTableStore.selectDataset(datasetName)}
-								disabled={Boolean(dataTableStore.loadingDatasets[datasetName])}
+								onclick={() => datasetStore.selectDataset(datasetName)}
+								disabled={Boolean(datasetStore.loadingDatasets[datasetName])}
 							>
 								<div class="flex items-center gap-2">
 									<span class="truncate font-medium">
 										{datasetName}
 									</span>
-									{#if dataTableStore.loadingDatasets[datasetName]}
+									{#if datasetStore.loadingDatasets[datasetName]}
 										<Badge variant="secondary">Loading</Badge>
 									{/if}
 								</div>
 							</button>
 
-							{#if !dataTableStore.loadingDatasets[datasetName]}
+							{#if !datasetStore.loadingDatasets[datasetName]}
 								<AlertDialog.Root bind:open={dialogOpen}>
 									<Button.Root
 										variant="ghost"
@@ -101,9 +101,9 @@
 							{/if}
 						</div>
 
-						{#if dataTableStore.loadingDatasets[datasetName]}
+						{#if datasetStore.loadingDatasets[datasetName]}
 							<div class="px-3 pb-3">
-								<Progress value={dataTableStore.loadingDatasets[datasetName].progress} />
+								<Progress value={datasetStore.loadingDatasets[datasetName].progress} />
 							</div>
 						{/if}
 					</div>
