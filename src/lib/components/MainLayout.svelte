@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import SidebarToggleButtons from '$lib/components/SidebarToggleButtons.svelte';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 	let { navigation, leftbar, mainContent, rightbar, footer } = $props<{
 		navigation: Snippet;

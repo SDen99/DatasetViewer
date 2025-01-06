@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatStorageSize } from '$lib/utilFunctions';
 	import { Separator } from '$lib/components/ui/separator';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 	let stats = $derived(
 		dataTableStore.selectedDataset?.processingStats ?? dataTableStore.processingStats

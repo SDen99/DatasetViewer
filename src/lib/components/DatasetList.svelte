@@ -4,10 +4,14 @@
 	import * as Button from '$lib/components/ui/button/index.js';
 	import { Progress } from '$lib/components/ui/progress';
 	import { Badge } from '$lib/components/ui/badge';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 	let datasetToDelete: string | null = $state(null);
 	let dialogOpen = $state(false);
+
+	$effect(() => {
+		console.log('DatasetList rerender:', Object.keys(dataTableStore.datasets));
+	});
 
 	function handleConfirmDelete() {
 		if (datasetToDelete) {

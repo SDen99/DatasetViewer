@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 	import DataTableHeader from './DataTableHeader.svelte';
 	import DataTableBody from './DataTableBody.svelte';
 

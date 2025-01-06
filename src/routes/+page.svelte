@@ -13,7 +13,7 @@
 
 	import { DatasetManager } from '$lib/services/DatasetManager';
 	import { initManager } from '$lib/services/InitializationService.svelte';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
 
 	import * as Tabs from '$lib/components/ui/tabs/index.js';

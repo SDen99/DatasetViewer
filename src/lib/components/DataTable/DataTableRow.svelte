@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 	import { TableRow, TableCell } from '$lib/components/ui/table';
 
 	let {

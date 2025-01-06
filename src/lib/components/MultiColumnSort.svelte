@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { GripVertical, ArrowUpDown, ArrowDown, ArrowUp } from 'svelte-lucide';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 	interface Props {
 		variables: { name: string }[];

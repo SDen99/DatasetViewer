@@ -1,6 +1,6 @@
 import type { DatasetLoadingState } from '$lib/types';
 import { ServiceContainer } from '$lib/stores/serviceContainer';
-import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
 
 export const FILE_CONSTRAINTS = {
@@ -70,8 +70,6 @@ export class DatasetManager {
 			datasetSize: file.size
 		};
 
-		dataTableStore.updateProcessingStats(processingStats);
-
 		await datasetService.addDataset({
 			fileName: file.name,
 			...result,
@@ -79,8 +77,9 @@ export class DatasetManager {
 		});
 
 		const updatedDatasets = await datasetService.getAllDatasets();
-		dataTableStore.datasets = updatedDatasets;
+		dataTableStore.setDatasets(updatedDatasets);
 		dataTableStore.updateLoadingDatasets(file.name);
+		dataTableStore.updateProcessingStats(processingStats);
 	}
 
 	private handleProcessingError(file: File, error: unknown) {

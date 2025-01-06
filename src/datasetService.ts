@@ -133,37 +133,37 @@ export class DatasetService {
 			throw new Error('Database not initialized');
 		}
 
-		//console.log('🟡 DatasetService: Starting removal of dataset:', fileName);
+		console.log('🟡 DatasetService: Starting removal of dataset:', fileName);
 
 		return new Promise((resolve, reject) => {
 			const transaction = this.db!.transaction('datasets', 'readwrite');
 			const store = transaction.objectStore('datasets');
 
-			//console.log('🟡 DatasetService: Created transaction for deletion');
+			console.log('🟡 DatasetService: Created transaction for deletion');
 
 			transaction.oncomplete = () => {
-				//console.log('🟢 DatasetService: Transaction completed successfully');
+				console.log('🟢 DatasetService: Transaction completed successfully');
 				resolve();
 			};
 
 			transaction.onerror = (event) => {
-				//console.error('🔴 DatasetService: Transaction error:', event);
+				console.error('🔴 DatasetService: Transaction error:', event);
 				reject(transaction.error);
 			};
 
 			transaction.onabort = () => {
-				//console.error('🔴 DatasetService: Transaction aborted');
+				console.error('🔴 DatasetService: Transaction aborted');
 				reject(new Error('Transaction aborted'));
 			};
 
 			const request = store.delete(fileName);
 
 			request.onsuccess = () => {
-				//console.log('🟢 DatasetService: Delete request successful for:', fileName);
+				console.log('🟢 DatasetService: Delete request successful for:', fileName);
 			};
 
 			request.onerror = () => {
-				//console.error('🔴 DatasetService: Delete request failed for:', fileName);
+				console.error('🔴 DatasetService: Delete request failed for:', fileName);
 				reject(request.error);
 			};
 		});

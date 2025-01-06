@@ -1,6 +1,6 @@
 import { ServiceContainer } from '$lib/stores/serviceContainer';
 import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
-import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 export type InitState = {
 	status: 'idle' | 'initializing' | 'ready' | 'error';

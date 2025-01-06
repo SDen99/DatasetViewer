@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { PanelLeftClose, PanelRightClose, PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 </script>
 
 <div class="fixed bottom-4 left-4 z-50 flex gap-2">

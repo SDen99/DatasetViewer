@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 	import ColumnHeader from './ColumnHeader.svelte';
 	import type { SortConfig } from '$lib/types';
 

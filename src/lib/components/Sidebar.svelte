@@ -2,7 +2,7 @@
 	import { ScrollArea } from '$lib/components/ui/scroll-area';
 	import { Button } from '$lib/components/ui/button';
 	import { PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
-	import { dataTableStore } from '$lib/stores/dataTableStore.svelte';
+	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
 
 	interface Props {
 		position: 'left' | 'right';
