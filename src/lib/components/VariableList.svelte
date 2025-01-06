@@ -2,7 +2,7 @@
 	import { GripVertical } from 'svelte-lucide';
 	import * as Checkbox from '$lib/components/ui/checkbox';
 	import { Badge } from '$lib/components/ui/badge';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
 	import type { VariableType } from '$lib/types';
 
 	interface Props {
@@ -32,21 +32,21 @@
 		e.preventDefault();
 		if (!draggedVariable || draggedVariable === targetVariable) return;
 
-		const newOrder = [...dataTableStore.columnOrder];
+		const newOrder = [...tableUIStore.columnOrder];
 		const fromIndex = newOrder.indexOf(draggedVariable);
 		const toIndex = newOrder.indexOf(targetVariable);
 
 		newOrder.splice(fromIndex, 1);
 		newOrder.splice(toIndex, 0, draggedVariable);
 
-		dataTableStore.updateColumnOrder(newOrder);
+		tableUIStore.updateColumnOrder(newOrder);
 		draggedVariable = null;
 	}
 
 	let sortedVariables = $derived(
 		[...variables].sort((a, b) => {
-			const aIndex = dataTableStore.columnOrder.indexOf(a.name);
-			const bIndex = dataTableStore.columnOrder.indexOf(b.name);
+			const aIndex = tableUIStore.columnOrder.indexOf(a.name);
+			const bIndex = tableUIStore.columnOrder.indexOf(b.name);
 			if (aIndex === -1) return 1;
 			if (bIndex === -1) return -1;
 			return aIndex - bIndex;
@@ -69,9 +69,8 @@
 					class="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100"
 				/>
 				<Checkbox.Root
-					checked={dataTableStore.selectedColumns.has(variable.name)}
-					onCheckedChange={(checked) =>
-						dataTableStore.updateColumnSelection(variable.name, checked)}
+					checked={tableUIStore.selectedColumns.has(variable.name)}
+					onCheckedChange={(checked) => tableUIStore.updateColumnSelection(variable.name, checked)}
 				/>
 				<div class="flex flex-1 items-center justify-between">
 					<span
