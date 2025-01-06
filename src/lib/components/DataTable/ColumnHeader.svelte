@@ -2,7 +2,7 @@
 	import DragHandle from '$lib/components/DataTable/DragHandle.svelte';
 	import ResizeHandle from '$lib/components/DataTable/ResizeHandle.svelte';
 	import SortButton from '$lib/components/DataTable/SortButton.svelte';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { sortStore } from '$lib/stores/sortStore.svelte';
 
 	let { column, onDragStart, onDragOver, onDrop, onResize } = $props<{
 		column: string;
@@ -35,7 +35,7 @@
 	</div>
 
 	<div class="flex-1">
-		<SortButton {column} sorts={dataTableStore.sort} />
+		<SortButton {column} sorts={sortStore.sort} />
 	</div>
 
 	<ResizeHandle {onResize} />

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
+	import { sortStore } from '$lib/stores/sortStore.svelte';
 	import DataTableHeader from './DataTableHeader.svelte';
 	import DataTableBody from './DataTableBody.svelte';
+	import { untrack } from 'svelte';
 
 	// Props and state
 	let { data = [] } = $props<{
@@ -27,14 +29,14 @@
 
 	// Derived values
 	let visibleColumns = $derived.by(() => {
-		const order = dataTableStore.columnOrder;
-		const selected = dataTableStore.selectedColumns;
+		const order = tableUIStore.columnOrder;
+		const selected = tableUIStore.selectedColumns;
 		return order.filter((col) => selected.has(col));
 	});
 
 	let totalWidth = $derived(
 		visibleColumns.reduce(
-			(sum, col) => sum + (dataTableStore.columnWidths[col] || DEFAULT_COLUMN_WIDTH),
+			(sum, col) => sum + (tableUIStore.columnWidths[col] || DEFAULT_COLUMN_WIDTH),
 			0
 		)
 	);
@@ -42,10 +44,10 @@
 	// Sorting logic
 	let sortedData = $derived.by(() => {
 		if (!Array.isArray(data)) return [];
-		if (dataTableStore.sort.length === 0) return data;
+		if (sortStore.sort.length === 0) return data;
 
 		return [...data].sort((a, b) => {
-			for (const { column, direction } of dataTableStore.sort) {
+			for (const { column, direction } of sortStore.sort) {
 				const aVal = a[column];
 				const bVal = b[column];
 
@@ -97,7 +99,7 @@
 	function handleScroll(event: Event) {
 		if (!scrollContainer) return;
 
-		scrollTop = (event.target as HTMLElement).scrollTop;
+		scrollTop = untrack(() => (event.target as HTMLElement).scrollTop);
 		const visibleRows = Math.ceil(viewportHeight / ROW_HEIGHT);
 		visibleStartIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_SIZE);
 		visibleEndIndex = Math.min(
@@ -107,15 +109,15 @@
 	}
 
 	function handleColumnReorder(fromColumn: string, toColumn: string) {
-		dataTableStore.updateColumnOrder(
-			dataTableStore.columnOrder.map((col) =>
+		tableUIStore.updateColumnOrder(
+			tableUIStore.columnOrder.map((col) =>
 				col === fromColumn ? toColumn : col === toColumn ? fromColumn : col
 			)
 		);
 	}
 
 	function handleColumnResize(column: string, width: number) {
-		dataTableStore.updateColumnWidth(column, width);
+		tableUIStore.updateColumnWidth(column, width);
 	}
 
 	onMount(() => {
@@ -137,7 +139,7 @@
 	});
 
 	function handleSort(column: string) {
-		dataTableStore.toggleSort(column);
+		sortStore.toggleSort(column);
 	}
 
 	$effect(() => {
@@ -171,7 +173,7 @@
 					<table class="w-full caption-bottom text-sm">
 						<DataTableHeader
 							columns={visibleColumns}
-							sort={dataTableStore.sort}
+							sort={sortStore.sort}
 							onSort={handleSort}
 							onColumnReorder={handleColumnReorder}
 							onColumnResize={handleColumnResize}

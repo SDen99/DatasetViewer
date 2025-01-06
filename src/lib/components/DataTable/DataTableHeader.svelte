@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { TableHead, TableHeader, TableRow } from '$lib/components/ui/table';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
+	import { sortStore } from '$lib/stores/sortStore.svelte';
 	import ColumnHeader from './ColumnHeader.svelte';
 	import type { SortConfig } from '$lib/types';
 
@@ -39,21 +40,21 @@
 			return;
 		}
 
-		const newOrder = [...dataTableStore.columnOrder];
+		const newOrder = [...tableUIStore.columnOrder];
 		const fromIndex = newOrder.indexOf(draggedColumn);
 		const toIndex = newOrder.indexOf(targetColumn);
 
 		newOrder.splice(fromIndex, 1);
 		newOrder.splice(toIndex, 0, draggedColumn);
 
-		dataTableStore.updateColumnOrder(newOrder);
+		tableUIStore.updateColumnOrder(newOrder);
 
 		dragOverColumn = null;
 		draggedColumn = null;
 	}
 
 	let getColumnStyle = $derived((column: string) => {
-		const width = dataTableStore.columnWidths[column] || DEFAULT_COLUMN_WIDTH;
+		const width = tableUIStore.columnWidths[column] || DEFAULT_COLUMN_WIDTH;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	});
 </script>
