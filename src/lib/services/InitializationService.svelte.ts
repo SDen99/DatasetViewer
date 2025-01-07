@@ -47,7 +47,7 @@ export class InitializationManager {
 			const datasetService = container.getDatasetService();
 			const datasets = await datasetService.getAllDatasets();
 
-			// Update dataTableStore with datasets
+			// Update datasetStore with datasets
 			datasetStore.setDatasets(datasets);
 
 			// Initialize UI state and restore selected dataset if any

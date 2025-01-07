@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
 	import { TableRow, TableCell } from '$lib/components/ui/table';
 
 	let {
@@ -19,7 +19,7 @@
 	}>();
 
 	let getCellStyle = (column: string) => {
-		const width = dataTableStore.columnWidths[column] || 200;
+		const width = tableUIStore.columnWidths[column] || 200;
 		return `width: ${width}px; min-width: ${width}px; max-width: ${width}px;`;
 	};
 

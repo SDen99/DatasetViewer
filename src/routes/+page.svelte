@@ -13,7 +13,7 @@
 
 	import { DatasetManager } from '$lib/services/DatasetManager';
 	import { initManager } from '$lib/services/InitializationService.svelte';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { datasetStore } from '$lib/stores/datasetStore.svelte';
 	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
 
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
@@ -21,7 +21,7 @@
 
 	let datasetManager = $state<DatasetManager | null>(null);
 	let isLoading = $derived(
-		dataTableStore.isLoading || Object.keys(dataTableStore.loadingDatasets).length > 0
+		datasetStore.isLoading || Object.keys(datasetStore.loadingDatasets).length > 0
 	);
 	let initializationError = $state<Error | null>(null);
 
@@ -51,7 +51,7 @@
 
 			if (!validFiles.length) return;
 
-			dataTableStore.setLoadingState(true);
+			datasetStore.setLoadingState(true);
 
 			try {
 				const results = await Promise.allSettled(validFiles.map((file) => dm.processFile(file)));
@@ -66,7 +66,7 @@
 					});
 				}
 			} finally {
-				dataTableStore.setLoadingState(false);
+				datasetStore.setLoadingState(false);
 			}
 		}
 	}
@@ -94,9 +94,14 @@
 		}
 	});
 
+	let selectedDataset = $derived.by(() => {
+		if (!datasetStore.selectedDatasetId) return null;
+		return datasetStore.datasets[datasetStore.selectedDatasetId];
+	});
+
 	$effect(() => {
 		$inspect('Page effect running, datasetManager:', datasetManager);
-		$inspect('Selected dataset:', dataTableStore.selectedDataset);
+		$inspect('Selected dataset:', datasetStore.selectedDatasetId);
 	});
 </script>
 
@@ -109,11 +114,11 @@
 {/snippet}
 
 {#snippet mainContent()}
-	{#if dataTableStore.selectedDataset}
+	{#if selectedDataset}
 		<div class="h-full">
 			<Card.Root class="h-full">
 				<Card.Content class="h-full p-0">
-					<DataTable data={dataTableStore.selectedDataset.data} />
+					<DataTable data={selectedDataset.data} />
 				</Card.Content>
 			</Card.Root>
 		</div>
@@ -136,19 +141,19 @@
 				<Tabs.Trigger value="analysis">Analysis</Tabs.Trigger>
 			</Tabs.List>
 			<Tabs.Content value="columns">
-				{#if dataTableStore.selectedDataset}
+				{#if selectedDataset}
 					<VariableList
-						variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+						variables={selectedDataset.details.columns.map((col: string) => ({
 							name: col,
-							dtype: dataTableStore.selectedDataset!.details.dtypes[col] ?? ''
+							dtype: selectedDataset.details.dtypes[col] ?? ''
 						}))}
 					/>
 				{/if}
 			</Tabs.Content>
 			<Tabs.Content value="sort">
-				{#if dataTableStore.selectedDataset}
+				{#if selectedDataset}
 					<MultiColumnSort
-						variables={dataTableStore.selectedDataset.details.columns.map((col: string) => ({
+						variables={selectedDataset.details.columns.map((col: string) => ({
 							name: col
 						}))}
 					/>
