@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
+	import { datasetStore } from '$lib/stores/datasetStore.svelte';
 	import { Barcode } from 'svelte-lucide';
 	import * as Card from '$lib/components/ui/card';
 
@@ -31,9 +32,10 @@
 
 	// Computed statistics with proper typing
 	let columnStats = $derived.by((): ColumnStats | null => {
-		if (!selectedColumn || !dataTableStore.selectedDataset) return null;
+		if (!selectedColumn || !datasetStore.selectedDatasetId) return null;
 
-		const data = dataTableStore.selectedDataset.data;
+		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
+		const data = dataset.data;
 		const values: unknown[] = data
 			.map((row: Record<string, unknown>) => row[selectedColumn])
 			.filter((v): v is NonNullable<unknown> => v != null);
@@ -104,13 +106,13 @@
 			!columnStats ||
 			columnStats.type !== 'numeric' ||
 			!selectedColumn ||
-			!dataTableStore.selectedDataset
+			!datasetStore.selectedDatasetId
 		) {
 			return null;
 		}
 
-		const data = dataTableStore.selectedDataset.data;
-		const values = data
+		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
+		const values = dataset.data
 			.map((row: Record<string, unknown>) => Number(row[selectedColumn]))
 			.filter((v): v is number => !isNaN(v));
 
@@ -140,7 +142,7 @@
 		<label for="column-select" class="text-sm font-medium">Select Column for Analysis</label>
 		<select id="column-select" bind:value={selectedColumn} class="w-full rounded-md border p-2">
 			<option value={null}>Select a column...</option>
-			{#each [...dataTableStore.selectedColumns] as column}
+			{#each [...tableUIStore.selectedColumns] as column}
 				<option value={column}>{column}</option>
 			{/each}
 		</select>
