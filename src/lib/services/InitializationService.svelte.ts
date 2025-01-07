@@ -1,6 +1,6 @@
 import { ServiceContainer } from '$lib/stores/serviceContainer';
 import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
-import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+import { datasetStore } from '$lib/stores/datasetStore.svelte';
 
 export type InitState = {
 	status: 'idle' | 'initializing' | 'ready' | 'error';
@@ -48,7 +48,7 @@ export class InitializationManager {
 			const datasets = await datasetService.getAllDatasets();
 
 			// Update dataTableStore with datasets
-			dataTableStore.setDatasets(datasets);
+			datasetStore.setDatasets(datasets);
 
 			// Initialize UI state and restore selected dataset if any
 			this.status.progress = {
@@ -60,7 +60,7 @@ export class InitializationManager {
 
 			const selectedId = uiService.getSelectedDataset();
 			if (selectedId && datasets[selectedId]) {
-				await dataTableStore.selectDataset(selectedId);
+				await datasetStore.selectDataset(selectedId);
 			}
 
 			// Final setup
