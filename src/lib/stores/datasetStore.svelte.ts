@@ -1,5 +1,4 @@
 import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
-import { StoreEvents } from '$lib/stores/storeEvents.svelte';
 import { DatasetService } from '../../datasetService';
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
