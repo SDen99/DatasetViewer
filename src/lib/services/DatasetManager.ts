@@ -1,7 +1,6 @@
 import type { DatasetLoadingState } from '$lib/types';
 import { ServiceContainer } from '$lib/stores/serviceContainer';
-import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
-import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+import { datasetStore } from '$lib/stores/datasetStore.svelte';
 
 export const FILE_CONSTRAINTS = {
 	MAX_SIZE: 500 * 1024 * 1024,
@@ -40,7 +39,7 @@ export class DatasetManager {
 		}
 
 		try {
-			dataTableStore.updateLoadingDatasetState(file.name, {
+			datasetStore.updateLoadingDatasetState(file.name, {
 				status: 'queued',
 				fileName: file.name,
 				progress: 0,
@@ -49,7 +48,7 @@ export class DatasetManager {
 			});
 
 			const result = await workerPool.processFile(file, file.name, (state: DatasetLoadingState) => {
-				dataTableStore.updateLoadingDatasetState(file.name, state);
+				datasetStore.updateLoadingDatasetState(file.name, state);
 			});
 
 			await this.handleProcessingSuccess(file, result);
@@ -77,13 +76,13 @@ export class DatasetManager {
 		});
 
 		const updatedDatasets = await datasetService.getAllDatasets();
-		dataTableStore.setDatasets(updatedDatasets);
-		dataTableStore.updateLoadingDatasets(file.name);
-		dataTableStore.updateProcessingStats(processingStats);
+		datasetStore.setDatasets(updatedDatasets);
+		datasetStore.updateLoadingDatasets(file.name);
+		datasetStore.updateProcessingStats(processingStats);
 	}
 
 	private handleProcessingError(file: File, error: unknown) {
 		const finalError = error instanceof Error ? error : new Error(String(error));
-		dataTableStore.setLoadingDatasetError(file.name, finalError);
+		datasetStore.setLoadingDatasetError(file.name, finalError);
 	}
 }
