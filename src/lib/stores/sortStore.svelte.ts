@@ -1,6 +1,4 @@
 import type { SortConfig } from '$lib/types';
-import { datasetStore } from './datasetStore.svelte';
-import { UIStateService } from '../../UIStateService';
 
 export class SortStore {
 	private static instance: SortStore;
@@ -21,27 +19,7 @@ export class SortStore {
 		this.restore(sortConfig);
 	}
 
-	private constructor() {
-		$effect.root(() => {
-			$effect(() => {
-				const datasetId = datasetStore.selectedDatasetId;
-				if (datasetId) {
-					const uiService = UIStateService.getInstance();
-					// Get current column state
-					const currentState = uiService.getColumnState(datasetId);
-
-					// Update just the sort while preserving other state
-					uiService.setColumnState(
-						datasetId,
-						currentState.selectedColumns,
-						currentState.columnOrder,
-						currentState.columnWidths,
-						this.sort // Pass the current sort state
-					);
-				}
-			});
-		});
-	}
+	private constructor() {}
 
 	static getInstance(): SortStore {
 		if (!SortStore.instance) {

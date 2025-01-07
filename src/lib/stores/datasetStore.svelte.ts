@@ -3,6 +3,7 @@ import { DatasetService } from '../../datasetService';
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
 import { UIStateService } from '../../UIStateService';
+import { storeCoordinator } from './storeCoordinator.svelte';
 
 export class DatasetStore {
 	private static instance: DatasetStore;
@@ -56,36 +57,7 @@ export class DatasetStore {
 	}
 
 	selectDataset(id: string | null) {
-		const prevId = this.selectedDatasetId;
-		const uiService = UIStateService.getInstance();
-
-		// Save current state
-		if (prevId) {
-			uiService.setColumnState(
-				prevId,
-				Array.from(tableUIStore.selectedColumns),
-				tableUIStore.columnOrder,
-				tableUIStore.columnWidths,
-				sortStore.sort // Save current sort state
-			);
-		}
-
-		this.selectedDatasetId = id;
-
-		if (id && this.datasets[id]) {
-			if (uiService.hasColumnState(id)) {
-				const state = uiService.getColumnState(id);
-				sortStore.restore(state.sort || []); // Restore sort state
-				tableUIStore.restore({
-					selectedColumns: state.selectedColumns,
-					columnOrder: state.columnOrder,
-					columnWidths: state.columnWidths
-				});
-			}
-		} else {
-			tableUIStore.reset();
-			sortStore.reset(); // Reset sort state when no dataset selected
-		}
+		storeCoordinator.selectDataset(id);
 	}
 
 	async deleteDataset(id: string) {

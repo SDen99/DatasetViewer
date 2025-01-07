@@ -1,6 +1,5 @@
 import type { Dataset } from '$lib/types';
 import { UIStateService } from '../../UIStateService';
-import { datasetStore } from './datasetStore.svelte';
 
 export class TableUIStore {
 	private static instance: TableUIStore;
@@ -14,22 +13,7 @@ export class TableUIStore {
 		rightSidebarOpen: true
 	});
 
-	constructor() {
-		// Create an effect root to handle store initialization
-		$effect.root(() => {
-			$effect(() => {
-				const datasetId = datasetStore.selectedDatasetId;
-				if (datasetId) {
-					UIStateService.getInstance().setColumnState(
-						datasetId,
-						Array.from(this.selectedColumns),
-						this.columnOrder,
-						this.columnWidths
-					);
-				}
-			});
-		});
-	}
+	constructor() {}
 
 	reset() {
 		this.selectedColumns = new Set();
