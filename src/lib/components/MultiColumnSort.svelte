@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { GripVertical, ArrowUpDown, ArrowDown, ArrowUp } from 'svelte-lucide';
-	import { dataTableStore } from '$lib/stores/compatibilityLayer.svelte';
+	import { datasetStore } from '$lib/stores/datasetStore.svelte';
+	import { sortStore } from '$lib/stores/sortStore.svelte';
 
 	interface Props {
 		variables: { name: string }[];
@@ -30,7 +31,7 @@
 		if (!draggedVariable || draggedVariable === targetVariable) return;
 
 		// Get current sort order
-		const currentSort = [...dataTableStore.sort];
+		const currentSort = [...sortStore.sort];
 		const fromIndex = currentSort.findIndex((s) => s.column === draggedVariable);
 		const toIndex = currentSort.findIndex((s) => s.column === targetVariable);
 
@@ -38,14 +39,14 @@
 			// Reorder the sort array
 			const [removed] = currentSort.splice(fromIndex, 1);
 			currentSort.splice(toIndex, 0, removed);
-			dataTableStore.sort = currentSort;
+			sortStore.sort = currentSort;
 		}
 
 		draggedVariable = null;
 	}
 
 	function toggleSort(variable: string) {
-		const currentSort = [...dataTableStore.sort];
+		const currentSort = [...sortStore.sort];
 		const existingIndex = currentSort.findIndex((s) => s.column === variable);
 
 		if (existingIndex === -1) {
@@ -60,11 +61,11 @@
 			}
 		}
 
-		dataTableStore.sort = currentSort;
+		sortStore.sort = currentSort;
 	}
 
 	function getSortIcon(variable: string) {
-		const sortConfig = dataTableStore.sort.find((s) => s.column === variable);
+		const sortConfig = sortStore.sort.find((s) => s.column === variable);
 		if (!sortConfig) {
 			return 'ArrowUpDown';
 		}
@@ -72,7 +73,7 @@
 	}
 
 	function getSortIndex(variable: string) {
-		return dataTableStore.sort.findIndex((s) => s.column === variable) + 1;
+		return sortStore.sort.findIndex((s) => s.column === variable) + 1;
 	}
 </script>
 
