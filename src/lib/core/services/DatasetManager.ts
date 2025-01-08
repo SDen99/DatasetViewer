@@ -1,4 +1,4 @@
-import type { DatasetLoadingState, ServiceContainer } from '$lib/core/types';
+import type { DatasetLoadingState, ServiceContainer } from '$lib/core/types/types';
 import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 
 export const FILE_CONSTRAINTS = {
