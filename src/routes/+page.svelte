@@ -1,22 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import * as Card from '$lib/components/ui/card';
+	import * as Card from '$lib/components/core/card';
 
-	import Navigation from '$lib/components/Navigation.svelte';
-	import MainLayout from '$lib/components/MainLayout.svelte';
-	import DatasetList from '$lib/components/DatasetList.svelte';
-	import DataTable from '$lib/components/DataTable/DataTable.svelte';
+	import Navigation from '$lib/components/layout/Navigation.svelte';
+	import MainLayout from '$lib/components/layout//MainLayout.svelte';
+	import DatasetList from '$lib/components/data/DatasetList.svelte';
+	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import DataAnalysis from '$lib/components/DataAnalysis.svelte';
+	import DataAnalysis from '$lib/components/data/DataAnalysis.svelte';
 
-	import { DatasetManager } from '$lib/services/DatasetManager';
-	import { initManager } from '$lib/services/InitializationService.svelte';
-	import { datasetStore } from '$lib/stores/datasetStore.svelte';
-	import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+	import { DatasetManager } from '$lib/core/services/DatasetManager';
+	import { initManager } from '$lib/core/services/InitializationService.svelte';
+	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
+	import { errorStore, ErrorSeverity } from '$lib/core/stores/errorStore';
 
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
 	let datasetManager = $state<DatasetManager | null>(null);

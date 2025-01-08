@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { Button } from '$lib/components/core/button';
 	import { Upload } from 'svelte-lucide';
 
 	let { handleFileChangeEvent } = $props();

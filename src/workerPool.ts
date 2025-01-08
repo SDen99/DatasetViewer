@@ -1,5 +1,5 @@
 // workerPool.ts
-import type { ProcessingResult, WorkerTask, ManagedWorker, DatasetLoadingState } from './lib/types';
+import type { ProcessingResult, WorkerTask, ManagedWorker, DatasetLoadingState } from './lib/core/types';
 
 // This helper function determines if we're in production
 function getWorkerURL(workerPath: string): string {

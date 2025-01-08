@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { formatStorageSize } from '$lib/utilFunctions';
-	import { Separator } from '$lib/components/ui/separator';
-	import { datasetStore } from '$lib/stores/datasetStore.svelte';
+	import { formatStorageSize } from '$lib/utils/utilFunctions';
+	import { Separator } from '$lib/components/core/separator';
+	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 
 	$effect.root(() => {
 		$effect(() => {

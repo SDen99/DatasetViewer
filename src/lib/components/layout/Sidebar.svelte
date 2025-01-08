@@ -1,0 +1,33 @@
+<script lang="ts">
+	import { ScrollArea } from '$lib/components/core/scroll-area';
+	import { Button } from '$lib/components/core/button';
+	import { PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
+	import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
+
+	interface Props {
+		position: 'left' | 'right';
+		open: boolean;
+		title: string;
+		children?: import('svelte').Snippet;
+	}
+
+	let { position, open, title, children }: Props = $props();
+
+	const Icon = position === 'left' ? PanelLeftOpen : PanelRightOpen;
+
+	let borderClass = $derived(position === 'right' ? 'border-l' : 'border-r');
+</script>
+
+<div class="relative {open ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out">
+	<ScrollArea class="h-[calc(100vh-8rem)] border-border bg-card {borderClass}">
+		<div class="p-4">
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-lg font-semibold">{title}</h2>
+				<Button variant="ghost" size="icon" onclick={() => tableUIStore.toggleSidebar(position)}>
+					<Icon class="h-4 w-4" />
+				</Button>
+			</div>
+			{@render children?.()}
+		</div>
+	</ScrollArea>
+</div>

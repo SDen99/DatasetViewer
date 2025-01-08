@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { GripVertical } from 'svelte-lucide';
-	import * as Checkbox from '$lib/components/ui/checkbox';
-	import { Badge } from '$lib/components/ui/badge';
-	import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
-	import type { VariableType } from '$lib/types';
+	import * as Checkbox from '$lib/components/core/checkbox';
+	import { Badge } from '$lib/components/core/badge';
+	import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
+	import type { VariableType } from '$lib/core/types';
 
 	interface Props {
 		variables: VariableType[];

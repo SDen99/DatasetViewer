@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { GripVertical, ArrowUpDown, ArrowDown, ArrowUp } from 'svelte-lucide';
-	import { sortStore } from '$lib/stores/sortStore.svelte';
+	import { sortStore } from '$lib/core/stores/sortStore.svelte';
 
 	interface Props {
 		variables: { name: string }[];
