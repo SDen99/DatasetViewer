@@ -94,3 +94,24 @@ export interface UIState {
 		}
 	>;
 }
+
+import type { WorkerPool } from '../workerPool';
+import type { DatasetService } from '../datasetService';
+import type { UIStateService } from '../UIStateService';
+
+export interface ServiceContainer {
+	getWorkerPool(): WorkerPool;
+	getDatasetService(): DatasetService;
+	getUIStateService(): UIStateService;
+	dispose(): void;
+}
+
+export type InitState = {
+	status: 'idle' | 'initializing' | 'ready' | 'error';
+	container: ServiceContainer | null;
+	error?: Error;
+	progress: {
+		step: 'services' | 'dataset' | 'ui'; // Removed 'workers' since we're not using it
+		message: string;
+	} | null;
+};

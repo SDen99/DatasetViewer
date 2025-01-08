@@ -6,6 +6,12 @@ import { UIStateService } from '../../UIStateService';
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
 
+	// State tracking for performance optimization
+	lastSavedState = $state<{
+		datasetId: string;
+		timestamp: number;
+	} | null>(null);
+
 	static getInstance(): StoreCoordinator {
 		if (!StoreCoordinator.instance) {
 			StoreCoordinator.instance = new StoreCoordinator();
@@ -14,32 +20,39 @@ export class StoreCoordinator {
 	}
 
 	private constructor() {
-		// Set up state persistence effect
+		// Keep existing constructor with state persistence effect
 		$effect.root(() => {
 			$effect(() => {
 				const datasetId = datasetStore.selectedDatasetId;
 				if (!datasetId) return;
 
-				const state = {
-					selectedColumns: Array.from(tableUIStore.selectedColumns),
-					columnOrder: tableUIStore.columnOrder,
-					columnWidths: tableUIStore.columnWidths,
-					sort: sortStore.sort
-				};
-
-				UIStateService.getInstance().setColumnState(
-					datasetId,
-					state.selectedColumns,
-					state.columnOrder,
-					state.columnWidths,
-					state.sort
-				);
+				// Only save if we haven't recently saved this dataset
+				if (
+					!this.lastSavedState ||
+					this.lastSavedState.datasetId !== datasetId ||
+					Date.now() - this.lastSavedState.timestamp > 1000
+				) {
+					this.saveCurrentState(datasetId);
+					this.lastSavedState = {
+						datasetId,
+						timestamp: Date.now()
+					};
+				}
 			});
 		});
 	}
 
 	selectDataset(id: string | null) {
+		console.log('Select dataset called with:', id);
 		const prevId = datasetStore.selectedDatasetId;
+		console.log('Previous dataset:', prevId);
+
+		if (id) {
+			const dataset = datasetStore.datasets[id];
+			console.log('Found dataset:', !!dataset);
+			console.log('Dataset has data:', !!dataset?.data);
+			console.log('First row:', dataset?.data?.[0]);
+		}
 
 		// Save previous state if exists
 		if (prevId) {
@@ -48,13 +61,28 @@ export class StoreCoordinator {
 
 		// Load new state
 		if (id) {
-			const state = UIStateService.getInstance().getColumnState(id);
-			tableUIStore.restore({
-				selectedColumns: state.selectedColumns,
-				columnOrder: state.columnOrder,
-				columnWidths: state.columnWidths
-			});
-			sortStore.restore(state.sort);
+			const dataset = datasetStore.datasets[id];
+			if (!dataset?.data?.[0]) {
+				console.warn('Attempted to select invalid dataset:', id);
+				return;
+			}
+
+			const uiService = UIStateService.getInstance();
+			const state = uiService.getColumnState(id);
+
+			if (uiService.hasColumnState(id)) {
+				tableUIStore.restore({
+					selectedColumns: state.selectedColumns,
+					columnOrder: state.columnOrder,
+					columnWidths: state.columnWidths
+				});
+				sortStore.restore(state.sort);
+			} else {
+				// Initialize with default settings
+				const columns = Object.keys(dataset.data[0]);
+				tableUIStore.initialize(columns);
+				sortStore.reset();
+			}
 		} else {
 			tableUIStore.reset();
 			sortStore.reset();

@@ -2,7 +2,6 @@ import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/types';
 import { DatasetService } from '../../datasetService';
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
-import { UIStateService } from '../../UIStateService';
 import { storeCoordinator } from './storeCoordinator.svelte';
 
 export class DatasetStore {

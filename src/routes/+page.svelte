@@ -73,12 +73,23 @@
 
 	async function initializeApp() {
 		try {
-			const container = await initManager.initialize();
+			console.log('Starting initialization...');
+			await initManager.initialize(); // Add this line
+			const container = initManager.status.container;
+
 			if (!container) {
+				console.error('Container is null after initialization');
 				throw new Error('Failed to initialize application container');
 			}
+
+			console.log('Creating DatasetManager with container');
 			datasetManager = new DatasetManager(container);
+			console.log('DatasetManager created successfully');
 		} catch (error) {
+			console.error('Detailed initialization error:', error);
+			if (error instanceof Error) {
+				console.error('Stack trace:', error.stack);
+			}
 			initializationError = error instanceof Error ? error : new Error(String(error));
 			errorStore.addError({
 				message: 'Failed to initialize application',

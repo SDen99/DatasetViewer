@@ -1,16 +1,11 @@
-import { ServiceContainer } from '$lib/stores/serviceContainer';
 import { errorStore, ErrorSeverity } from '$lib/stores/errorStore';
+import { storeCoordinator } from '$lib/stores/storeCoordinator.svelte';
 import { datasetStore } from '$lib/stores/datasetStore.svelte';
-
-export type InitState = {
-	status: 'idle' | 'initializing' | 'ready' | 'error';
-	container: ServiceContainer | null;
-	error?: Error;
-	progress: {
-		step: 'services' | 'dataset' | 'ui' | 'workers';
-		message: string;
-	} | null;
-};
+import { tableUIStore } from '$lib/stores/tableUIStore.svelte';
+import { sortStore } from '$lib/stores/sortStore.svelte';
+import type { InitState } from '$lib/types';
+import { ServiceContainer } from '$lib/stores/serviceContainer';
+import type { ServiceContainer as ServiceContainerType } from '$lib/types';
 
 export class InitializationManager {
 	status = $state<InitState>({
@@ -22,73 +17,119 @@ export class InitializationManager {
 	async initialize() {
 		if (this.status.status === 'initializing') return;
 
+		try {
+			console.log('🟡 Starting initialization...');
+			await this.beginInitialization();
+
+			console.log('🟡 Initializing services...');
+			const container = await this.initializeServices();
+
+			console.log('🟡 Initializing stores...');
+			await this.initializeStores(container);
+
+			console.log('🟡 Restoring state...');
+			await this.restoreState(container);
+
+			console.log('🟢 Completing initialization...');
+			this.completeInitialization(container);
+		} catch (error) {
+			console.error('🔴 Initialization failed:', error);
+			this.handleInitializationError(error);
+			throw error;
+		}
+	}
+
+	private async beginInitialization() {
 		this.status = {
 			...this.status,
 			status: 'initializing',
 			progress: {
 				step: 'services',
-				message: 'Initializing core services...'
+				message: 'Starting initialization...'
 			}
 		};
+	}
 
+	private async initializeServices() {
+		this.updateProgress('services', 'Initializing service container...');
 		try {
-			// Initialize services
-			this.status.progress = {
-				step: 'services',
-				message: 'Initializing service container...'
-			};
 			const container = await ServiceContainer.initialize();
-
-			// Load initial dataset state
-			this.status.progress = {
-				step: 'dataset',
-				message: 'Loading dataset service...'
-			};
-			const datasetService = container.getDatasetService();
-			const datasets = await datasetService.getAllDatasets();
-
-			// Update datasetStore with datasets
-			datasetStore.setDatasets(datasets);
-
-			// Initialize UI state and restore selected dataset if any
-			this.status.progress = {
-				step: 'ui',
-				message: 'Restoring UI state...'
-			};
-			const uiService = container.getUIStateService();
-			uiService.initStorageSync();
-
-			const selectedId = uiService.getSelectedDataset();
-			if (selectedId && datasets[selectedId]) {
-				await datasetStore.selectDataset(selectedId);
+			if (!container) {
+				console.error('🔴 ServiceContainer.initialize() returned null/undefined');
+				throw new Error('Failed to initialize service container - no container returned');
 			}
-
-			// Final setup
-			this.status = {
-				status: 'ready',
-				container,
-				progress: null
-			};
-
 			return container;
 		} catch (error) {
-			const err = error instanceof Error ? error : new Error('Unknown initialization error');
-
-			this.status = {
-				status: 'error',
-				container: null,
-				error: err,
-				progress: null
-			};
-
-			errorStore.addError({
-				message: 'Failed to initialize application services',
-				severity: ErrorSeverity.ERROR,
-				context: { error: err }
-			});
-
-			throw err;
+			console.error('🔴 Error initializing services:', error);
+			throw error; // Re-throw to be caught by the main initialize() method
 		}
+	}
+
+	private async initializeStores(container: ServiceContainerType) {
+		this.updateProgress('dataset', 'Loading datasets...');
+
+		// Initialize dataset store
+		const datasetService = container.getDatasetService();
+		const datasets = await datasetService.getAllDatasets();
+		datasetStore.setDatasets(datasets);
+
+		// Reset other stores to known state
+		tableUIStore.reset();
+		sortStore.reset();
+	}
+
+	private async restoreState(container: ServiceContainerType) {
+		this.updateProgress('ui', 'Restoring application state...');
+
+		const uiService = container.getUIStateService();
+		uiService.initStorageSync();
+
+		// Get selected dataset from UI state
+		const selectedId = uiService.getSelectedDataset();
+
+		// Use StoreCoordinator to restore state
+		if (selectedId && datasetStore.datasets[selectedId]) {
+			storeCoordinator.selectDataset(selectedId);
+		}
+	}
+
+	private completeInitialization(container: ServiceContainerType) {
+		console.log('Complete initialization called with container:', container);
+		if (!container) {
+			throw new Error('Attempting to complete initialization with null container');
+		}
+
+		this.status = {
+			status: 'ready',
+			container,
+			progress: null
+		};
+	}
+
+	private handleInitializationError(error: unknown) {
+		console.error('🔴 Detailed initialization error:', error);
+		if (error instanceof Error) {
+			console.error('Stack trace:', error.stack);
+		}
+
+		const err = error instanceof Error ? error : new Error('Unknown initialization error');
+
+		this.status = {
+			status: 'error',
+			container: null,
+			error: err,
+			progress: null
+		};
+
+		errorStore.addError({
+			message: 'Failed to initialize application services',
+			severity: ErrorSeverity.ERROR,
+			context: { error: err }
+		});
+	}
+
+	private updateProgress(step: 'services' | 'dataset' | 'ui', message: string) {
+		this.status.progress = { step, message };
 	}
 
 	reset() {
@@ -100,5 +141,4 @@ export class InitializationManager {
 	}
 }
 
-// Create a singleton instance
 export const initManager = new InitializationManager();
