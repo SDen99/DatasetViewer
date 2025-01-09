@@ -1,16 +1,13 @@
 // workerPool.ts
-import type { ProcessingResult, WorkerTask, ManagedWorker, DatasetLoadingState } from './lib/core/types';
+import type {
+	ProcessingResult,
+	WorkerTask,
+	ManagedWorker,
+	DatasetLoadingState
+} from '$lib/core/types/types';
 
-// This helper function determines if we're in production
 function getWorkerURL(workerPath: string): string {
-	//console.log('import.meta', import.meta);
-	//console.log(new URL('./fileProcessor.worker.js', import.meta.url).href)
-	//console.log('workerPath', workerPath);
-	//console.log('import.meta.env', ${ location.origin });
-	return new URL('./fileProcessor.worker.js', import.meta.url).href;
-	//return import.meta.env.PROD ?
-	//    `${import.meta.url}` :
-	//    `/src/${workerPath}`;
+	return new URL('./lib/core/processors/sas7bdat/sas7bdat.worker.js', import.meta.url).href;
 }
 
 // Helper to safely get hardware concurrency
@@ -36,12 +33,10 @@ export class WorkerPool {
 	private workerURL: string;
 	private isInitialized: boolean = false;
 
-	constructor(maxWorkers?: number, idleTimeout = 30000) {
+	constructor(workerURL: string, maxWorkers?: number, idleTimeout = 30000) {
 		this.maxWorkers = maxWorkers ?? getDefaultWorkerCount();
 		this.idleTimeout = idleTimeout;
 		this.workerURL = getWorkerURL('fileProcessor.worker.ts');
-		//console.log('workerURL', this.workerURL);
-		// Defer initialization until explicitly called
 		this.isInitialized = false;
 	}
 

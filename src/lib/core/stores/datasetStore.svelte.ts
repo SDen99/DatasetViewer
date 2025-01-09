@@ -32,9 +32,10 @@ export class DatasetStore {
 	});
 
 	updateProcessingStats(stats: Partial<ProcessingStats>) {
+		// More defensive update
 		this.processingStats = {
 			...this.processingStats,
-			...stats
+			...Object.fromEntries(Object.entries(stats).filter(([_, value]) => value !== undefined))
 		};
 	}
 

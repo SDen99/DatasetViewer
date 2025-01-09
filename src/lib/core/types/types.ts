@@ -55,12 +55,7 @@ export interface Dataset {
 		num_columns: number;
 		num_rows: number;
 	};
-	processingStats: {
-		uploadTime: number;
-		numColumns: number;
-		numRows: number;
-		datasetSize: number;
-	};
+	processingStats: ProcessingStats;
 }
 export interface DatasetLoadingState {
 	progress: number; // 0 to 100
@@ -95,9 +90,9 @@ export interface UIState {
 	>;
 }
 
-import type { WorkerPool } from '../workerPool';
-import type { DatasetService } from '../datasetService';
-import type { UIStateService } from '../UIStateService';
+import type { WorkerPool } from '../../../workerPool';
+import type { DatasetService } from '../services/datasetService';
+import type { UIStateService } from '../services/UIStateService';
 
 export interface ServiceContainer {
 	getWorkerPool(): WorkerPool;

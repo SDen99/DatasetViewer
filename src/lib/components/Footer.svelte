@@ -3,17 +3,12 @@
 	import { Separator } from '$lib/components/core/separator';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 
-	$effect.root(() => {
-		$effect(() => {
-			console.log('Footer mounted', datasetStore);
-		});
+	let stats = $derived.by(() => {
+		if (!datasetStore.selectedDatasetId) return null;
+		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
+		if (!dataset?.processingStats) return null;
+		return dataset.processingStats;
 	});
-
-	let stats = $derived(
-		datasetStore.selectedDatasetId
-			? datasetStore.datasets[datasetStore.selectedDatasetId].processingStats
-			: null
-	);
 </script>
 
 <footer
