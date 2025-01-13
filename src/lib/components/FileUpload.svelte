@@ -6,20 +6,15 @@
 	let fileInput = $state<HTMLInputElement | null>(null);
 
 	function triggerFileInput() {
-		console.log('Trigger clicked');
 		fileInput?.click();
 	}
-
-	$effect(() => {
-		$inspect('FileUpload:', { fileInput, handleFileChangeEvent });
-	});
 </script>
 
 <!-- Hidden file input -->
 <input
 	bind:this={fileInput}
 	type="file"
-	accept=".sas7bdat"
+	accept=".sas7bdat,.xml"
 	multiple
 	class="hidden"
 	onchange={handleFileChangeEvent}

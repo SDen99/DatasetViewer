@@ -22,11 +22,3 @@ export interface ProcessingResult {
 	};
 	metrics: ProcessingMetrics;
 }
-
-export interface FileProcessor {
-	validateFile(file: File): ValidationResult;
-	processFile(
-		file: File,
-		onProgress?: (state: DatasetLoadingState) => void
-	): Promise<ProcessingResult>;
-}
