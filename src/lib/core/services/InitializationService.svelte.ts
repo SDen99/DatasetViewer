@@ -3,9 +3,8 @@ import { storeCoordinator } from '$lib/core/stores/storeCoordinator.svelte';
 import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
 import { sortStore } from '$lib/core/stores/sortStore.svelte';
-import type { InitState } from '$lib/core/types';
+import type { InitState, ServiceContainer as ServiceContainerType } from '$lib/core/types/types';
 import { ServiceContainer } from '$lib/core/stores/serviceContainer';
-import type { ServiceContainer as ServiceContainerType } from '$lib/core/types';
 
 export class InitializationManager {
 	status = $state<InitState>({
