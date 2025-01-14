@@ -1,6 +1,7 @@
 import { parseDefineXML } from '$lib/core/processors/defineXML/ParseDefineXML';
 import { FileType, type FileProcessor, type ValidationResult } from '$lib/core/types/fileTypes';
-import type { DatasetLoadingState, ProcessingResult } from '$lib/core/types/types';
+import type { DatasetLoadingState } from '$lib/core/types/types';
+import type { ProcessingResult } from '$lib/core/processors/types';
 
 export class DefineXMLProcessor implements FileProcessor {
 	validateFile(file: File): ValidationResult {

@@ -1,5 +1,5 @@
-import type { ValidationResult, ProcessingResult } from '$lib/core/processors/types';
-import type { FileProcessor } from '$lib/core/types/fileTypes';
+import type { ProcessingResult } from '$lib/core/processors/types';
+import type { FileProcessor, ValidationResult } from '$lib/core/types/fileTypes';
 import type { DatasetLoadingState } from '$lib/core/types/types';
 import { WorkerPool } from '../../../../workerPool';
 
