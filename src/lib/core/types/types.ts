@@ -106,7 +106,7 @@ export type InitState = {
 	container: ServiceContainer | null;
 	error?: Error;
 	progress: {
-		step: 'services' | 'dataset' | 'ui'; // Removed 'workers' since we're not using it
+		step: 'services' | 'dataset' | 'ui';
 		message: string;
 	} | null;
 };
