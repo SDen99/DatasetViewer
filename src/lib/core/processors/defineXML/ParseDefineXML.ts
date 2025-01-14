@@ -16,6 +16,8 @@ import type {
 	AnalysisResult
 } from '$lib/core/processors/defineXML/types';
 
+export type { ParsedDefineXML } from './types';
+
 export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML> => {
 	// Input validation
 	if (!xmlString || typeof xmlString !== 'string') {

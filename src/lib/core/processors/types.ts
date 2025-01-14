@@ -1,3 +1,4 @@
+import type { ParsedDefineXML } from '$lib/core/processors/defineXML/ParseDefineXML';
 export interface BaseProcessingResult {
 	success: boolean;
 	error?: string;
