@@ -1,4 +1,7 @@
-export interface BaseProcessingResult {}
+export interface BaseProcessingResult {
+	success: boolean;
+	error?: string;
+}
 
 // SAS7bdat specific result
 export interface Sas7bdatProcessingResult extends BaseProcessingResult {
@@ -20,7 +23,11 @@ export interface Sas7bdatProcessingResult extends BaseProcessingResult {
 
 // Define XML specific result
 export interface DefineXMLProcessingResult extends BaseProcessingResult {
-	data: any;
+	data: ParsedDefineXML;
+	metrics?: {
+		processingTime: number;
+		fileSize: number;
+	};
 }
 
 // Union type for all processing results
