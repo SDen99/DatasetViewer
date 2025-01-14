@@ -1,24 +1,27 @@
-import type { DatasetLoadingState } from '$lib/core/types/types';
+export interface BaseProcessingResult {}
 
-export interface ProcessingMetrics {
-	uploadTime: number;
-	datasetSize: number;
-	processingTime: number;
-}
-
-export interface ValidationResult {
-	valid: boolean;
-	error?: string;
-}
-
-export interface ProcessingResult {
+// SAS7bdat specific result
+export interface Sas7bdatProcessingResult extends BaseProcessingResult {
 	data: any[];
+	metrics: {
+		uploadTime: number;
+		datasetSize: number;
+		processingTime: number;
+	};
 	details: {
 		columns: string[];
 		dtypes: Record<string, string>;
 		num_rows: number;
 		num_columns: number;
-		summary?: Record<string, any>; // Made optional since we'll move stats later
+		summary?: Record<string, any>;
+		unique_values?: Record<string, any[]>;
 	};
-	metrics: ProcessingMetrics;
 }
+
+// Define XML specific result
+export interface DefineXMLProcessingResult extends BaseProcessingResult {
+	data: any;
+}
+
+// Union type for all processing results
+export type ProcessingResult = Sas7bdatProcessingResult | DefineXMLProcessingResult;

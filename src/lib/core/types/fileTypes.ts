@@ -1,4 +1,5 @@
-import type { DatasetLoadingState, ProcessingResult } from './types';
+import type { DatasetLoadingState } from './types';
+import type { ProcessingResult } from '$lib/core/processors/types';
 
 export enum FileType {
 	SAS7BDAT = 'SAS7BDAT',

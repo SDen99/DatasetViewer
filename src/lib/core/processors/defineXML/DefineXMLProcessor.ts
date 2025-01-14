@@ -45,8 +45,7 @@ export class DefineXMLProcessor implements FileProcessor {
 			}
 
 			return {
-				data: defineData,
-				processingTime: 0
+				data: defineData
 			};
 		} catch (error) {
 			if (onProgress) {

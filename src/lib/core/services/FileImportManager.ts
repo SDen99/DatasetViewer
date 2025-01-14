@@ -9,7 +9,7 @@ export const FILE_CONSTRAINTS = {
 	ALLOWED_EXTENSIONS: ['.sas7bdat', '.xml']
 } as const;
 
-export class DatasetManager {
+export class FileImportManager {
 	private serviceContainer: ServiceContainer;
 	private processors: Map<FileType, FileProcessor>;
 
@@ -17,7 +17,7 @@ export class DatasetManager {
 		this.serviceContainer = serviceContainer;
 		const workerPool = serviceContainer.getWorkerPool();
 
-		this.processors = new Map([
+		this.processors = new Map<FileType, FileProcessor>([
 			[FileType.SAS7BDAT, new Sas7bdatProcessor(workerPool)],
 			[FileType.DEFINEXML, new DefineXMLProcessor()]
 		]);

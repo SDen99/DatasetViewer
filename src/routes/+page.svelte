@@ -11,7 +11,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import DataAnalysis from '$lib/components/data/DataAnalysis.svelte';
 
-	import { DatasetManager } from '$lib/core/services/DatasetManager';
+	import { FileImportManager } from '$lib/core/services/FileImportManager';
 	import { initManager } from '$lib/core/services/InitializationService.svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 	import { errorStore, ErrorSeverity } from '$lib/core/stores/errorStore';
@@ -19,14 +19,14 @@
 	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 
-	let datasetManager = $state<DatasetManager | null>(null);
+	let FileManager = $state<FileImportManager | null>(null);
 	let isLoading = $derived(
 		datasetStore.isLoading || Object.keys(datasetStore.loadingDatasets).length > 0
 	);
 	let initializationError = $state<Error | null>(null);
 
 	async function handleFileChangeEvent(event: Event) {
-		if (!datasetManager) {
+		if (!FileManager) {
 			errorStore.addError({
 				message: 'Please wait for application services to initialize',
 				severity: ErrorSeverity.WARNING
@@ -34,7 +34,7 @@
 			return;
 		}
 		{
-			const dm = datasetManager;
+			const dm = FileManager;
 			const files = (event.target as HTMLInputElement).files;
 			if (!files?.length) return;
 
@@ -82,9 +82,9 @@
 				throw new Error('Failed to initialize application container');
 			}
 
-			console.log('Creating DatasetManager with container');
-			datasetManager = new DatasetManager(container);
-			console.log('DatasetManager created successfully');
+			console.log('Creating FileImportManager with container');
+			FileManager = new FileImportManager(container);
+			console.log('FileImportManager created successfully');
 		} catch (error) {
 			console.error('Detailed initialization error:', error);
 			if (error instanceof Error) {
@@ -111,7 +111,7 @@
 	});
 
 	$effect(() => {
-		$inspect('Page effect running, datasetManager:', datasetManager);
+		$inspect('Page effect running, FileManager:', FileManager);
 		$inspect('Selected dataset:', datasetStore.selectedDatasetId);
 	});
 </script>
