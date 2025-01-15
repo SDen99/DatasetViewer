@@ -18,9 +18,9 @@ export function createWorkerPool(maxWorkers?: number): WorkerPool | null {
 	if (typeof window === 'undefined') {
 		return null;
 	}
-	return new WorkerPool(maxWorkers);
+	const workerURL = getWorkerURL('fileProcessor.worker.ts');
+	return new WorkerPool(workerURL, maxWorkers);
 }
-
 export class WorkerPool {
 	private workers: ManagedWorker[] = [];
 	private taskQueue: WorkerTask[] = [];
