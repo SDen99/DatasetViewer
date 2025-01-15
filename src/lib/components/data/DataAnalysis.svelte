@@ -37,7 +37,7 @@
 		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
 		const data = dataset.data;
 		const values: unknown[] = data
-			.map((row: Record<string, unknown>) => row[selectedColumn])
+			.map((row: Record<string, unknown>) => row[selectedColumn as keyof typeof row])
 			.filter((v): v is NonNullable<unknown> => v != null);
 
 		if (values.length === 0) return null;
@@ -113,7 +113,7 @@
 
 		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
 		const values = dataset.data
-			.map((row: Record<string, unknown>) => Number(row[selectedColumn]))
+			.map((row: Record<string, unknown>) => Number(row[selectedColumn as keyof typeof row]))
 			.filter((v): v is number => !isNaN(v));
 
 		// Create 10 bins
