@@ -1,4 +1,4 @@
-import type { SortConfig, UIState } from '$lib/core/types';
+import type { SortConfig, UIState } from '$lib/core/types/types';
 
 export class UIStateService {
 	private static instance: UIStateService;

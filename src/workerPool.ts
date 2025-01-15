@@ -1,10 +1,6 @@
 // workerPool.ts
-import type {
-	ProcessingResult,
-	WorkerTask,
-	ManagedWorker,
-	DatasetLoadingState
-} from '$lib/core/types/types';
+import type { WorkerTask, ManagedWorker, DatasetLoadingState } from '$lib/core/types/types';
+import type { ProcessingResult } from '$lib/core/processors/types';
 
 function getWorkerURL(workerPath: string): string {
 	return new URL('./lib/core/processors/sas7bdat/sas7bdat.worker.js', import.meta.url).href;
