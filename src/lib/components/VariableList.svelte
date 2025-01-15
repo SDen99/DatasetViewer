@@ -3,7 +3,7 @@
 	import * as Checkbox from '$lib/components/core/checkbox';
 	import { Badge } from '$lib/components/core/badge';
 	import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
-	import type { VariableType } from '$lib/core/types';
+	import type { VariableType } from '$lib/core/types/types';
 
 	interface Props {
 		variables: VariableType[];

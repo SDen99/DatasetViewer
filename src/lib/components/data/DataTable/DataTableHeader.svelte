@@ -3,7 +3,7 @@
 	import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
 	import { sortStore } from '$lib/core/stores/sortStore.svelte';
 	import ColumnHeader from './ColumnHeader.svelte';
-	import type { SortConfig } from '$lib/core/types';
+	import type { SortConfig } from '$lib/core/types/types';
 
 	let { columns, sort, onSort, onColumnReorder, onColumnResize } = $props<{
 		columns: string[];

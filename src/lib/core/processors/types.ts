@@ -26,7 +26,7 @@ export interface Sas7bdatProcessingResult extends BaseProcessingResult {
 export interface DefineXMLProcessingResult extends BaseProcessingResult {
 	data: ParsedDefineXML;
 	metrics?: {
-		processingTime: number;
+		uploadTime: number;
 		fileSize: number;
 	};
 }

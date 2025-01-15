@@ -283,8 +283,8 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		let currentNode = analysis.parentNode;
 		let displayName = null;
 		while (currentNode && currentNode.nodeType === Node.ELEMENT_NODE) {
-			if (currentNode.localName === 'ResultDisplay') {
-				displayName = currentNode.getAttribute('Name');
+			if ((currentNode as Element).localName === 'ResultDisplay') {
+				displayName = (currentNode as Element).getAttribute('Name');
 				break;
 			}
 			currentNode = currentNode.parentNode;
@@ -293,7 +293,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		// Get pages from the ResultDisplay level
 		const pages =
 			currentNode && currentNode.nodeType === Node.ELEMENT_NODE
-				? Array.from(currentNode.getElementsByTagName('PDFPageRef'))
+				? Array.from((currentNode as Element).getElementsByTagName('PDFPageRef'))
 						.map((page) => page.getAttribute('PageRefs'))
 						.filter((p) => p)
 						.join(', ')

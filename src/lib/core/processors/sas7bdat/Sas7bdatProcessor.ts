@@ -61,10 +61,10 @@ export class Sas7bdatProcessor implements FileProcessor {
 				...result,
 				metrics: {
 					uploadTime: processingTime,
-					datasetSize: file.size,
-					processingTime
+					processingTime: processingTime,
+					datasetSize: file.size
 				}
-			};
+			} as ProcessingResult;
 		} catch (error) {
 			if (onProgress) {
 				onProgress({

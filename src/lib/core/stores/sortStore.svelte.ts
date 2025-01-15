@@ -1,4 +1,4 @@
-import type { SortConfig } from '$lib/core/types';
+import type { SortConfig } from '$lib/core/types/types';
 
 export class SortStore {
 	private static instance: SortStore;

@@ -6,7 +6,7 @@
 
 <script lang="ts">
 	import { fly } from 'svelte/transition';
-	import { errorStore, type AppError } from '../stores/errorStore';
+	import { errorStore, type AppError } from '$lib/core/stores/errorStore';
 	import { Button } from '$lib/components/core/button';
 
 	function getColorClass(severity: string): string {

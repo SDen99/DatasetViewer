@@ -2,7 +2,7 @@
 	import DragHandle from './DragHandle.svelte';
 	import ResizeHandle from './ResizeHandle.svelte';
 	import SortButton from './SortButton.svelte';
-	import type { SortConfig } from '$lib/core/types';
+	import type { SortConfig } from '$lib/core/types/types';
 
 	let {
 		column,

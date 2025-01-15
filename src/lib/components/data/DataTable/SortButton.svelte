@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ArrowUp, ArrowDown } from 'svelte-lucide';
-	import type { SortConfig } from '$lib/core/types';
+	import type { SortConfig } from '$lib/core/types/types';
 
 	let { column, sorts } = $props<{
 		column: string;

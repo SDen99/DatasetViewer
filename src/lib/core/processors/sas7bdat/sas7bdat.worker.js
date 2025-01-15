@@ -1,11 +1,13 @@
 const PYODIDE_VERSION = 'v0.24.1';
 const PYODIDE_BASE_URL = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`;
 
+/** @type {any} */
 let pyodide = null;
 
 async function loadPyodideModule() {
 	try {
 		/* @vite-ignore */
+		// @ts-ignore
 		const pyodideModule = await import('https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.mjs');
 		return pyodideModule;
 	} catch (error) {
@@ -19,6 +21,7 @@ async function initializePyodideInWorker() {
 
 		pyodide = await pyodideModule.loadPyodide({
 			indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/',
+			/** @param {string} msg */
 			stderr: (msg) => console.error('Python Error:', msg)
 		});
 
@@ -33,7 +36,7 @@ async function initializePyodideInWorker() {
 		self.postMessage({
 			type: 'PYODIDE_ERROR',
 			taskId: 'init',
-			error: error.message
+			error: error instanceof Error ? error.message : String(error)
 		});
 	}
 }
@@ -41,6 +44,7 @@ async function initializePyodideInWorker() {
 // Start initialization immediately
 initializePyodideInWorker();
 
+/** @param {ArrayBuffer} arrayBuffer */
 async function processSasFile(arrayBuffer) {
 	if (!pyodide) {
 		throw new Error('Pyodide not initialized');
@@ -154,7 +158,7 @@ self.onmessage = async (e) => {
 			self.postMessage({
 				type: 'PROCESSING_ERROR',
 				taskId,
-				error: error.message,
+				error: error instanceof Error ? error.message : String(error),
 				processingTime: (performance.now() - startTime) / 1000
 			});
 		}
