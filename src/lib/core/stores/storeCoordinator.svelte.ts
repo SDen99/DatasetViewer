@@ -1,6 +1,7 @@
 import { datasetStore } from './datasetStore.svelte';
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
+import { uiStore } from './UIStore.svelte';
 import { UIStateService } from '$lib/core/services/UIStateService';
 
 export class StoreCoordinator {
@@ -93,12 +94,17 @@ export class StoreCoordinator {
 	}
 
 	private saveCurrentState(datasetId: string) {
+		// Save column state
 		const state = {
 			selectedColumns: Array.from(tableUIStore.selectedColumns),
 			columnOrder: tableUIStore.columnOrder,
 			columnWidths: tableUIStore.columnWidths,
-			sort: sortStore.sort
+			sort: sortStore.sort,
+			ui: uiStore.uiState
 		};
+
+		// Save UI state
+		const uiState = uiStore.getUIState();
 
 		UIStateService.getInstance().setColumnState(
 			datasetId,
@@ -107,6 +113,8 @@ export class StoreCoordinator {
 			state.columnWidths,
 			state.sort
 		);
+
+		UIStateService.getInstance().setUIState(uiState);
 	}
 }
 

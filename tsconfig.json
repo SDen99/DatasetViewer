@@ -10,7 +10,12 @@
 		"sourceMap": true,
 		"strict": true,
 		"target": "ES2022",
-		"verbatimModuleSyntax": true
+		"verbatimModuleSyntax": true,
+		"plugins": [
+			{
+				"name": "typescript-svelte-plugin"
+			}
+		]
 	},
 	"include": [
 		"src/**/*.d.ts",

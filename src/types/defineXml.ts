@@ -1,3 +1,33 @@
+export interface DefineXml {
+	study: Study;
+	metaData: MetaData;
+	standards: Standard[];
+	itemGroups: ItemGroup[];
+	methods: method[];
+	itemDefs: itemDef[];
+	itemRefs: itemRef[];
+	comments: comment[];
+	CodeLists: CodeList[];
+	whereClauseDefs: whereClauseDef[];
+	valueListDefs: valueListDef[];
+	Dictionaries: Dictionary[];
+	Documents: Document[];
+	AnalysisResults: AnalysisResult[];
+}
+
+export interface Dataset {
+	name: string;
+	label?: string;
+	variables?: Variable[];
+}
+
+export interface Variable {
+	name: string;
+	label?: string;
+	type?: string;
+	// Add other variable properties as needed
+}
+
 export interface ParsedDefineXML {
 	study: Study;
 	metaData: MetaData;
@@ -73,7 +103,6 @@ export interface ItemGroup {
 	CommentOID: string | null;
 	Description: string | null;
 	Class: string | null;
-	ItemRefs?: itemRef[];
 }
 
 export interface method {
@@ -157,71 +186,3 @@ export type DataType =
 	| 'SUBJECT LEVEL ANALYSIS DATASET'
 	| 'OCCURRENCE DATA STRUCTURE'
 	| null;
-export type ViewMode = 'table' | 'card';
-
-/*
-
-export interface Term {
-    Order: string | null;
-    Term: string | null;
-    NCITerm: string | null;
-    Code: string | null;
-    DecodedValue: string | null;
-}
-
-
-
-export interface AnalysisDisplay {
-    ID: string | null;
-    Title: string | null;
-    Document: string | null;
-    Pages: string | null;
-}
-
-// Updated existing interfaces with missing fields
-export interface ItemGroup {
-    // ... existing fields ...
-    KeyVariables: string | null;
-    DeveloperNotes: string | null;
-    Pages: string | null;
-    Label: string | null;
-}
-
-export interface ValueListDef {
-    // ... existing fields ...
-    Label: string | null;
-    DataType: string | null;
-    Length: string | null;
-    SignificantDigits: string | null;
-    Format: string | null;
-    AssignedValue: string | null;
-    Pages: string | null;
-    Predecessor: string | null;
-    DeveloperNotes: string | null;
-}
-
-export interface CodeList {
-    // ... existing fields ...
-    NCICodelist: string | null;
-    Code: string | null;
-    Terms: Term[];
-}
-
-
-export interface Comment {
-    // ... existing fields ...
-    Document: string | null;
-    Pages: string | null;
-}
-
-// Update ParsedDefineXML interface to include new types
-export interface ParsedDefineXML {
-    // ... existing fields ...
-    terms: Term[];
-    dictionaries: Dictionary[];
-    documents: Document[];
-    analysisDisplays: AnalysisDisplay[];
-    analysisResults: AnalysisResult[];
-}
-
-*/

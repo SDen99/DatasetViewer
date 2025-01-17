@@ -1,5 +1,13 @@
 import type { SortConfig, UIState } from '$lib/core/types/types';
 
+// In UIStateService
+interface ColumnState {
+	selectedColumns: string[];
+	columnOrder: string[];
+	columnWidths: Record<string, number>;
+	sort: SortConfig[];
+}
+
 export class UIStateService {
 	private static instance: UIStateService;
 	private readonly storageKey = 'sasViewerUIState';
@@ -142,5 +150,20 @@ export class UIStateService {
 				this.cachedState = JSON.parse(e.newValue);
 			}
 		});
+	}
+
+	setUIState(state: { leftSidebarOpen: boolean; rightSidebarOpen: boolean }) {
+		localStorage.setItem('ui-state', JSON.stringify(state));
+	}
+
+	getUIState(): { leftSidebarOpen: boolean; rightSidebarOpen: boolean } {
+		const stored = localStorage.getItem('ui-state');
+		if (stored) {
+			return JSON.parse(stored);
+		}
+		return {
+			leftSidebarOpen: true,
+			rightSidebarOpen: true
+		};
 	}
 }

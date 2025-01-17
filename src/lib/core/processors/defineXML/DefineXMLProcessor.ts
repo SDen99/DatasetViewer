@@ -2,6 +2,7 @@ import { parseDefineXML } from '$lib/core/processors/defineXML/ParseDefineXML';
 import { FileType, type FileProcessor, type ValidationResult } from '$lib/core/types/fileTypes';
 import type { DatasetLoadingState } from '$lib/core/types/types';
 import type { ProcessingResult } from '$lib/core/processors/types';
+import { uiStore } from '$lib/core/stores/UIStore.svelte';
 
 export class DefineXMLProcessor implements FileProcessor {
 	validateFile(file: File): ValidationResult {
@@ -45,9 +46,16 @@ export class DefineXMLProcessor implements FileProcessor {
 				});
 			}
 
+			uiStore.setDefineXMLType(
+				defineData.metaData.OID?.includes('SDTM') || false,
+				defineData.metaData.OID?.includes('ADaM') || false
+			);
+
 			return {
 				data: defineData,
-				success: true
+				success: true,
+				ADaM: defineData.metaData.OID?.includes('ADaM') || false,
+				SDTM: defineData.metaData.OID?.includes('SDTM') || false
 			};
 		} catch (error) {
 			if (onProgress) {

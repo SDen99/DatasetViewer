@@ -29,6 +29,8 @@ export interface DefineXMLProcessingResult extends BaseProcessingResult {
 		uploadTime: number;
 		fileSize: number;
 	};
+	ADaM: boolean;
+	SDTM: boolean;
 }
 
 // Union type for all processing results

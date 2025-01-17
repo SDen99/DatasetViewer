@@ -1,17 +1,10 @@
 <script lang="ts">
-	import { Trash2 } from 'svelte-lucide';
 	import * as AlertDialog from '$lib/components/core/alert-dialog/index.js';
-	import * as Button from '$lib/components/core/button/index.js';
-	import { Progress } from '$lib/components/core/progress';
-	import { Badge } from '$lib/components/core/badge';
+	import DatasetCard from './DatasetCard.svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 
-	let datasetToDelete: string | null = $state(null);
+	let datasetToDelete = $state<string | null>(null);
 	let dialogOpen = $state(false);
-
-	$effect(() => {
-		console.log('DatasetList rerender:', Object.keys(datasetStore.datasets));
-	});
 
 	function handleConfirmDelete() {
 		if (datasetToDelete) {
@@ -21,8 +14,7 @@
 		}
 	}
 
-	function handleDeleteClick(event: MouseEvent, datasetName: string) {
-		event.stopPropagation();
+	function handleDeleteClick(datasetName: string) {
 		datasetToDelete = datasetName;
 		dialogOpen = true;
 	}
@@ -42,72 +34,14 @@
 	{#if allDatasetEntries.length > 0}
 		<div class="space-y-2">
 			{#each allDatasetEntries as datasetName}
-				<div
-					class="overflow-hidden rounded-lg border {datasetName === datasetStore.selectedDatasetId
-						? 'border-primary'
-						: 'border-border'}"
-				>
-					<div class="flex flex-col gap-2">
-						<div class="flex items-center justify-between p-3">
-							<button
-								type="button"
-								class="flex-1 text-left hover:text-primary"
-								onclick={() => datasetStore.selectDataset(datasetName)}
-								disabled={Boolean(datasetStore.loadingDatasets[datasetName])}
-							>
-								<div class="flex items-center gap-2">
-									<span class="truncate font-medium">
-										{datasetName}
-									</span>
-									{#if datasetStore.loadingDatasets[datasetName]}
-										<Badge variant="secondary">Loading</Badge>
-									{/if}
-								</div>
-							</button>
-
-							{#if !datasetStore.loadingDatasets[datasetName]}
-								<AlertDialog.Root bind:open={dialogOpen}>
-									<Button.Root
-										variant="ghost"
-										size="icon"
-										class="h-8 w-8 text-muted-foreground hover:text-destructive"
-										onclick={(e) => handleDeleteClick(e, datasetName)}
-									>
-										<Trash2 class="h-4 w-4" />
-									</Button.Root>
-
-									<AlertDialog.Portal>
-										<AlertDialog.Content>
-											<AlertDialog.Header>
-												<AlertDialog.Title>Delete Dataset</AlertDialog.Title>
-												<AlertDialog.Description>
-													Are you sure you want to delete {datasetToDelete}? This action cannot be
-													undone.
-												</AlertDialog.Description>
-											</AlertDialog.Header>
-
-											<AlertDialog.Footer>
-												<AlertDialog.Cancel onclick={handleCancelClick}>Cancel</AlertDialog.Cancel>
-												<AlertDialog.Action
-													class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-													onclick={handleConfirmDelete}
-												>
-													Delete
-												</AlertDialog.Action>
-											</AlertDialog.Footer>
-										</AlertDialog.Content>
-									</AlertDialog.Portal>
-								</AlertDialog.Root>
-							{/if}
-						</div>
-
-						{#if datasetStore.loadingDatasets[datasetName]}
-							<div class="px-3 pb-3">
-								<Progress value={datasetStore.loadingDatasets[datasetName].progress} />
-							</div>
-						{/if}
-					</div>
-				</div>
+				<DatasetCard
+					name={datasetName}
+					isSelected={datasetName === datasetStore.selectedDatasetId}
+					isLoading={Boolean(datasetStore.loadingDatasets[datasetName])}
+					loadingProgress={datasetStore.loadingDatasets[datasetName]?.progress}
+					showDelete={true}
+					onDelete={handleDeleteClick}
+				/>
 			{/each}
 		</div>
 	{:else}
@@ -115,4 +49,27 @@
 			<p>No datasets available</p>
 		</div>
 	{/if}
+
+	<AlertDialog.Root bind:open={dialogOpen}>
+		<AlertDialog.Portal>
+			<AlertDialog.Content>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Delete Dataset</AlertDialog.Title>
+					<AlertDialog.Description>
+						Are you sure you want to delete {datasetToDelete}? This action cannot be undone.
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel onclick={handleCancelClick}>Cancel</AlertDialog.Cancel>
+					<AlertDialog.Action
+						class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						onclick={handleConfirmDelete}
+					>
+						Delete
+					</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Content>
+		</AlertDialog.Portal>
+	</AlertDialog.Root>
 </div>

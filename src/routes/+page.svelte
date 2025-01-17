@@ -5,7 +5,6 @@
 
 	import Navigation from '$lib/components/layout/Navigation.svelte';
 	import MainLayout from '$lib/components/layout//MainLayout.svelte';
-	import DatasetList from '$lib/components/data/DatasetList.svelte';
 	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
@@ -14,10 +13,13 @@
 	import { FileImportManager } from '$lib/core/services/FileImportManager';
 	import { initManager } from '$lib/core/services/InitializationService.svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
+	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 	import { errorStore, ErrorSeverity } from '$lib/core/stores/errorStore';
 
 	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
+	import DefineXmlSidebar from '$lib/components/data/DefineXmlSidebar.svelte';
+	import DatasetList from '$lib/components/data/DatasetList.svelte';
 
 	let FileManager = $state<FileImportManager | null>(null);
 	let isLoading = $derived(
@@ -110,10 +112,11 @@
 		return datasetStore.datasets[datasetStore.selectedDatasetId];
 	});
 
-	$effect(() => {
-		$inspect('Page effect running, FileManager:', FileManager);
-		$inspect('Selected dataset:', datasetStore.selectedDatasetId);
+	let hasDefineXml = $derived.by(() => {
+		return uiStore.uiState.SDTM || uiStore.uiState.ADaM;
 	});
+
+	let defineXmlFiles = $derived(datasetStore.defineXmlDatasets);
 </script>
 
 {#snippet navigation()}
@@ -121,7 +124,14 @@
 {/snippet}
 
 {#snippet leftbar()}
-	<DatasetList />
+	{#if hasDefineXml}
+		<DefineXmlSidebar
+			sdtmDefine={defineXmlFiles.SDTM ?? null}
+			adamDefine={defineXmlFiles.ADaM ?? null}
+		/>
+	{:else}
+		<DatasetList />
+	{/if}
 {/snippet}
 
 {#snippet mainContent()}

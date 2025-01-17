@@ -2,7 +2,7 @@
 	import { ScrollArea } from '$lib/components/core/scroll-area';
 	import { Button } from '$lib/components/core/button';
 	import { PanelLeftOpen, PanelRightOpen } from 'svelte-lucide';
-	import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
+	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 
 	interface Props {
 		position: 'left' | 'right';
@@ -23,7 +23,7 @@
 		<div class="p-4">
 			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-lg font-semibold">{title}</h2>
-				<Button variant="ghost" size="icon" onclick={() => tableUIStore.toggleSidebar(position)}>
+				<Button variant="ghost" size="icon" onclick={() => uiStore.toggleSidebar(position)}>
 					<Icon class="h-4 w-4" />
 				</Button>
 			</div>

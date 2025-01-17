@@ -3,6 +3,7 @@ import { DatasetService } from '$lib/core/services/datasetService';
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
 import { storeCoordinator } from './storeCoordinator.svelte';
+import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 
 export class DatasetStore {
 	private static instance: DatasetStore;
@@ -20,6 +21,7 @@ export class DatasetStore {
 			$effect(() => {
 				$inspect('[DatasetStore] Datasets updated:', this.datasets);
 				$inspect('[DatasetStore] Selected dataset:', this.selectedDatasetId);
+				$inspect('[DatasetStore] Define XML datasets:', this.defineXmlDatasets);
 			});
 		});
 	}
@@ -110,6 +112,28 @@ export class DatasetStore {
 			[fileName]: state
 		};
 	}
+
+	defineXmlDatasets = $derived.by(() => {
+		const allDatasets = this.datasets;
+		const defineXmlFiles: Record<string, ParsedDefineXML> = {};
+
+		for (const [fileName, dataset] of Object.entries(allDatasets)) {
+			// Type guard to ensure we have Define.xml data
+			if (
+				dataset.data &&
+				typeof dataset.data === 'object' &&
+				'metaData' in dataset.data &&
+				'itemGroups' in dataset.data
+			) {
+				defineXmlFiles[fileName] = dataset.data as unknown as ParsedDefineXML;
+			}
+		}
+
+		return {
+			SDTM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('SDTM')),
+			ADaM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('ADaM'))
+		};
+	});
 }
 
 export const datasetStore = DatasetStore.getInstance();

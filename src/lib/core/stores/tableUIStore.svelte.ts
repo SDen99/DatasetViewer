@@ -8,10 +8,8 @@ export class TableUIStore {
 	selectedColumns = $state<Set<string>>(new Set());
 	columnOrder = $state<string[]>([]);
 	columnWidths = $state<Record<string, number>>({});
-	uiState = $state({
-		leftSidebarOpen: true,
-		rightSidebarOpen: true
-	});
+	SDTMDefineXML = $state<boolean>(false);
+	ADaMDefineXML = $state<boolean>(false);
 
 	constructor() {}
 
@@ -75,13 +73,6 @@ export class TableUIStore {
 
 	updateColumnOrder(newOrder: string[]) {
 		this.columnOrder = newOrder;
-	}
-
-	toggleSidebar(side: 'left' | 'right') {
-		this.uiState = {
-			...this.uiState,
-			[`${side}SidebarOpen`]: !this.uiState[`${side}SidebarOpen`]
-		};
 	}
 
 	updateColumnWidth(column: string, width: number) {
