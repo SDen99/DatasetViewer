@@ -163,7 +163,7 @@
 		<!-- Single horizontal scroll container -->
 		<div
 			bind:this={headerContainer}
-			class="w-full flex-1 overflow-x-auto"
+			class="w-full flex-1 overflow-x-auto overflow-y-hidden"
 			onscroll={handleHorizontalScroll}
 		>
 			<!-- Content wrapper with fixed width -->
@@ -185,7 +185,7 @@
 				<div
 					bind:this={scrollContainer}
 					class="overflow-y-auto"
-					style="height: calc(100vh - 8rem);"
+					style="height: calc(100vh - 9rem);"
 					onscroll={handleScroll}
 				>
 					<DataTableBody

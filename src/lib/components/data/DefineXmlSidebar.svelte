@@ -54,7 +54,6 @@
 
 <div class="h-full w-64 overflow-y-auto border-border p-4">
 	<section class="space-y-2">
-		<!--h3 class="text-lg font-semibold">Datasets</h3-->
 		<div class="space-y-1">
 			{#each datasets as dataset}
 				<DatasetCard
