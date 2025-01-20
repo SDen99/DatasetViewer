@@ -163,7 +163,7 @@
 		<!-- Single horizontal scroll container -->
 		<div
 			bind:this={headerContainer}
-			class="w-full flex-1 overflow-x-auto overflow-y-hidden"
+			class="w-full flex-1 overflow-x-auto"
 			onscroll={handleHorizontalScroll}
 		>
 			<!-- Content wrapper with fixed width -->
