@@ -4,7 +4,7 @@
 	import { Progress } from '$lib/components/core/progress';
 	import { Badge } from '$lib/components/core/badge';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
-
+	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	interface Props {
 		name: string;
 		isSelected?: boolean;
@@ -27,6 +27,36 @@
 		metadata,
 		onDelete
 	}: Props = $props();
+
+	let defineData = $derived(datasetStore.defineXmlDatasets);
+
+	let isMetadataOnly = $derived.by(() => {
+		const normalizedName = normalizeDatasetId(name);
+		const hasMetadata =
+			defineData.SDTM?.itemGroups?.some(
+				(g) => normalizeDatasetId(g.Name || '') === normalizedName
+			) ||
+			defineData.ADaM?.itemGroups?.some((g) => normalizeDatasetId(g.Name || '') === normalizedName);
+
+		// Only show metadata badge if we have metadata but no actual dataset
+		// Use the original name to check datasets, not the normalized name
+		return (
+			hasMetadata &&
+			!Object.keys(datasetStore.datasets).some(
+				(fileName) => normalizeDatasetId(fileName) === normalizedName
+			)
+		);
+	});
+
+	function handleClick() {
+		console.log('DatasetCard clicked:', {
+			name,
+			isSelected,
+			currentSelection: datasetStore.selectedDatasetId,
+			isMetadataOnly
+		});
+		datasetStore.selectDataset(name);
+	}
 </script>
 
 <div class="overflow-hidden rounded-lg border {isSelected ? 'border-primary' : 'border-border'}">
@@ -35,7 +65,7 @@
 			<button
 				type="button"
 				class="flex-1 text-left hover:text-primary"
-				onclick={() => datasetStore.selectDataset(name)}
+				onclick={handleClick}
 				disabled={isLoading}
 			>
 				<div class="flex items-center gap-2">
@@ -43,13 +73,16 @@
 					{#if isLoading}
 						<Badge variant="secondary">Loading</Badge>
 					{/if}
+					{#if isMetadataOnly}
+						<Badge variant="secondary">Metadata</Badge>
+					{/if}
 					{#if metadata?.itemCount}
 						<span class="text-sm text-muted-foreground">({metadata.itemCount})</span>
 					{/if}
 				</div>
 			</button>
 
-			{#if showDelete && !isLoading && onDelete}
+			{#if showDelete && !isLoading && onDelete && !isMetadataOnly}
 				<Button.Root
 					variant="ghost"
 					size="icon"

@@ -6,7 +6,8 @@ export class UIStore {
 		leftSidebarOpen: true,
 		rightSidebarOpen: true,
 		SDTM: false,
-		ADaM: false
+		ADaM: false,
+		viewMode: 'data' as 'data' | 'metadata' | 'split'
 	});
 
 	constructor() {
@@ -39,8 +40,16 @@ export class UIStore {
 		rightSidebarOpen: boolean;
 		SDTM: boolean;
 		ADaM: boolean;
+		viewMode: 'data' | 'metadata' | 'split';
 	}) {
 		this.uiState = state;
+	}
+
+	setViewMode(mode: 'data' | 'metadata' | 'split') {
+		this.uiState = {
+			...this.uiState,
+			viewMode: mode
+		};
 	}
 
 	setUIState(state: {
@@ -48,6 +57,7 @@ export class UIStore {
 		rightSidebarOpen: boolean;
 		SDTM: boolean;
 		ADaM: boolean;
+		viewMode: 'data' | 'metadata' | 'split';
 	}) {
 		this.uiState = state;
 	}
@@ -63,7 +73,8 @@ export class UIStore {
 			leftSidebarOpen: true,
 			rightSidebarOpen: true,
 			SDTM: false,
-			ADaM: false
+			ADaM: false,
+			viewMode: 'data'
 		};
 	}
 

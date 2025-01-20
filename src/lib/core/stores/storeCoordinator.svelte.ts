@@ -3,6 +3,7 @@ import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
 import { uiStore } from './UIStore.svelte';
 import { UIStateService } from '$lib/core/services/UIStateService';
+import { normalizeDatasetId, findDatasetByName } from '$lib/core/utils/datasetUtils';
 
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
@@ -48,49 +49,55 @@ export class StoreCoordinator {
 		const prevId = datasetStore.selectedDatasetId;
 		console.log('Previous dataset:', prevId);
 
-		if (id) {
-			const dataset = datasetStore.datasets[id];
-			console.log('Found dataset:', !!dataset);
-			console.log('Dataset has data:', !!dataset?.data);
-			console.log('First row:', dataset?.data?.[0]);
-		}
-
-		// Save previous state if exists
 		if (prevId) {
 			this.saveCurrentState(prevId);
 		}
 
-		// Load new state
 		if (id) {
-			const dataset = datasetStore.datasets[id];
-			if (!dataset?.data?.[0]) {
-				console.warn('Attempted to select invalid dataset:', id);
+			// Find dataset in both actual data and metadata
+			const foundDataset = findDatasetByName(
+				datasetStore.datasets,
+				id,
+				datasetStore.defineXmlDatasets
+			);
+
+			if (!foundDataset) {
+				console.warn('Dataset not found:', id);
 				return;
 			}
 
-			const uiService = UIStateService.getInstance();
-			const state = uiService.getColumnState(id);
+			const actualId = foundDataset.fileName;
 
-			if (uiService.hasColumnState(id)) {
-				tableUIStore.restore({
-					selectedColumns: state.selectedColumns,
-					columnOrder: state.columnOrder,
-					columnWidths: state.columnWidths
-				});
-				sortStore.restore(state.sort);
+			const uiService = UIStateService.getInstance();
+			const state = uiService.getColumnState(actualId);
+
+			// Only restore/initialize UI state for datasets with actual data
+			if (!foundDataset.isMetadataOnly) {
+				if (uiService.hasColumnState(actualId)) {
+					tableUIStore.restore({
+						selectedColumns: state.selectedColumns,
+						columnOrder: state.columnOrder,
+						columnWidths: state.columnWidths
+					});
+					sortStore.restore(state.sort);
+				} else if (foundDataset.data?.[0]) {
+					const columns = Object.keys(foundDataset.data[0]);
+					tableUIStore.initialize(columns);
+					sortStore.reset();
+				}
 			} else {
-				// Initialize with default settings
-				const columns = Object.keys(dataset.data[0]);
-				tableUIStore.initialize(columns);
+				// Reset UI state for metadata-only datasets
+				tableUIStore.reset();
 				sortStore.reset();
 			}
+
+			// Update selection in datasetStore
+			datasetStore.selectedDatasetId = actualId;
 		} else {
 			tableUIStore.reset();
 			sortStore.reset();
+			datasetStore.selectedDatasetId = null;
 		}
-
-		// Update dataset selection last
-		datasetStore.selectedDatasetId = id;
 	}
 
 	private saveCurrentState(datasetId: string) {

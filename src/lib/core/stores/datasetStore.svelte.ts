@@ -118,7 +118,6 @@ export class DatasetStore {
 		const defineXmlFiles: Record<string, ParsedDefineXML> = {};
 
 		for (const [fileName, dataset] of Object.entries(allDatasets)) {
-			// Type guard to ensure we have Define.xml data
 			if (
 				dataset.data &&
 				typeof dataset.data === 'object' &&
@@ -130,8 +129,8 @@ export class DatasetStore {
 		}
 
 		return {
-			SDTM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('SDTM')),
-			ADaM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('ADaM'))
+			SDTM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('SDTM')) ?? null,
+			ADaM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('ADaM')) ?? null
 		};
 	});
 }

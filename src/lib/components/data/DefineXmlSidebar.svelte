@@ -2,6 +2,9 @@
 	import type { ParsedDefineXML, ItemGroup } from '$lib/core/processors/defineXML/types';
 	import DatasetCard from './DatasetCard.svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
+	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
+
+	let selectedId = $derived(datasetStore.selectedDatasetId);
 
 	let { sdtmDefine, adamDefine } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -58,7 +61,10 @@
 			{#each datasets as dataset}
 				<DatasetCard
 					name={dataset.SASDatasetName || dataset.Name || ''}
-					isSelected={datasetStore.selectedDatasetId === dataset.SASDatasetName}
+					isSelected={selectedId
+						? normalizeDatasetId(selectedId) ===
+							normalizeDatasetId(dataset.SASDatasetName || dataset.Name || '')
+						: false}
 					metadata={{
 						itemCount: dataset.ItemRefs?.length || 0,
 						category: dataset.Class || undefined

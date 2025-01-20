@@ -4,6 +4,7 @@
 	import SidebarToggleButtons from '$lib/components/layout/SidebarToggleButtons.svelte';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
+	import DatasetViewTabs from '$lib/components/data/DatasetViewTabs.svelte';
 
 	let { navigation, leftbar, mainContent, rightbar, footer } = $props<{
 		navigation: Snippet;
@@ -22,8 +23,20 @@
 			{@render leftbar()}
 		</Sidebar>
 
+		<!--
 		<div class="min-w-0 flex-1 overflow-hidden">
 			{@render mainContent()}
+		</div>
+		-->
+
+		<div class="min-w-0 flex-1 overflow-hidden">
+			{#if datasetStore.selectedDatasetId}
+				<DatasetViewTabs />
+			{:else}
+				<div class="flex h-full items-center justify-center text-muted-foreground">
+					<p>Select a dataset to view</p>
+				</div>
+			{/if}
 		</div>
 
 		{#if datasetStore.selectedDatasetId}
