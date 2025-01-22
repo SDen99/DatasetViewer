@@ -25,5 +25,10 @@
 		"src/app.d.ts",
 		".svelte-kit/ambient.d.ts"
 	],
-	"exclude": ["node_modules", "build", "src/lib/core/processors/sas7bdat/fileProcessor.worker.js"]
+	"exclude": [
+		"node_modules",
+		"build",
+		"src/lib/core/processors/sas7bdat/fileProcessor.worker.js",
+		"src/lib/components/core/*"
+	]
 }

@@ -1,0 +1,18 @@
+{
+	"entryPoints": [
+		"src/lib/core/stores",
+		"src/lib/core/processors",
+		"src/lib/core/services",
+		"src/lib/core/types",
+		"src/lib/components/core/types.ts"
+	],
+	"out": "docs",
+	"excludePrivate": true,
+	"excludeProtected": true,
+	"excludeExternals": true,
+	"theme": "default",
+	"name": "Your Project Name",
+	"exclude": ["**/*.svelte", "**/*.test.ts", "**/*.spec.ts", "**/fileProcessor.worker.js"],
+	"entryPointStrategy": "expand",
+	"plugin": ["typedoc-plugin-markdown"]
+}
