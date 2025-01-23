@@ -157,7 +157,6 @@ export type DataType =
 	| 'SUBJECT LEVEL ANALYSIS DATASET'
 	| 'OCCURRENCE DATA STRUCTURE'
 	| null;
-export type ViewMode = 'table' | 'card';
 
 /*
 
