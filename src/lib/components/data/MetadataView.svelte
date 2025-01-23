@@ -39,6 +39,8 @@
 		return sdtmDataset || adamDataset;
 	});
 
+	let metadata = $derived(datasetMetadata());
+
 	let variables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
 		if (!define || !datasetMetadata()) return [];
@@ -60,16 +62,16 @@
 	});
 </script>
 
-{#if datasetMetadata}
+{#if metadata}
 	<div class="max-h-[calc(100vh-12rem)] space-y-6 overflow-y-auto">
 		<!-- Dataset Information -->
 		<div>
-			<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
-			<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
-			{#if datasetMetadata().Class}
+			<h3 class="text-lg font-semibold">Dataset: {metadata.Name}</h3>
+			<p class="text-sm text-muted-foreground">{metadata.Description}</p>
+			{#if metadata.Class}
 				<div class="mt-2">
 					<span class="rounded-md bg-muted px-2 py-1 text-sm">
-						{datasetMetadata().Class}
+						{metadata.Class}
 					</span>
 				</div>
 			{/if}
