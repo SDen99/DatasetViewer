@@ -4,7 +4,7 @@ import { StorageQueue } from '$lib/core/services/StorageQueue';
 export interface UIState {
 	leftSidebarOpen: boolean;
 	rightSidebarOpen: boolean;
-	viewMode: 'data' | 'metadata' | 'split';
+	viewMode: 'data' | 'metadata';
 	SDTM: boolean;
 	ADaM: boolean;
 }
@@ -26,14 +26,14 @@ export class StorageService {
 	public static readonly STORAGE_KEY = 'sas-viewer-state';
 	private static instance: StorageService | null = null;
 	private readonly queue: StorageQueue;
-  
+
 	private constructor() {
-	  this.queue = StorageQueue.getInstance();
-	  if (!localStorage.getItem(StorageService.STORAGE_KEY)) {
-		this.saveState(this.getDefaultState());
-	  }
+		this.queue = StorageQueue.getInstance();
+		if (!localStorage.getItem(StorageService.STORAGE_KEY)) {
+			this.saveState(this.getDefaultState());
+		}
 	}
-	  static getInstance(): StorageService {
+	static getInstance(): StorageService {
 		if (!StorageService.instance) {
 			StorageService.instance = new StorageService();
 		}
@@ -61,10 +61,9 @@ export class StorageService {
 
 	async saveState(state: Partial<AppPersistentState>): Promise<void> {
 		await this.queue.enqueue(async () => {
-		  const current = this.loadState();
-		  const updated = { ...current, ...state };
-		  localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(updated));
+			const current = this.loadState();
+			const updated = { ...current, ...state };
+			localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(updated));
 		});
-	  }
-
 	}
+}

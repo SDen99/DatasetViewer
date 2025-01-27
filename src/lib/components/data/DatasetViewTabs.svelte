@@ -27,12 +27,14 @@
 	let isLoading = $derived(datasetStore.isLoading ?? false);
 
 	$effect(() => {
-		console.log('Dataset loading state:', {
-			isLoading,
-			hasDataset: !!dataset,
-			hasData: !!dataset?.data,
+		console.log('DatasetViewTabs State:', {
 			selectedId,
-			dataset
+			hasDataset: !!dataset,
+			defineDataSDTM: !!defineData.SDTM,
+			defineDataADaM: !!defineData.ADaM,
+			availableViews,
+			activeTab,
+			isLoading
 		});
 	});
 
@@ -60,6 +62,10 @@
 			}
 
 			views = newViews;
+
+			if (!newViews.has(activeTab)) {
+				uiStore.setViewMode([...newViews][0]);
+			}
 		}
 	});
 

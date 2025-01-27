@@ -49,7 +49,7 @@ export class UIStore {
 		};
 	}
 
-	setViewMode(mode: 'data' | 'metadata' | 'split') {
+	setViewMode(mode: 'data' | 'metadata') {
 		this.uiState = {
 			...this.uiState,
 			viewMode: mode
@@ -77,4 +77,4 @@ export class UIStore {
 
 export const uiStore = UIStore.getInstance();
 
-window.UIStore = uiStore.uiState
+window.UIStore = uiStore.uiState;
