@@ -4,44 +4,63 @@
 	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
 	import MetadataView from '$lib/components/data/MetadataView.svelte';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
+	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 
 	let selectedId = $derived(datasetStore.selectedDatasetId);
-	let dataset = $derived(datasetStore.datasets[selectedId ?? '']);
+	let originalId = $derived(
+		selectedId
+			? (datasetStore.getOriginalFilename(normalizeDatasetId(selectedId)) ?? selectedId)
+			: ''
+	);
+	let dataset = $derived(datasetStore.datasets[originalId]);
 	let defineData = $derived(datasetStore.defineXmlDatasets);
-	let activeTab = $state('data');
+	let activeTab = $derived(uiStore.uiState.viewMode);
 
 	type ViewType = 'data' | 'metadata';
 
 	let views = $state(new Set<ViewType>());
 
+	function handleTabChange(newMode: string) {
+		uiStore.setViewMode(newMode as 'data' | 'metadata');
+	}
+
+	let isLoading = $derived(datasetStore.isLoading ?? false);
+
 	$effect(() => {
-		const normalizedDatasetName = selectedId ? normalizeDatasetId(selectedId) : '';
-		const newViews = new Set<ViewType>();
+		console.log('Dataset loading state:', {
+			isLoading,
+			hasDataset: !!dataset,
+			hasData: !!dataset?.data,
+			selectedId,
+			dataset
+		});
+	});
 
-		// Check for data first
-		if (dataset?.data) {
-			newViews.add('data');
+	$effect(() => {
+		if (!isLoading) {
+			const normalizedDatasetName = selectedId ? normalizeDatasetId(selectedId) : '';
+			const newViews = new Set<ViewType>();
+
+			// Check for data first
+			if (dataset?.data) {
+				newViews.add('data');
+			}
+
+			// Check for metadata
+			const hasMetadata =
+				defineData.SDTM?.itemGroups?.some(
+					(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+				) ||
+				defineData.ADaM?.itemGroups?.some(
+					(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+				);
+
+			if (hasMetadata) {
+				newViews.add('metadata');
+			}
+
+			views = newViews;
 		}
-
-		// Check for metadata
-		const hasMetadata =
-			defineData.SDTM?.itemGroups?.some(
-				(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
-			) ||
-			defineData.ADaM?.itemGroups?.some(
-				(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
-			);
-
-		if (hasMetadata) {
-			newViews.add('metadata');
-		}
-
-		// If metadata is available but no data, make it the active tab
-		if (!newViews.has('data') && newViews.has('metadata')) {
-			activeTab = 'metadata';
-		}
-
-		views = newViews;
 	});
 
 	let availableViews = $derived([...views]);
@@ -64,14 +83,19 @@
 					(g) =>
 						g.Name &&
 						normalizeDatasetId(g.Name) === (selectedId ? normalizeDatasetId(selectedId) : '')
-				)
+				),
+			views
 		});
+		window.dataStore = datasetStore;
 	});
 </script>
 
 <div class="w-full rounded-md border bg-card">
 	{#if availableViews.length > 0}
-		<Tabs.Root value={activeTab} onValueChange={(v) => (activeTab = v)} class="w-full">
+		<Tabs.Root
+			value={activeTab}
+			onValueChange={(value: string) => handleTabChange(value as 'data' | 'metadata')}
+		>
 			<Tabs.List class="w-full border-b bg-muted/50 px-4">
 				{#if availableViews.includes('data')}
 					<Tabs.Trigger

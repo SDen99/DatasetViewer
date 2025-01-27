@@ -11,19 +11,6 @@
 	let datasetMetadata = $derived(() => {
 		const normalizedName = normalizeDatasetId(datasetName);
 
-		console.log('MetadataView - Looking for dataset:', {
-			original: datasetName,
-			normalized: normalizedName,
-			sdtmDatasets: sdtmDefine?.itemGroups.map((g: { Name: string }) => ({
-				name: g.Name,
-				normalized: normalizeDatasetId(g.Name)
-			})),
-			adamDatasets: adamDefine?.itemGroups.map((g: { Name: string }) => ({
-				name: g.Name,
-				normalized: normalizeDatasetId(g.Name)
-			}))
-		});
-
 		const sdtmDataset = sdtmDefine?.itemGroups.find(
 			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
 		);
@@ -31,47 +18,48 @@
 			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
 		);
 
-		console.log('MetadataView - Found dataset:', {
+		console.log('MetadataView - Dataset lookup:', {
+			normalizedName,
 			sdtm: !!sdtmDataset,
-			adam: !!adamDataset
+			adam: !!adamDataset,
+			foundDataset: sdtmDataset || adamDataset
 		});
 
 		return sdtmDataset || adamDataset;
 	});
 
-	let metadata = $derived(datasetMetadata());
-
 	let variables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
-		if (!define || !datasetMetadata()) return [];
+		if (!define || !datasetMetadata) {
+			return [];
+		}
 
-		return define.itemDefs.filter(
+		const vars = define.itemDefs.filter(
 			(item: { Dataset: string }) =>
 				normalizeDatasetId(item.Dataset) === normalizeDatasetId(datasetName)
 		);
+		return vars;
 	});
 
-	$effect(() => {
-		console.log('MetadataView Debug:', {
-			datasetName,
-			sdtmDefine,
-			adamDefine,
-			datasetMetadata: datasetMetadata(),
-			variables: variables()
+	$effect.root(() => {
+		$effect(() => {
+			const hasSDTM = !!sdtmDefine;
+			const hasADaM = !!adamDefine;
+			//  storeCoordinator.updateDefineXMLStatus(hasSDTM, hasADaM);
 		});
 	});
 </script>
 
-{#if metadata}
+{#if datasetMetadata()}
 	<div class="max-h-[calc(100vh-12rem)] space-y-6 overflow-y-auto">
 		<!-- Dataset Information -->
 		<div>
-			<h3 class="text-lg font-semibold">Dataset: {metadata.Name}</h3>
-			<p class="text-sm text-muted-foreground">{metadata.Description}</p>
-			{#if metadata.Class}
+			<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
+			<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
+			{#if datasetMetadata().Class}
 				<div class="mt-2">
 					<span class="rounded-md bg-muted px-2 py-1 text-sm">
-						{metadata.Class}
+						{datasetMetadata().Class}
 					</span>
 				</div>
 			{/if}

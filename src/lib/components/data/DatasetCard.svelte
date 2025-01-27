@@ -5,6 +5,9 @@
 	import { Badge } from '$lib/components/core/badge';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
+	import type { ItemGroup } from '$lib/core/processors/defineXML/types';
+	import { storeCoordinator } from '$lib/core/stores/storeCoordinator.svelte';
+
 	interface Props {
 		name: string;
 		isSelected?: boolean;
@@ -34,9 +37,11 @@
 		const normalizedName = normalizeDatasetId(name);
 		const hasMetadata =
 			defineData.SDTM?.itemGroups?.some(
-				(g) => normalizeDatasetId(g.Name || '') === normalizedName
+				(g: ItemGroup) => normalizeDatasetId(g.Name || '') === normalizedName
 			) ||
-			defineData.ADaM?.itemGroups?.some((g) => normalizeDatasetId(g.Name || '') === normalizedName);
+			defineData.ADaM?.itemGroups?.some(
+				(g: ItemGroup) => normalizeDatasetId(g.Name || '') === normalizedName
+			);
 
 		// Only show metadata badge if we have metadata but no actual dataset
 		// Use the original name to check datasets, not the normalized name
@@ -55,7 +60,7 @@
 			currentSelection: datasetStore.selectedDatasetId,
 			isMetadataOnly
 		});
-		datasetStore.selectDataset(name);
+		storeCoordinator.selectDataset(name);
 	}
 </script>
 

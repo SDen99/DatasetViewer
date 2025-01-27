@@ -117,6 +117,10 @@
 	});
 
 	let defineXmlFiles = $derived(datasetStore.defineXmlDatasets);
+
+	$effect(() => {
+		console.log('hasDefineXml', hasDefineXml);
+	});
 </script>
 
 {#snippet navigation()}

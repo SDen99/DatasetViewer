@@ -1,17 +1,34 @@
-import type { Dataset } from '$lib/core/types/types';
-import { UIStateService } from '$lib/core/services/UIStateService';
+import { StorageService } from '$lib/core/services/StorageServices';
 
 export class TableUIStore {
 	private static instance: TableUIStore;
 
-	// State
+	// State with initialization from StorageService
 	selectedColumns = $state<Set<string>>(new Set());
 	columnOrder = $state<string[]>([]);
 	columnWidths = $state<Record<string, number>>({});
-	SDTMDefineXML = $state<boolean>(false);
-	ADaMDefineXML = $state<boolean>(false);
 
-	constructor() {}
+	private constructor() {
+		$effect.root(() => {
+		  // Persist state changes to storage
+		  $effect(() => {
+			const datasetId = StorageService.getInstance().loadState().lastSelectedDataset;
+			if (!datasetId) return;
+	
+			StorageService.getInstance().saveState({
+			  datasetViews: {
+				[datasetId]: {
+				  selectedColumns: Array.from(this.selectedColumns),
+				  columnOrder: this.columnOrder,
+				  columnWidths: this.columnWidths,
+				  sort: [] // Will be populated by sortStore
+				}
+			  }
+			});
+		  });
+		});
+	  }
+	
 
 	reset() {
 		this.selectedColumns = new Set();
@@ -30,7 +47,6 @@ export class TableUIStore {
 	}
 
 	initialize(columns: string[]) {
-		// By default, show first 5 columns
 		this.selectedColumns = new Set(columns.slice(0, 5));
 		this.columnOrder = columns;
 		this.columnWidths = {};
@@ -41,24 +57,6 @@ export class TableUIStore {
 			TableUIStore.instance = new TableUIStore();
 		}
 		return TableUIStore.instance;
-	}
-
-	initializeColumns(dataset: Dataset) {
-		if (!dataset?.data?.[0]) return;
-
-		const allColumns = Object.keys(dataset.data[0]);
-		const uiService = UIStateService.getInstance();
-
-		if (uiService.hasColumnState(dataset.fileName)) {
-			const state = uiService.getColumnState(dataset.fileName);
-			this.selectedColumns = new Set(state.selectedColumns);
-			this.columnOrder = state.columnOrder;
-			this.columnWidths = state.columnWidths || {};
-		} else {
-			this.selectedColumns = new Set(allColumns.slice(0, 5));
-			this.columnOrder = allColumns;
-			this.columnWidths = {};
-		}
 	}
 
 	updateColumnSelection(column: string, checked: boolean) {

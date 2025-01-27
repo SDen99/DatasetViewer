@@ -1,28 +1,8 @@
-import type { SortConfig, UIState } from '$lib/core/types/types';
-
-// In UIStateService
-interface ColumnState {
-	selectedColumns: string[];
-	columnOrder: string[];
-	columnWidths: Record<string, number>;
-	sort: SortConfig[];
-}
-
+import type { SortConfig } from '$lib/core/types/types';
+import { StorageService } from '$lib/core/services/StorageServices';
 export class UIStateService {
 	private static instance: UIStateService;
-	private readonly storageKey = 'sasViewerUIState';
-	private cachedState: UIState;
-
-	private constructor() {
-		// Initialize state from storage or create new
-		const stored = localStorage.getItem(this.storageKey);
-		this.cachedState = stored
-			? JSON.parse(stored)
-			: {
-					selectedDataset: null,
-					columnStates: {}
-				};
-	}
+	private readonly storageKey = 'dataset-view-state';
 
 	public static getInstance(): UIStateService {
 		if (!UIStateService.instance) {
@@ -31,49 +11,11 @@ export class UIStateService {
 		return UIStateService.instance;
 	}
 
-	private getState(): UIState {
-		return this.cachedState;
-	}
-
-	private setState(state: UIState): void {
-		this.cachedState = state;
-		// Debounce localStorage writes
-		this.debouncedSave();
-	}
-
-	// Debounced save to localStorage
-	private debouncedSave = (() => {
-		let timeoutId: number | null = null;
-		return () => {
-			if (timeoutId) {
-				clearTimeout(timeoutId);
-			}
-			timeoutId = window.setTimeout(() => {
-				localStorage.setItem(this.storageKey, JSON.stringify(this.cachedState));
-				timeoutId = null;
-			}, 1000); // Save after 1 second of inactivity
-		};
-	})();
-
-	public getSelectedDataset(): string | null {
-		return this.getState().selectedDataset;
-	}
-
-	public setSelectedDataset(fileName: string | null): void {
-		const state = this.getState();
-		state.selectedDataset = fileName;
-		this.setState(state);
-	}
-
-	public getColumnState(datasetId: string): {
-		selectedColumns: string[];
-		columnOrder: string[];
-		columnWidths: Record<string, number>;
-		sort: SortConfig[];
-	} {
-		const state = this.getState();
+	private getColumnState(datasetId: string) {
+		const storage = StorageService.getInstance();
+		const state = storage.loadState();
 		return (
-			state.columnStates[datasetId] || {
+			state.datasetViews[datasetId] || {
 				selectedColumns: [],
 				columnOrder: [],
 				columnWidths: {},
@@ -83,13 +25,11 @@ export class UIStateService {
 	}
 
 	public hasColumnState(datasetId: string): boolean {
-		const state = this.getState();
-		const columnState = state.columnStates[datasetId];
+		const state = this.getColumnState(datasetId);
 		return !!(
-			columnState &&
-			(columnState.selectedColumns.length > 0 ||
-				columnState.columnOrder.length > 0 ||
-				Object.keys(columnState.columnWidths || {}).length > 0)
+			state.selectedColumns.length > 0 ||
+			state.columnOrder.length > 0 ||
+			Object.keys(state.columnWidths || {}).length > 0
 		);
 	}
 
@@ -100,70 +40,54 @@ export class UIStateService {
 		columnWidths: Record<string, number> = {},
 		sort: SortConfig[] = []
 	): void {
-		const state = this.getState();
-		state.columnStates[fileName] = {
-			selectedColumns,
-			columnOrder,
-			columnWidths,
-			sort
-		};
-		this.setState(state);
-	}
-
-	public updateColumnWidth(fileName: string, column: string, width: number): void {
-		const state = this.getState();
-		const columnState = state.columnStates[fileName] || {
-			selectedColumns: [],
-			columnOrder: [],
-			columnWidths: {}
-		};
-
-		columnState.columnWidths = {
-			...columnState.columnWidths,
-			[column]: width
-		};
-
-		state.columnStates[fileName] = columnState;
-		this.setState(state);
-	}
-
-	public clearStateForDataset(fileName: string): void {
-		const state = this.getState();
-		delete state.columnStates[fileName];
-		if (state.selectedDataset === fileName) {
-			state.selectedDataset = null;
-		}
-		this.setState(state);
-	}
-
-	public clearAll(): void {
-		this.setState({
-			selectedDataset: null,
-			columnStates: {}
-		});
-	}
-
-	// Add method to handle storage events from other tabs
-	public initStorageSync(): void {
-		window.addEventListener('storage', (e) => {
-			if (e.key === this.storageKey && e.newValue) {
-				this.cachedState = JSON.parse(e.newValue);
+		const storage = StorageService.getInstance();
+		storage.saveState({
+			datasetViews: {
+				[fileName]: {
+					selectedColumns,
+					columnOrder,
+					columnWidths,
+					sort
+				}
 			}
 		});
 	}
 
-	setUIState(state: { leftSidebarOpen: boolean; rightSidebarOpen: boolean }) {
-		localStorage.setItem('ui-state', JSON.stringify(state));
+	public updateColumnWidth(fileName: string, column: string, width: number): void {
+		const state = this.getColumnState(fileName);
+		const storage = StorageService.getInstance();
+
+		storage.saveState({
+			datasetViews: {
+				[fileName]: {
+					...state,
+					columnWidths: {
+						...state.columnWidths,
+						[column]: width
+					}
+				}
+			}
+		});
 	}
 
-	getUIState(): { leftSidebarOpen: boolean; rightSidebarOpen: boolean } {
-		const stored = localStorage.getItem('ui-state');
-		if (stored) {
-			return JSON.parse(stored);
-		}
-		return {
-			leftSidebarOpen: true,
-			rightSidebarOpen: true
-		};
+	public clearStateForDataset(fileName: string): void {
+		const storage = StorageService.getInstance();
+		const state = storage.loadState();
+
+		const { [fileName]: _, ...rest } = state.datasetViews;
+		storage.saveState({ datasetViews: rest });
+	}
+
+	public clearAll(): void {
+		const storage = StorageService.getInstance();
+		storage.saveState({ datasetViews: {} });
+	}
+
+	public initStorageSync(): void {
+		window.addEventListener('storage', (e) => {
+			if (e.key === StorageService.STORAGE_KEY) {
+				StorageService.getInstance().loadState();
+			}
+		});
 	}
 }

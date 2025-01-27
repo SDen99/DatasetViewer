@@ -1,10 +1,11 @@
 import { errorStore, ErrorSeverity } from '$lib/core/stores/errorStore';
-import { storeCoordinator } from '$lib/core/stores/storeCoordinator.svelte';
 import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 import { tableUIStore } from '$lib/core/stores/tableUIStore.svelte';
 import { sortStore } from '$lib/core/stores/sortStore.svelte';
 import type { InitState, ServiceContainer as ServiceContainerType } from '$lib/core/types/types';
 import { ServiceContainer } from '$lib/core/stores/serviceContainer';
+import { StorageService } from './StorageServices';
+import { UIStore } from '$lib/core/stores/UIStore.svelte'
 
 export class InitializationManager {
 	status = $state<InitState>({
@@ -20,14 +21,17 @@ export class InitializationManager {
 			console.log('🟡 Starting initialization...');
 			await this.beginInitialization();
 
+			console.log('🟡 Resetting stores to initial state...');
+			await this.resetStores();
+
 			console.log('🟡 Initializing services...');
 			const container = await this.initializeServices();
 
-			console.log('🟡 Initializing stores...');
-			await this.initializeStores(container);
-
 			console.log('🟡 Restoring state...');
 			await this.restoreState(container);
+
+			console.log('🟡 Initializing stores...');
+			await this.initializeStores(container);
 
 			console.log('🟢 Completing initialization...');
 			this.completeInitialization(container);
@@ -35,6 +39,53 @@ export class InitializationManager {
 			console.error('🔴 Initialization failed:', error);
 			this.handleInitializationError(error);
 			throw error;
+		}
+	}
+
+	private async resetStores() {
+		// Only reset stores that should start fresh
+		tableUIStore.reset();
+		sortStore.reset();
+		// Explicitly NOT resetting UIStore since we want to preserve/restore its state
+	}
+
+	private async initializeStores(container: ServiceContainerType) {
+		this.updateProgress('dataset', 'Loading datasets...');
+
+		// Initialize dataset store
+		const datasetService = container.getDatasetService();
+		const datasets = await datasetService.getAllDatasets();
+		datasetStore.setDatasets(datasets);
+	}
+
+	private async restoreState(container: ServiceContainerType) {
+		this.updateProgress('ui', 'Restoring application state...');
+
+		const uiService = container.getUIStateService();
+		uiService.initStorageSync();
+
+		// Get all saved state from StorageService
+		const storage = StorageService.getInstance();
+		const state = storage.loadState();
+		
+		// Restore dataset selection
+		const selectedId = state.lastSelectedDataset;
+		if (selectedId && datasetStore.datasets[selectedId]) {
+			datasetStore.selectDataset(selectedId);
+		}
+
+		// Restore UI preferences
+		if (state.uiPreferences) {
+			console.log('Found UI preferences in storage:', state.uiPreferences);
+			const uiStore = UIStore.getInstance();
+			console.log('Current UI state before restore:', uiStore.uiState);
+			uiStore.uiState = {
+				...uiStore.uiState,
+				...state.uiPreferences
+			};
+			console.log('UI state after restore:', uiStore.uiState);
+		} else {
+			console.log('No UI preferences found in storage');
 		}
 	}
 
@@ -61,34 +112,6 @@ export class InitializationManager {
 		} catch (error) {
 			console.error('🔴 Error initializing services:', error);
 			throw error; // Re-throw to be caught by the main initialize() method
-		}
-	}
-
-	private async initializeStores(container: ServiceContainerType) {
-		this.updateProgress('dataset', 'Loading datasets...');
-
-		// Initialize dataset store
-		const datasetService = container.getDatasetService();
-		const datasets = await datasetService.getAllDatasets();
-		datasetStore.setDatasets(datasets);
-
-		// Reset other stores to known state
-		tableUIStore.reset();
-		sortStore.reset();
-	}
-
-	private async restoreState(container: ServiceContainerType) {
-		this.updateProgress('ui', 'Restoring application state...');
-
-		const uiService = container.getUIStateService();
-		uiService.initStorageSync();
-
-		// Get selected dataset from UI state
-		const selectedId = uiService.getSelectedDataset();
-
-		// Use StoreCoordinator to restore state
-		if (selectedId && datasetStore.datasets[selectedId]) {
-			storeCoordinator.selectDataset(selectedId);
 		}
 	}
 

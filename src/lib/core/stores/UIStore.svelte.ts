@@ -1,24 +1,38 @@
+import { StorageService } from '../services/StorageServices';
+import type { UIState } from '$lib/core/services/StorageServices';
+
 export class UIStore {
 	private static instance: UIStore;
+	private initialized = false;
 
-	// State
-	uiState = $state({
+	uiState = $state<UIState>({
 		leftSidebarOpen: true,
 		rightSidebarOpen: true,
+		viewMode: 'data',
 		SDTM: false,
-		ADaM: false,
-		viewMode: 'data' as 'data' | 'metadata' | 'split'
+		ADaM: false
 	});
 
-	constructor() {
-		// Create an effect root for store initialization
+	private constructor() {
+		// Load initial state from storage
+		const storage = StorageService.getInstance();
+		const savedState = storage.loadState();
+		if (savedState.uiPreferences) {
+			this.uiState = savedState.uiPreferences;
+		}
 
+		// Only set up the effect after initial state is loaded
 		$effect.root(() => {
-			// Create effect to track UI state changes
 			$effect(() => {
-				$inspect('[UIStore] UI State updated:', this.uiState);
+				if (this.initialized) {
+					StorageService.getInstance().saveState({
+						uiPreferences: this.uiState
+					});
+				}
 			});
 		});
+
+		this.initialized = true;
 	}
 
 	static getInstance(): UIStore {
@@ -35,46 +49,10 @@ export class UIStore {
 		};
 	}
 
-	restore(state: {
-		leftSidebarOpen: boolean;
-		rightSidebarOpen: boolean;
-		SDTM: boolean;
-		ADaM: boolean;
-		viewMode: 'data' | 'metadata' | 'split';
-	}) {
-		this.uiState = state;
-	}
-
 	setViewMode(mode: 'data' | 'metadata' | 'split') {
 		this.uiState = {
 			...this.uiState,
 			viewMode: mode
-		};
-	}
-
-	setUIState(state: {
-		leftSidebarOpen: boolean;
-		rightSidebarOpen: boolean;
-		SDTM: boolean;
-		ADaM: boolean;
-		viewMode: 'data' | 'metadata' | 'split';
-	}) {
-		this.uiState = state;
-	}
-
-	// Add method to get current state
-	getUIState() {
-		return { ...this.uiState };
-	}
-
-	// Add method to reset to defaults
-	reset() {
-		this.uiState = {
-			leftSidebarOpen: true,
-			rightSidebarOpen: true,
-			SDTM: false,
-			ADaM: false,
-			viewMode: 'data'
 		};
 	}
 
@@ -85,6 +63,18 @@ export class UIStore {
 			ADaM: isADaM
 		};
 	}
+
+	reset() {
+		this.uiState = {
+			leftSidebarOpen: true,
+			rightSidebarOpen: true,
+			viewMode: 'data',
+			SDTM: false,
+			ADaM: false
+		};
+	}
 }
 
 export const uiStore = UIStore.getInstance();
+
+window.UIStore = uiStore.uiState

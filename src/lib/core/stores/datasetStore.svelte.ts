@@ -1,30 +1,18 @@
 import type { Dataset, DatasetLoadingState, ProcessingStats } from '$lib/core/types/types';
 import { DatasetService } from '$lib/core/services/datasetService';
-import { tableUIStore } from './tableUIStore.svelte';
-import { sortStore } from './sortStore.svelte';
+import { tableUIStore } from '$lib/core/stores//tableUIStore.svelte';
+import { sortStore } from '$lib/core/stores/sortStore.svelte';
+import { StorageService } from '$lib/core/services/StorageServices';
 import { storeCoordinator } from './storeCoordinator.svelte';
 import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
-
+import { normalizeDatasetId } from '../utils/datasetUtils';
 export class DatasetStore {
-	private static instance: DatasetStore;
-
-	// State
+	private static instance: DatasetStore | null = null;
 	datasets = $state<Record<string, Dataset>>({});
 	selectedDatasetId = $state<string | null>(null);
 	isLoading = $state(false);
 	loadingDatasets = $state<Record<string, DatasetLoadingState>>({});
-
-	constructor() {
-		// Create an effect root for store initialization
-		$effect.root(() => {
-			// Create effect to track and log dataset changes
-			$effect(() => {
-				$inspect('[DatasetStore] Datasets updated:', this.datasets);
-				$inspect('[DatasetStore] Selected dataset:', this.selectedDatasetId);
-				$inspect('[DatasetStore] Define XML datasets:', this.defineXmlDatasets);
-			});
-		});
-	}
+	originalFilenames = $state<Record<string, string>>({}); // normalized -> original
 
 	processingStats = $state<ProcessingStats>({
 		uploadTime: null,
@@ -32,6 +20,59 @@ export class DatasetStore {
 		numRows: null,
 		datasetSize: null
 	});
+
+	private constructor() {
+		$effect.root(() => {
+			const storage = StorageService.getInstance();
+			const state = storage.loadState();
+			if (state.lastSelectedDataset && this.datasets[state.lastSelectedDataset]) {
+				this.selectDataset(state.lastSelectedDataset);
+			}
+		});
+	}
+
+	persistSelectedDataset = $effect.root(() => {
+		$effect(() => {
+			if (this.selectedDatasetId) {
+				StorageService.getInstance().saveState({
+					lastSelectedDataset: this.selectedDatasetId
+				});
+			}
+		});
+	});
+
+	async deleteDataset(id: string) {
+		try {
+			const datasetService = DatasetService.getInstance();
+			await datasetService.removeDataset(id);
+
+			// Update local state
+			const newDatasets = { ...this.datasets };
+			delete newDatasets[id];
+			this.datasets = newDatasets;
+
+			// Remove from filename mappings
+			const normalizedId = normalizeDatasetId(id);
+			const newFilenames = { ...this.originalFilenames };
+			delete newFilenames[normalizedId];
+			this.originalFilenames = newFilenames;
+
+			// Clear storage state for deleted dataset
+			const storage = StorageService.getInstance();
+			const state = storage.loadState();
+			const { [id]: _, ...remainingViews } = state.datasetViews;
+			storage.saveState({ datasetViews: remainingViews });
+
+			if (this.selectedDatasetId === id) {
+				this.selectDataset(null);
+				tableUIStore.reset();
+				sortStore.reset();
+			}
+		} catch (error) {
+			console.error('Error deleting dataset:', error);
+			throw error;
+		}
+	}
 
 	updateProcessingStats(stats: Partial<ProcessingStats>) {
 		// More defensive update
@@ -52,6 +93,12 @@ export class DatasetStore {
 		console.log('[DatasetStore] Setting datasets:', Object.keys(newDatasets));
 		this.datasets = newDatasets;
 
+		// Update filename mappings
+		Object.keys(newDatasets).forEach((filename) => {
+			const normalizedId = normalizeDatasetId(filename);
+			this.originalFilenames[normalizedId] = filename;
+		});
+
 		// Only auto-select if we don't have a current selection
 		if (!this.selectedDatasetId && Object.keys(newDatasets).length > 0) {
 			this.selectDataset(Object.keys(newDatasets)[0]);
@@ -59,30 +106,16 @@ export class DatasetStore {
 	}
 
 	selectDataset(id: string | null) {
-		storeCoordinator.selectDataset(id);
+		if (id) {
+			const normalizedId = normalizeDatasetId(id);
+			this.originalFilenames[normalizedId] = id;
+		}
+		this.selectedDatasetId = id;
+		storeCoordinator.setDataset(id, this.datasets, this.defineXmlDatasets);
 	}
 
-	async deleteDataset(id: string) {
-		try {
-			// Remove from IndexedDB first
-			const datasetService = DatasetService.getInstance();
-			await datasetService.removeDataset(id);
-
-			// Update local state
-			const newDatasets = { ...this.datasets };
-			delete newDatasets[id];
-			this.datasets = newDatasets;
-
-			// Clear UI state if needed
-			if (this.selectedDatasetId === id) {
-				this.selectDataset(null);
-				tableUIStore.reset();
-				sortStore.reset();
-			}
-		} catch (error) {
-			console.error('Error deleting dataset:', error);
-			throw error;
-		}
+	getOriginalFilename(normalizedId: string): string | undefined {
+		return this.originalFilenames[normalizedId];
 	}
 
 	setLoadingState(loading: boolean) {

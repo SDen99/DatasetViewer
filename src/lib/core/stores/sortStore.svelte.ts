@@ -1,10 +1,33 @@
 import type { SortConfig } from '$lib/core/types/types';
+import { StorageService } from '$lib/core/services/StorageServices';
 
 export class SortStore {
 	private static instance: SortStore;
 
 	// State
 	sort = $state<SortConfig[]>([]);
+
+	private constructor() {
+		$effect.root(() => {
+		  $effect(() => {
+			const datasetId = StorageService.getInstance().loadState().lastSelectedDataset;
+			if (!datasetId) return;
+	
+			const storage = StorageService.getInstance();
+			const state = storage.loadState();
+			const views = state.datasetViews[datasetId] || {};
+	
+			storage.saveState({
+			  datasetViews: {
+				[datasetId]: {
+				  ...views,
+				  sort: this.sort
+				}
+			  }
+			});
+		  });
+		});
+	  }
 
 	reset() {
 		this.sort = [];
@@ -19,7 +42,7 @@ export class SortStore {
 		this.restore(sortConfig);
 	}
 
-	private constructor() {}
+
 
 	static getInstance(): SortStore {
 		if (!SortStore.instance) {
