@@ -135,6 +135,11 @@ export class DatasetService {
 
 		console.log('🟡 DatasetService: Starting removal of dataset:', fileName);
 
+		// Get current state
+		this.getAllDatasets().then((datasets) => {
+			console.log('🟡 Current DB state before deletion:', datasets);
+		});
+
 		return new Promise((resolve, reject) => {
 			const transaction = this.db!.transaction('datasets', 'readwrite');
 			const store = transaction.objectStore('datasets');
@@ -143,6 +148,10 @@ export class DatasetService {
 
 			transaction.oncomplete = () => {
 				console.log('🟢 DatasetService: Transaction completed successfully');
+				// Get state after deletion
+				this.getAllDatasets().then((datasets) => {
+					console.log('🟢 DB state after deletion:', datasets);
+				});
 				resolve();
 			};
 

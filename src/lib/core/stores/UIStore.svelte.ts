@@ -59,8 +59,8 @@ export class UIStore {
 	setDefineXMLType(isSDTM: boolean, isADaM: boolean) {
 		this.uiState = {
 			...this.uiState,
-			SDTM: isSDTM,
-			ADaM: isADaM
+			SDTM: Boolean(isSDTM),
+			ADaM: Boolean(isADaM)
 		};
 	}
 

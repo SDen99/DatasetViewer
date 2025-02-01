@@ -3,7 +3,7 @@ import { sortStore } from './sortStore.svelte';
 import { findDatasetByName } from '$lib/core/utils/datasetUtils';
 import { StorageService } from '$lib/core/services/StorageServices';
 import { datasetStore } from './datasetStore.svelte';
-import { UIStore }	from './UIStore.svelte'
+import { UIStore } from './UIStore.svelte';
 
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
@@ -12,7 +12,18 @@ export class StoreCoordinator {
 		timestamp: number;
 	} | null>(null);
 
-	private constructor() {}
+	private constructor() {
+		// Initialize effects in constructor
+		$effect.root(() => {
+			$effect(() => {
+				// Get the current state from datasetStore
+				const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+
+				// Sync with UIStore
+				UIStore.getInstance().setDefineXMLType(Boolean(SDTM), Boolean(ADaM));
+			});
+		});
+	}
 
 	static getInstance(): StoreCoordinator {
 		if (!StoreCoordinator.instance) {
@@ -61,9 +72,9 @@ export class StoreCoordinator {
 	selectDataset(id: string | null) {
 		datasetStore.selectedDatasetId = id;
 		this.setDataset(id, datasetStore.datasets, datasetStore.defineXmlDatasets);
-	  }
+	}
 
-	  updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {
+	updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {
 		UIStore.getInstance().setDefineXMLType(hasSDTM, hasADaM);
 	}
 }
