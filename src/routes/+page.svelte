@@ -18,8 +18,7 @@
 
 	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
-	import DefineXmlSidebar from '$lib/components/data/DefineXmlSidebar.svelte';
-	import DatasetList from '$lib/components/data/DatasetList.svelte';
+	import DataXmlList from '$lib/components/data/DataXmlList.svelte';
 
 	let FileManager = $state<FileImportManager | null>(null);
 	let isLoading = $derived(
@@ -76,7 +75,7 @@
 	async function initializeApp() {
 		try {
 			console.log('Starting initialization...');
-			await initManager.initialize(); // Add this line
+			await initManager.initialize();
 			const container = initManager.status.container;
 
 			if (!container) {
@@ -129,12 +128,12 @@
 
 {#snippet leftbar()}
 	{#if hasDefineXml}
-		<DefineXmlSidebar
+		<DataXmlList
 			sdtmDefine={defineXmlFiles.SDTM ?? null}
-			adamDefine={defineXmlFiles.ADaM ?? null}
+			adamDefine={defineXmlFiles.SDTM ?? null}
 		/>
 	{:else}
-		<DatasetList />
+		<DataXmlList />
 	{/if}
 {/snippet}
 
