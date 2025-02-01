@@ -44,6 +44,11 @@ export interface Dataset {
 		num_rows: number;
 	};
 	processingStats: ProcessingStats;
+	defineAssociation?: {
+		type: 'SDTM' | 'ADaM';
+		defineId: string;
+		timestamp: number;
+	};
 }
 export interface DatasetLoadingState {
 	progress: number; // 0 to 100

@@ -166,6 +166,59 @@ export class DatasetStore {
 			ADaM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('ADaM')) ?? null
 		};
 	});
+
+	datasetAssociations = $derived.by(() => {
+		const associations: Record<string, { type: 'SDTM' | 'ADaM'; defineId: string }> = {};
+
+		Object.entries(this.datasets).forEach(([id, dataset]) => {
+			if (dataset.defineAssociation) {
+				associations[normalizeDatasetId(id)] = {
+					type: dataset.defineAssociation.type,
+					defineId: dataset.defineAssociation.defineId
+				};
+			}
+		});
+
+		return associations;
+	});
+
+	// New methods for handling associations
+	async associateWithDefine(datasetId: string, defineType: 'SDTM' | 'ADaM', defineId: string) {
+		const dataset = this.datasets[datasetId];
+		if (dataset) {
+			const updatedDataset = {
+				...dataset,
+				defineAssociation: {
+					type: defineType,
+					defineId,
+					timestamp: Date.now()
+				}
+			};
+
+			await DatasetService.getInstance().addDataset(updatedDataset);
+			this.datasets = {
+				...this.datasets,
+				[datasetId]: updatedDataset
+			};
+		}
+	}
+
+	async removeDefineAssociations(defineId: string) {
+		const updates = Object.entries(this.datasets)
+			.filter(([_, dataset]) => dataset.defineAssociation?.defineId === defineId)
+			.map(async ([id, dataset]) => {
+				const { defineAssociation, ...rest } = dataset;
+				const updatedDataset = { ...rest };
+				await DatasetService.getInstance().addDataset(updatedDataset);
+				return [id, updatedDataset];
+			});
+
+		const updatedDatasets = await Promise.all(updates);
+		this.datasets = {
+			...this.datasets,
+			...Object.fromEntries(updatedDatasets)
+		};
+	}
 }
 
 export const datasetStore = DatasetStore.getInstance();

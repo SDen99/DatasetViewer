@@ -1,5 +1,6 @@
 import type { ItemGroup } from '$lib/core/processors/defineXML/types';
 import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+import type { Dataset } from '../types/types';
 
 export function isDatasetLoaded(datasetName: string, loadedDatasets: Set<string>): boolean {
 	return loadedDatasets.has(datasetName);
@@ -27,41 +28,18 @@ export function normalizeDatasetId(name: string): string {
 export function findDatasetByName(
 	datasets: Record<string, any>,
 	name: string,
-	defineData?: {
-		SDTM: ParsedDefineXML | null;
-		ADaM: ParsedDefineXML | null;
-	}
-): any {
+	defineXmlDatasets: any
+): Dataset | null {
 	const normalizedName = normalizeDatasetId(name);
 
-	// First try exact match in actual datasets
-	if (datasets[name]) {
-		return datasets[name];
-	}
+	// First try direct lookup
+	const dataset = datasets[name];
+	if (dataset) return dataset;
 
-	// Then try normalized match in actual datasets
-	const normalizedMatch = Object.entries(datasets).find(
-		([key]) => normalizeDatasetId(key) === normalizedName
-	)?.[1];
-	if (normalizedMatch) {
-		return normalizedMatch;
-	}
-
-	// Finally check metadata-only datasets
-	if (defineData) {
-		const sdtmMatch = defineData.SDTM?.itemGroups?.find(
-			(g) => normalizeDatasetId(g.Name || '') === normalizedName
-		);
-		const adamMatch = defineData.ADaM?.itemGroups?.find(
-			(g) => normalizeDatasetId(g.Name || '') === normalizedName
-		);
-
-		if (sdtmMatch || adamMatch) {
-			return {
-				fileName: name,
-				isMetadataOnly: true,
-				metadata: sdtmMatch || adamMatch
-			};
+	// Then try normalized lookup
+	for (const [key, value] of Object.entries(datasets)) {
+		if (normalizeDatasetId(key) === normalizedName) {
+			return value;
 		}
 	}
 
