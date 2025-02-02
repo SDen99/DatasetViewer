@@ -1,11 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import * as Card from '$lib/components/core/card';
 
 	import Navigation from '$lib/components/layout/Navigation.svelte';
 	import MainLayout from '$lib/components/layout//MainLayout.svelte';
-	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
 	import VariableList from '$lib/components/VariableList.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import DataAnalysis from '$lib/components/data/DataAnalysis.svelte';
@@ -19,7 +17,7 @@
 	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 	import DataXmlList from '$lib/components/data/DataXmlList.svelte';
-	import MetadataView from '$lib/components/data/MetadataView.svelte';
+	import DatasetViewTabs from '$lib/components/data/DatasetViewTabs.svelte';
 
 	let FileManager = $state<FileImportManager | null>(null);
 	let isLoading = $derived(
@@ -132,27 +130,20 @@
 {/snippet}
 
 {#snippet mainContent()}
-	{#if selectedDataset}
-		<div class="h-full">
-			<Card.Root class="h-full">
-				<Card.Content class="h-full p-0">
-					<DataTable data={selectedDataset.data} />
-				</Card.Content>
-			</Card.Root>
-		</div>
-	{:else}
-		<div class="flex flex-1 items-center justify-center">
-			<div class="text-center text-muted-foreground">
-				<h3 class="text-lg font-medium">No dataset selected</h3>
-				<p class="text-sm">Select a dataset from the sidebar to view its contents</p>
+	<div class="h-full">
+		{#if datasetStore.selectedDatasetId}
+			<DatasetViewTabs />
+		{:else}
+			<div class="flex h-full items-center justify-center text-muted-foreground">
+				<p>Select a dataset to view</p>
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 {/snippet}
 
 {#snippet rightbar()}
 	<div class="h-full">
-		{#if selectedDataset && selectedDataset.data}
+		{#if selectedDataset?.data}
 			<Tabs.Root value="columns">
 				<Tabs.List>
 					<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>

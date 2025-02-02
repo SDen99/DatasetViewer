@@ -91,6 +91,10 @@ export class StoreCoordinator {
 			// If we have data, initialize table store with dataset columns
 			this.setDataset(originalId, datasetStore.datasets, datasetStore.defineXmlDatasets);
 			UIStore.getInstance().setViewMode('data');
+			UIStore.getInstance().uiState = {
+				...UIStore.getInstance().uiState,
+				rightSidebarOpen: true // Changed from false to true
+			};
 		} else if (hasMetadata) {
 			// For metadata-only datasets, initialize table store with metadata columns
 			const defineData = datasetStore.defineXmlDatasets;
@@ -107,6 +111,11 @@ export class StoreCoordinator {
 
 				tableUIStore.initialize(columnNames);
 			}
+
+			UIStore.getInstance().uiState = {
+				...UIStore.getInstance().uiState,
+				rightSidebarOpen: false
+			};
 
 			sortStore.reset();
 			UIStore.getInstance().setViewMode('metadata');
