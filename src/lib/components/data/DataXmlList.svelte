@@ -255,7 +255,6 @@
 										</Tooltip.Root>
 									</Tooltip.Provider>
 									<span class="truncate font-medium">{datasetName}</span>
-									<!-- Keep your existing badges here -->
 								</div>
 							</button>
 
