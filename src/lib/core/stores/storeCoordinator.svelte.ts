@@ -1,6 +1,6 @@
 import { tableUIStore } from './tableUIStore.svelte';
 import { sortStore } from './sortStore.svelte';
-import { findDatasetByName } from '$lib/core/utils/datasetUtils';
+import { findDatasetByName, normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 import { StorageService } from '$lib/core/services/StorageServices';
 import { datasetStore } from './datasetStore.svelte';
 import { UIStore } from './UIStore.svelte';
@@ -70,8 +70,55 @@ export class StoreCoordinator {
 	}
 
 	selectDataset(id: string | null) {
-		datasetStore.selectedDatasetId = id;
-		this.setDataset(id, datasetStore.datasets, datasetStore.defineXmlDatasets);
+		if (id === null) {
+			datasetStore.selectedDatasetId = null;
+			tableUIStore.reset();
+			sortStore.reset();
+			return;
+		}
+
+		const normalizedId = normalizeDatasetId(id);
+		const originalId = datasetStore.getOriginalFilename(normalizedId) || id;
+
+		// Get dataset state to determine view mode
+		const dataset = datasetStore.datasets[originalId];
+		const hasData = !!dataset?.data;
+		const hasMetadata = this.hasMetadataForDataset(normalizedId);
+
+		datasetStore.selectedDatasetId = originalId;
+
+		if (hasData) {
+			// If we have data, initialize table store with dataset columns
+			this.setDataset(originalId, datasetStore.datasets, datasetStore.defineXmlDatasets);
+			UIStore.getInstance().setViewMode('data');
+		} else if (hasMetadata) {
+			// For metadata-only datasets, initialize table store with metadata columns
+			const defineData = datasetStore.defineXmlDatasets;
+			const metadata =
+				defineData.SDTM?.itemGroups.find((g) => normalizeDatasetId(g.Name) === normalizedId) ||
+				defineData.ADaM?.itemGroups.find((g) => normalizeDatasetId(g.Name) === normalizedId);
+
+			if (metadata) {
+				const define = metadata.Name.includes('AD') ? defineData.ADaM : defineData.SDTM;
+				const variables =
+					define?.itemDefs.filter((item) => normalizeDatasetId(item.Dataset) === normalizedId) ||
+					[];
+				const columnNames = variables.map((v) => v.Name);
+
+				tableUIStore.initialize(columnNames);
+			}
+
+			sortStore.reset();
+			UIStore.getInstance().setViewMode('metadata');
+		}
+	}
+
+	private hasMetadataForDataset(normalizedName: string): boolean {
+		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+		return !!(
+			SDTM?.itemGroups?.some((g) => normalizeDatasetId(g.Name) === normalizedName) ||
+			ADaM?.itemGroups?.some((g) => normalizeDatasetId(g.Name) === normalizedName)
+		);
 	}
 
 	updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {

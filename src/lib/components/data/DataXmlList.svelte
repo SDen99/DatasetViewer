@@ -12,10 +12,7 @@
 	import DefineXMLBadges from '$lib/components/data/DefineXMLBadges.svelte';
 
 	// Props to maintain compatibility with DefineXMLSidebar
-	let { sdtmDefine = null, adamDefine = null } = $props<{
-		sdtmDefine?: ParsedDefineXML | null;
-		adamDefine?: ParsedDefineXML | null;
-	}>();
+	const { SDTM: sdtmDefine, ADaM: adamDefine } = $derived(datasetStore.defineXmlDatasets);
 
 	function getDatasetStateInfo(state: {
 		hasData: boolean;
@@ -108,9 +105,9 @@
 	let allDatasets = $derived.by(() => {
 		const datasetSet = new Set<string>();
 
-		// Add normalized names from actual data (excluding Define.xml)
+		// Add from actual datasets
 		Object.entries(datasetStore.datasets).forEach(([name, dataset]) => {
-			// Check if it's a Define.xml file
+			// Check if it's not a Define.xml file
 			const isDefineXml =
 				dataset.data &&
 				typeof dataset.data === 'object' &&
@@ -122,24 +119,22 @@
 			}
 		});
 
-		// Add normalized names from loading state
+		// Add from loading state
 		Object.keys(datasetStore.loadingDatasets).forEach((name) =>
 			datasetSet.add(normalizeDatasetId(name))
 		);
 
-		// Add normalized names from SDTM metadata if available
+		// Add from Define.xml metadata
 		sdtmDefine?.itemGroups?.forEach((group) => {
 			const name = group.SASDatasetName || group.Name || '';
 			if (name) datasetSet.add(normalizeDatasetId(name));
 		});
 
-		// Add normalized names from ADaM metadata if available
 		adamDefine?.itemGroups?.forEach((group) => {
 			const name = group.SASDatasetName || group.Name || '';
 			if (name) datasetSet.add(normalizeDatasetId(name));
 		});
 
-		// Return sorted normalized names
 		return Array.from(datasetSet).sort();
 	});
 
@@ -149,14 +144,6 @@
 
 		// Get Define.xml data directly from the store
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
-
-		console.log('Looking for metadata:', {
-			normalizedName,
-			hasSDTM: Boolean(SDTM),
-			hasADaM: Boolean(ADaM),
-			SDTMGroups: SDTM?.itemGroups?.length,
-			ADAMGroups: ADaM?.itemGroups?.length
-		});
 
 		const sdtmMetadata = SDTM?.itemGroups?.find(
 			(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
@@ -175,32 +162,6 @@
 			([loadingName]) => normalizeDatasetId(loadingName) === normalizedName
 		);
 		return loadingDataset?.[1]?.progress || 0;
-	}
-
-	function getStateIcon(state: {
-		hasData: boolean;
-		hasMetadata: boolean;
-		isLoading: boolean;
-		error?: string;
-	}) {
-		if (state.isLoading) return Loader2;
-		if (state.error) return AlertCircle;
-		if (state.hasData && state.hasMetadata) return Files;
-		if (state.hasData) return Database;
-		return FileText;
-	}
-
-	function getStateTooltip(state: {
-		hasData: boolean;
-		hasMetadata: boolean;
-		isLoading: boolean;
-		error?: string;
-	}) {
-		if (state.isLoading) return 'Loading Dataset';
-		if (state.error) return state.error;
-		if (state.hasData && state.hasMetadata) return 'Data + Metadata Available';
-		if (state.hasData) return 'Data Only';
-		return 'Metadata Only';
 	}
 
 	// Event handlers
@@ -230,16 +191,18 @@
 	}
 
 	function handleDatasetClick(name: string) {
-		console.log('Clicking dataset:', name);
+		console.log('==== Dataset Click Debug ====');
 		const state = getDatasetState(name);
-		console.log('Dataset state:', state);
-		console.log('Dataset content:', state.dataset);
-
-		if (state.hasData && state.dataset) {
-			console.log('Selecting dataset with name:', state.dataset.fileName);
-			storeCoordinator.selectDataset(state.dataset.fileName);
+		if (state.hasData || state.hasMetadata) {
+			storeCoordinator.selectDataset(name);
 		}
 	}
+
+	$effect.root(() => {
+		$effect(() => {
+			$inspect(allDatasets);
+		});
+	});
 </script>
 
 <div class="flex flex-col">
@@ -262,11 +225,11 @@
 						<div class="flex items-center justify-between p-3">
 							<button
 								type="button"
-								class="flex-1 text-left {state.hasData
+								class="flex-1 text-left {state.hasData || state.hasMetadata
 									? 'hover:text-primary'
 									: 'cursor-not-allowed opacity-70'}"
 								onclick={() => handleDatasetClick(datasetName)}
-								disabled={state.isLoading || !state.hasData}
+								disabled={state.isLoading}
 							>
 								<div class="flex items-center gap-2">
 									<Tooltip.Provider>

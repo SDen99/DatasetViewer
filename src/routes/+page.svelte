@@ -19,6 +19,7 @@
 	import * as Tabs from '$lib/components/core/tabs/index.js';
 	import MultiColumnSort from '$lib/components/MultiColumnSort.svelte';
 	import DataXmlList from '$lib/components/data/DataXmlList.svelte';
+	import MetadataView from '$lib/components/data/MetadataView.svelte';
 
 	let FileManager = $state<FileImportManager | null>(null);
 	let isLoading = $derived(
@@ -127,14 +128,7 @@
 {/snippet}
 
 {#snippet leftbar()}
-	{#if hasDefineXml}
-		<DataXmlList
-			sdtmDefine={defineXmlFiles.SDTM ?? null}
-			adamDefine={defineXmlFiles.SDTM ?? null}
-		/>
-	{:else}
-		<DataXmlList />
-	{/if}
+	<DataXmlList />
 {/snippet}
 
 {#snippet mainContent()}
@@ -158,35 +152,33 @@
 
 {#snippet rightbar()}
 	<div class="h-full">
-		<Tabs.Root value="columns">
-			<Tabs.List>
-				<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
-				<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
-				<Tabs.Trigger value="analysis">Analysis</Tabs.Trigger>
-			</Tabs.List>
-			<Tabs.Content value="columns">
-				{#if selectedDataset}
+		{#if selectedDataset && selectedDataset.data}
+			<Tabs.Root value="columns">
+				<Tabs.List>
+					<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
+					<Tabs.Trigger value="sort">Sort Order</Tabs.Trigger>
+					<Tabs.Trigger value="analysis">Analysis</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="columns">
 					<VariableList
 						variables={selectedDataset.details.columns.map((col: string) => ({
 							name: col,
 							dtype: selectedDataset.details.dtypes[col] ?? ''
 						}))}
 					/>
-				{/if}
-			</Tabs.Content>
-			<Tabs.Content value="sort">
-				{#if selectedDataset}
+				</Tabs.Content>
+				<Tabs.Content value="sort">
 					<MultiColumnSort
 						variables={selectedDataset.details.columns.map((col: string) => ({
 							name: col
 						}))}
 					/>
-				{/if}
-			</Tabs.Content>
-			<Tabs.Content value="analysis">
-				<DataAnalysis />
-			</Tabs.Content>
-		</Tabs.Root>
+				</Tabs.Content>
+				<Tabs.Content value="analysis">
+					<DataAnalysis />
+				</Tabs.Content>
+			</Tabs.Root>
+		{/if}
 	</div>
 {/snippet}
 
