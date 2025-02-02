@@ -49,6 +49,7 @@ export interface Dataset {
 		defineId: string;
 		timestamp: number;
 	};
+	isMetadataOnly?: boolean;
 }
 export interface DatasetLoadingState {
 	progress: number; // 0 to 100

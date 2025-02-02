@@ -93,23 +93,27 @@ export class StoreCoordinator {
 			UIStore.getInstance().setViewMode('data');
 			UIStore.getInstance().uiState = {
 				...UIStore.getInstance().uiState,
-				rightSidebarOpen: true // Changed from false to true
+				rightSidebarOpen: true
 			};
 		} else if (hasMetadata) {
 			// For metadata-only datasets, initialize table store with metadata columns
 			const defineData = datasetStore.defineXmlDatasets;
-			const metadata =
-				defineData.SDTM?.itemGroups.find((g) => normalizeDatasetId(g.Name) === normalizedId) ||
-				defineData.ADaM?.itemGroups.find((g) => normalizeDatasetId(g.Name) === normalizedId);
+
+			// Type assertion to handle the nullability while maintaining original behavior
+			const metadata = normalizedId
+				? defineData.SDTM?.itemGroups.find((g) => normalizeDatasetId(g.Name!) === normalizedId) ||
+					defineData.ADaM?.itemGroups.find((g) => normalizeDatasetId(g.Name!) === normalizedId)
+				: null;
 
 			if (metadata) {
-				const define = metadata.Name.includes('AD') ? defineData.ADaM : defineData.SDTM;
+				const define = metadata.Name?.includes('AD') ? defineData.ADaM : defineData.SDTM;
 				const variables =
-					define?.itemDefs.filter((item) => normalizeDatasetId(item.Dataset) === normalizedId) ||
-					[];
-				const columnNames = variables.map((v) => v.Name);
+					define?.itemDefs
+						.filter((item) => normalizeDatasetId(item.Dataset!) === normalizedId)
+						.map((v) => v.Name!)
+						.filter((name): name is string => name != null) || [];
 
-				tableUIStore.initialize(columnNames);
+				tableUIStore.initialize(variables);
 			}
 
 			UIStore.getInstance().uiState = {
@@ -125,8 +129,8 @@ export class StoreCoordinator {
 	private hasMetadataForDataset(normalizedName: string): boolean {
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
 		return !!(
-			SDTM?.itemGroups?.some((g) => normalizeDatasetId(g.Name) === normalizedName) ||
-			ADaM?.itemGroups?.some((g) => normalizeDatasetId(g.Name) === normalizedName)
+			SDTM?.itemGroups?.some((g) => normalizeDatasetId(g.Name!) === normalizedName) ||
+			ADaM?.itemGroups?.some((g) => normalizeDatasetId(g.Name!) === normalizedName)
 		);
 	}
 
