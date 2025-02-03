@@ -81,7 +81,7 @@ export interface method {
 	Name: string | null;
 	Type: string | null;
 	Description: string | null;
-	Document: string | null;
+	Document: string | undefined;
 	Pages: string | null;
 }
 

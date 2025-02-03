@@ -49,7 +49,7 @@ export class UIStore {
 		};
 	}
 
-	setViewMode(mode: 'data' | 'metadata') {
+	setViewMode(mode: 'data' | 'metadata' | 'VLM') {
 		this.uiState = {
 			...this.uiState,
 			viewMode: mode
