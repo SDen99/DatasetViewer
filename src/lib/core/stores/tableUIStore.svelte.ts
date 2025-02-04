@@ -46,8 +46,9 @@ export class TableUIStore {
 	}
 
 	initialize(columns: string[]) {
-		this.selectedColumns = new Set(columns.slice(0, 10));
-		this.columnOrder = columns;
+		const maxColumns = 10;
+		const slicedColumns = columns.slice(0, Math.min(maxColumns, columns.length));
+		this.selectedColumns = new Set(slicedColumns);
 		this.columnWidths = {};
 	}
 
