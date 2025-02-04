@@ -10,25 +10,24 @@ export class TableUIStore {
 
 	private constructor() {
 		$effect.root(() => {
-		  // Persist state changes to storage
-		  $effect(() => {
-			const datasetId = StorageService.getInstance().loadState().lastSelectedDataset;
-			if (!datasetId) return;
-	
-			StorageService.getInstance().saveState({
-			  datasetViews: {
-				[datasetId]: {
-				  selectedColumns: Array.from(this.selectedColumns),
-				  columnOrder: this.columnOrder,
-				  columnWidths: this.columnWidths,
-				  sort: [] // Will be populated by sortStore
-				}
-			  }
+			// Persist state changes to storage
+			$effect(() => {
+				const datasetId = StorageService.getInstance().loadState().lastSelectedDataset;
+				if (!datasetId) return;
+
+				StorageService.getInstance().saveState({
+					datasetViews: {
+						[datasetId]: {
+							selectedColumns: Array.from(this.selectedColumns),
+							columnOrder: this.columnOrder,
+							columnWidths: this.columnWidths,
+							sort: [] // Will be populated by sortStore
+						}
+					}
+				});
 			});
-		  });
 		});
-	  }
-	
+	}
 
 	reset() {
 		this.selectedColumns = new Set();
@@ -47,7 +46,7 @@ export class TableUIStore {
 	}
 
 	initialize(columns: string[]) {
-		this.selectedColumns = new Set(columns.slice(0, 5));
+		this.selectedColumns = new Set(columns.slice(0, 10));
 		this.columnOrder = columns;
 		this.columnWidths = {};
 	}
