@@ -93,33 +93,38 @@
 		</Alert>
 	{:else if rows.length > 0}
 		<div class="rounded-lg border bg-card">
-			<div class="overflow-x-auto">
-				<table class="w-full border-collapse border">
-					<thead>
-						<tr class="bg-muted">
-							{#each columns as column}
-								<th class="whitespace-nowrap border p-2 text-left font-semibold">
-									{column}
-								</th>
-							{/each}
-						</tr>
-					</thead>
-					<tbody>
-						{#each rows as row}
-							<tr class="hover:bg-muted/50">
+			<!-- Add a max-height and overflow for vertical scrolling -->
+			<div class="max-h-[600px] overflow-y-auto">
+				<!-- Add overflow-x-auto for horizontal scrolling -->
+				<div class="overflow-x-auto">
+					<!-- Make the table sticky so headers stay visible -->
+					<table class="w-full border-collapse border">
+						<thead class="sticky top-0 bg-muted">
+							<tr>
 								{#each columns as column}
-									<td class="border p-2">
-										{#if column === 'PARAMCD'}
-											{row[column]}
-										{:else if row[column]}
-											<ExpandableCell content={row[column]} />
-										{/if}
-									</td>
+									<th class="whitespace-nowrap border p-2 text-left font-semibold">
+										{column}
+									</th>
 								{/each}
 							</tr>
-						{/each}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{#each rows as row}
+								<tr class="hover:bg-muted/50">
+									{#each columns as column}
+										<td class="border p-2">
+											{#if column === 'PARAMCD'}
+												{row[column]}
+											{:else if row[column]}
+												<ExpandableCell content={row[column]} />
+											{/if}
+										</td>
+									{/each}
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	{:else}
