@@ -1,11 +1,21 @@
 import type { ParsedDefineXML, valueListDef, whereClauseDef, method } from './types';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 
+export interface ProcessedVLM {
+	dataset: string;
+	variables: Map<string, VLMVariable>;
+}
+
 export interface VLMItemRef {
 	paramcd: string;
 	whereClause?: {
 		comparator: string;
 		checkValues: string[];
+		itemOID?: string; // Reference to source item
+		source?: {
+			domain: string;
+			variable: string;
+		};
 	};
 	method?: {
 		description: string;
@@ -13,8 +23,15 @@ export interface VLMItemRef {
 	};
 	mandatory: boolean;
 	orderNumber: number;
+	sources?: {
+		[variable: string]: {
+			domain?: string;
+			variable?: string;
+			type?: string; // 'direct' | 'derived' | 'predecessor'
+			value?: string;
+		};
+	};
 }
-
 export interface VLMVariable {
 	name: string;
 	valueListDef: {
@@ -88,6 +105,84 @@ export function processValueLevelMetadata(
 		variables: new Map()
 	};
 
+	// Helper to process where clause definitions
+	function processWhereClause(whereClauseOID: string | null): WhereClauseInfo | undefined {
+		if (!whereClauseOID) return undefined;
+
+		const whereClauseDef = define.whereClauseDefs.find((wc) => wc.OID === whereClauseOID);
+		if (!whereClauseDef) {
+			console.warn(`WhereClause not found for OID: ${whereClauseOID}`);
+			return undefined;
+		}
+
+		console.log(`Processing WhereClause: ${whereClauseOID}`);
+
+		return {
+			comparator: whereClauseDef.Comparator || 'EQ',
+			checkValues: whereClauseDef.CheckValues
+				? whereClauseDef.CheckValues.split(',').map((v) => v.trim())
+				: [],
+			itemOID: whereClauseDef.ItemOID,
+			sourceItemDef: define.itemDefs.find((item) => item.OID === whereClauseDef.ItemOID)
+		};
+	}
+
+	// Helper to process method definitions
+	function processMethod(methodOID: string | null): MethodInfo | undefined {
+		if (!methodOID) return undefined;
+
+		const method = define.methods.find((m) => m.OID === methodOID);
+		if (!method) {
+			console.warn(`Method not found for OID: ${methodOID}`);
+			return undefined;
+		}
+
+		return {
+			description: method.Description || '',
+			document: method.Document,
+			type: method.Type || null
+		};
+	}
+
+	// Helper to find dataset items by name
+	function findDatasetItems(datasetName: string, itemName: string) {
+		const itemGroup = define.itemGroups.find((ig) => ig.Name === datasetName);
+		if (!itemGroup) return undefined;
+
+		return itemGroup.items?.find((item) => item.Name === itemName);
+	}
+
+	// Helper to process origins and predecessor information
+	function processOrigins(itemDef: ItemDef): OriginInfo[] {
+		if (!itemDef.Origin) return [];
+
+		// Handle both single Origin and array of Origins
+		const origins = Array.isArray(itemDef.Origin) ? itemDef.Origin : [itemDef.Origin];
+
+		return origins.map((origin) => ({
+			type: origin.Type,
+			source: origin.Source || null,
+			description: origin.Description || null
+		}));
+	}
+
+	// Helper to decode parameter values using codelists
+	function decodeParameter(paramcd: string): string | null {
+		// Find the parameter codelist
+		const paramItemDef = define.itemDefs.find((item) => item.Name === 'PARAM' && item.CodeListRef);
+
+		if (!paramItemDef?.CodeListRef?.CodeListOID) return null;
+
+		const codeList = define.CodeLists.find((cl) => cl.OID === paramItemDef.CodeListRef.CodeListOID);
+
+		if (!codeList) return null;
+
+		// Find the matching codelist item
+		const codeListItem = codeList.CodeListItems?.find((item) => item.CodedValue === paramcd);
+
+		return codeListItem?.Decode?.TranslatedText || null;
+	}
+
 	// Find ValueListDefs for this dataset
 	const datasetValueListDefs = define.valueListDefs.filter((vld) => {
 		const vlDataset = getDatasetFromOID(vld.OID);
@@ -104,10 +199,6 @@ export function processValueLevelMetadata(
 		return matches;
 	});
 
-	console.log(
-		`Found ${datasetValueListDefs.length} ValueListDefs for dataset ${normalizedDatasetName}`
-	);
-
 	// Group ValueListDefs by variable
 	const valueListsByVariable = new Map<string, valueListDef[]>();
 	datasetValueListDefs.forEach((vld) => {
@@ -119,6 +210,33 @@ export function processValueLevelMetadata(
 			valueListsByVariable.set(variable, existingList);
 		}
 	});
+
+	function buildSourcesFromWhereClause(whereClause: any, itemDef: any) {
+		if (!whereClause || !whereClause.sourceItemDef) return {};
+
+		const [domain, variable] = whereClause.sourceItemDef.OID.split('.');
+		return {
+			[variable]: {
+				domain: domain,
+				variable: variable,
+				type: 'direct'
+			}
+		};
+	}
+
+	function buildSourcesFromOrigins(origins: OriginInfo[]) {
+		return origins.reduce((acc, origin) => {
+			if (origin.source) {
+				const [domain, variable] = origin.source.split('.');
+				acc[variable] = {
+					domain,
+					variable,
+					type: origin.type.toLowerCase()
+				};
+			}
+			return acc;
+		}, {});
+	}
 
 	// Process each variable's VLM
 	valueListsByVariable.forEach((vlDefs, variableName) => {
@@ -135,27 +253,37 @@ export function processValueLevelMetadata(
 		vlDefs.forEach((vld) => {
 			if (!vld.WhereClauseOID) return;
 
-			const whereClause = processWhereClause(vld.WhereClauseOID, define.whereClauseDefs);
+			const whereClause = processWhereClause(vld.WhereClauseOID);
 			if (!whereClause?.checkValues.length) return;
 
-			const method = processMethod(vld.MethodOID, define.methods);
+			const method = processMethod(vld.MethodOID);
+			const itemDef = define.itemDefs.find((item) => item.OID === vld.ItemOID);
+			const origins = itemDef ? processOrigins(itemDef) : [];
 
-			console.log(`Adding ItemRef for ${variableName}:`, {
-				paramcd: whereClause.checkValues[0],
-				mandatory: vld.Mandatory === 'Yes',
-				hasMethod: !!method
-			});
+			// Build sources from both where clause and origins
+			const sourcesFromWhere = buildSourcesFromWhereClause(whereClause, itemDef);
+			const sourcesFromOrigins = buildSourcesFromOrigins(origins);
 
-			vlmVariable.valueListDef.itemRefs.push({
+			const itemRef: VLMItemRef = {
 				paramcd: whereClause.checkValues[0],
 				whereClause,
 				method,
+				origins,
 				mandatory: vld.Mandatory === 'Yes',
-				orderNumber: parseInt(vld.OrderNumber || '0', 10)
-			});
+				orderNumber: parseInt(vld.OrderNumber || '0', 10),
+				param: decodeParameter(whereClause.checkValues[0]),
+				itemDef,
+				sources: {
+					...sourcesFromWhere,
+					...sourcesFromOrigins
+				}
+			};
+
+			vlmVariable.valueListDef.itemRefs.push(itemRef);
 		});
 
 		if (vlmVariable.valueListDef.itemRefs.length > 0) {
+			// Sort by order number
 			vlmVariable.valueListDef.itemRefs.sort((a, b) => a.orderNumber - b.orderNumber);
 			result.variables.set(variableName, vlmVariable);
 		}
@@ -172,3 +300,5 @@ export function processValueLevelMetadata(
 
 	return result;
 }
+
+// Helper function to extract dataset name from OID
