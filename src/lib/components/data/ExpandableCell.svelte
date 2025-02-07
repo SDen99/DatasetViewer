@@ -1,46 +1,24 @@
 <script lang="ts">
-	let { content } = $props<{ content: string }>();
-	let expanded = $state(false);
-	let truncatedContent = $derived(content.length > 100 ? content.slice(0, 100) + '...' : content);
+	let { content = '' } = $props<{ content: string }>();
 
-	function toggleExpanded() {
-		expanded = !expanded;
-	}
-
-	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			toggleExpanded();
-			event.preventDefault();
-		}
-	}
+	let isExpanded = $state(false);
+	let shouldTruncate = $derived(content.length > 1000);
+	let displayContent = $derived(
+		isExpanded ? content : content.slice(0, 1000) + (shouldTruncate ? '...' : '')
+	);
 </script>
 
-<div
-	class="relative"
-	role="button"
-	tabindex="0"
-	onclick={toggleExpanded}
-	onkeydown={handleKeyDown}
-	aria-expanded={expanded}
->
-	<div>
-		{#if expanded}
-			{content}
-		{:else}
-			{truncatedContent}
-		{/if}
+<div class="relative">
+	<div class="whitespace-pre-wrap">
+		{@html displayContent}
 	</div>
-	{#if content.length > 100}
+
+	{#if shouldTruncate}
 		<button
-			type="button"
-			class="mt-1 text-sm text-blue-500 hover:text-blue-700"
-			onclick={(e) => {
-				e.stopPropagation();
-				toggleExpanded();
-			}}
-			aria-label={expanded ? 'Show less' : 'Show more'}
+			class="mt-1 text-xs text-blue-500 hover:text-blue-700"
+			on:click={() => (isExpanded = !isExpanded)}
 		>
-			{expanded ? 'Show less' : 'Show more'}
+			{isExpanded ? 'Show Less' : 'Show More'}
 		</button>
 	{/if}
 </div>

@@ -1,37 +1,48 @@
-import type { ParsedDefineXML, valueListDef, whereClauseDef, method } from './types';
+import type { ParsedDefineXML, method, itemDef, whereClauseDef } from './types';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 
-export interface ProcessedVLM {
-	dataset: string;
-	variables: Map<string, VLMVariable>;
+// Enhanced interfaces
+export interface OriginInfo {
+	type: string;
+	source: string | null;
+	description?: string | null;
+	translatedText?: string | null; // Add translated text from Origin
+}
+
+export interface MethodInfo {
+	type: string | null;
+	description: string | null;
+	document?: string;
+	translatedText?: string | null; // Add translated text from Method
 }
 
 export interface VLMItemRef {
 	paramcd: string;
+	paramInfo?: CodeListInfo;
 	whereClause?: {
 		comparator: string;
 		checkValues: string[];
-		itemOID?: string; // Reference to source item
+		itemOID?: string;
 		source?: {
 			domain: string;
 			variable: string;
 		};
 	};
-	method?: {
-		description: string;
-		document?: string;
-	};
+	method?: MethodInfo;
+	origin?: OriginInfo;
+	itemDescription?: string | null; // Add ItemDef description
 	mandatory: boolean;
 	orderNumber: number;
 	sources?: {
 		[variable: string]: {
 			domain?: string;
 			variable?: string;
-			type?: string; // 'direct' | 'derived' | 'predecessor'
+			type?: string;
 			value?: string;
 		};
 	};
 }
+
 export interface VLMVariable {
 	name: string;
 	valueListDef: {
@@ -47,55 +58,14 @@ export interface ProcessedVLM {
 	variables: Map<string, VLMVariable>;
 }
 
-function getDatasetFromOID(oid: string | null): string | null {
-	if (!oid) return null;
-	// Extract dataset name from patterns like:
-	// VL.DATASET.VARIABLE
-	// IT.DATASET.VARIABLE
-	const parts = oid.split('.');
-	return parts.length >= 2 ? parts[1] : null;
-}
-
-function processWhereClause(
-	whereClauseOID: string | null,
-	whereClauseDefs: whereClauseDef[]
-): VLMItemRef['whereClause'] | undefined {
-	if (!whereClauseOID) return undefined;
-
-	const whereClause = whereClauseDefs.find((wc) => wc.OID === whereClauseOID);
-	if (!whereClause) return undefined;
-
-	return {
-		comparator: whereClause.Comparator || 'EQ',
-		checkValues: whereClause.CheckValues
-			? whereClause.CheckValues.split(',').map((v) => v.trim())
-			: []
-	};
-}
-
-function processMethod(
-	methodOID: string | null,
-	methods: method[]
-): VLMItemRef['method'] | undefined {
-	if (!methodOID) return undefined;
-
-	const method = methods.find((m) => m.OID === methodOID);
-	if (!method) return undefined;
-
-	return {
-		description: method.Description || '',
-		document: method.Document
-	};
-}
-
 export function processValueLevelMetadata(
 	define: ParsedDefineXML,
 	datasetName: string
 ): ProcessedVLM {
 	const normalizedDatasetName = normalizeDatasetId(datasetName);
 
-	console.log('Processing VLM for dataset:', {
-		input: datasetName,
+	console.log('Starting VLM processing for:', {
+		datasetName,
 		normalized: normalizedDatasetName,
 		totalValueListDefs: define.valueListDefs.length
 	});
@@ -105,200 +75,176 @@ export function processValueLevelMetadata(
 		variables: new Map()
 	};
 
-	// Helper to process where clause definitions
-	function processWhereClause(whereClauseOID: string | null): WhereClauseInfo | undefined {
-		if (!whereClauseOID) return undefined;
-
-		const whereClauseDef = define.whereClauseDefs.find((wc) => wc.OID === whereClauseOID);
-		if (!whereClauseDef) {
-			console.warn(`WhereClause not found for OID: ${whereClauseOID}`);
-			return undefined;
-		}
-
-		console.log(`Processing WhereClause: ${whereClauseOID}`);
-
-		return {
-			comparator: whereClauseDef.Comparator || 'EQ',
-			checkValues: whereClauseDef.CheckValues
-				? whereClauseDef.CheckValues.split(',').map((v) => v.trim())
-				: [],
-			itemOID: whereClauseDef.ItemOID,
-			sourceItemDef: define.itemDefs.find((item) => item.OID === whereClauseDef.ItemOID)
-		};
-	}
-
-	// Helper to process method definitions
-	function processMethod(methodOID: string | null): MethodInfo | undefined {
-		if (!methodOID) return undefined;
-
-		const method = define.methods.find((m) => m.OID === methodOID);
-		if (!method) {
-			console.warn(`Method not found for OID: ${methodOID}`);
-			return undefined;
-		}
-
-		return {
-			description: method.Description || '',
-			document: method.Document,
-			type: method.Type || null
-		};
-	}
-
-	// Helper to find dataset items by name
-	function findDatasetItems(datasetName: string, itemName: string) {
-		const itemGroup = define.itemGroups.find((ig) => ig.Name === datasetName);
-		if (!itemGroup) return undefined;
-
-		return itemGroup.items?.find((item) => item.Name === itemName);
-	}
-
-	// Helper to process origins and predecessor information
-	function processOrigins(itemDef: ItemDef): OriginInfo[] {
-		if (!itemDef.Origin) return [];
-
-		// Handle both single Origin and array of Origins
-		const origins = Array.isArray(itemDef.Origin) ? itemDef.Origin : [itemDef.Origin];
-
-		return origins.map((origin) => ({
-			type: origin.Type,
-			source: origin.Source || null,
-			description: origin.Description || null
-		}));
-	}
-
-	// Helper to decode parameter values using codelists
-	function decodeParameter(paramcd: string): string | null {
-		// Find the parameter codelist
-		const paramItemDef = define.itemDefs.find((item) => item.Name === 'PARAM' && item.CodeListRef);
-
-		if (!paramItemDef?.CodeListRef?.CodeListOID) return null;
-
-		const codeList = define.CodeLists.find((cl) => cl.OID === paramItemDef.CodeListRef.CodeListOID);
-
-		if (!codeList) return null;
-
-		// Find the matching codelist item
-		const codeListItem = codeList.CodeListItems?.find((item) => item.CodedValue === paramcd);
-
-		return codeListItem?.Decode?.TranslatedText || null;
-	}
-
-	// Find ValueListDefs for this dataset
-	const datasetValueListDefs = define.valueListDefs.filter((vld) => {
-		const vlDataset = getDatasetFromOID(vld.OID);
-		const matches = vlDataset && normalizeDatasetId(vlDataset) === normalizedDatasetName;
-
-		console.log('Checking ValueListDef:', {
-			OID: vld.OID,
-			dataset: vlDataset,
-			normalized: vlDataset ? normalizeDatasetId(vlDataset) : null,
-			targetDataset: normalizedDatasetName,
-			matches
-		});
-
-		return matches;
+	// First, find the ItemDef for the dataset itself to get its ItemRef list
+	const datasetItemDef = define.itemDefs.find((itemDef) => {
+		// Dataset ItemDefs typically have OIDs like "IT.datasetname"
+		const oidParts = itemDef.OID.split('.');
+		return oidParts[0] === 'IT' && normalizeDatasetId(oidParts[1]) === normalizedDatasetName;
 	});
 
-	// Group ValueListDefs by variable
-	const valueListsByVariable = new Map<string, valueListDef[]>();
-	datasetValueListDefs.forEach((vld) => {
-		const parts = vld.OID?.split('.');
-		const variable = parts?.[2]; // VL.dataset.variable
-		if (variable) {
-			const existingList = valueListsByVariable.get(variable) || [];
-			existingList.push(vld);
-			valueListsByVariable.set(variable, existingList);
+	if (!datasetItemDef) {
+		console.log('No ItemDef found for dataset:', normalizedDatasetName);
+		return result;
+	}
+
+	// Process each variable in the dataset that has VLM
+	define.valueListDefs.forEach((vlDef) => {
+		// ValueListDef OIDs are typically in format "VL.dataset.variable"
+		const oidParts = vlDef.OID.split('.');
+		if (oidParts[0] !== 'VL' || normalizeDatasetId(oidParts[1]) !== normalizedDatasetName) {
+			return;
 		}
-	});
 
-	function buildSourcesFromWhereClause(whereClause: any, itemDef: any) {
-		if (!whereClause || !whereClause.sourceItemDef) return {};
+		const variableName = oidParts[2];
+		console.log(`Processing VLM for variable: ${variableName}`);
 
-		const [domain, variable] = whereClause.sourceItemDef.OID.split('.');
-		return {
-			[variable]: {
-				domain: domain,
-				variable: variable,
-				type: 'direct'
-			}
-		};
-	}
-
-	function buildSourcesFromOrigins(origins: OriginInfo[]) {
-		return origins.reduce((acc, origin) => {
-			if (origin.source) {
-				const [domain, variable] = origin.source.split('.');
-				acc[variable] = {
-					domain,
-					variable,
-					type: origin.type.toLowerCase()
-				};
-			}
-			return acc;
-		}, {});
-	}
-
-	// Process each variable's VLM
-	valueListsByVariable.forEach((vlDefs, variableName) => {
-		console.log(`Processing variable: ${variableName} with ${vlDefs.length} ValueListDefs`);
-
-		const vlmVariable: VLMVariable = {
-			name: variableName,
-			valueListDef: {
-				OID: vlDefs[0].OID || '',
-				itemRefs: []
-			}
-		};
-
-		vlDefs.forEach((vld) => {
-			if (!vld.WhereClauseOID) return;
-
-			const whereClause = processWhereClause(vld.WhereClauseOID);
-			if (!whereClause?.checkValues.length) return;
-
-			const method = processMethod(vld.MethodOID);
-			const itemDef = define.itemDefs.find((item) => item.OID === vld.ItemOID);
-			const origins = itemDef ? processOrigins(itemDef) : [];
-
-			// Build sources from both where clause and origins
-			const sourcesFromWhere = buildSourcesFromWhereClause(whereClause, itemDef);
-			const sourcesFromOrigins = buildSourcesFromOrigins(origins);
-
-			const itemRef: VLMItemRef = {
-				paramcd: whereClause.checkValues[0],
-				whereClause,
-				method,
-				origins,
-				mandatory: vld.Mandatory === 'Yes',
-				orderNumber: parseInt(vld.OrderNumber || '0', 10),
-				param: decodeParameter(whereClause.checkValues[0]),
-				itemDef,
-				sources: {
-					...sourcesFromWhere,
-					...sourcesFromOrigins
+		// Find or create the VLMVariable entry
+		let vlmVariable = result.variables.get(variableName);
+		if (!vlmVariable) {
+			vlmVariable = {
+				name: variableName,
+				valueListDef: {
+					OID: vlDef.OID,
+					itemRefs: []
 				}
 			};
-
-			vlmVariable.valueListDef.itemRefs.push(itemRef);
-		});
-
-		if (vlmVariable.valueListDef.itemRefs.length > 0) {
-			// Sort by order number
-			vlmVariable.valueListDef.itemRefs.sort((a, b) => a.orderNumber - b.orderNumber);
 			result.variables.set(variableName, vlmVariable);
 		}
+
+		// Process the ItemRef if it exists
+		if (vlDef.ItemOID) {
+			const itemDef = define.itemDefs.find((item) => item.OID === vlDef.ItemOID);
+			if (!itemDef) {
+				console.warn(`ItemDef not found for OID: ${vlDef.ItemOID}`);
+				return;
+			}
+
+			// Get the codelist information if available
+			let paramInfo: CodeListInfo | undefined;
+			if (itemDef.CodeListRef) {
+				const codeList = findCodeList(define, itemDef.CodeListRef);
+				if (codeList && codeList.CodeListItems) {
+					// For VLM, we need to process each potential PARAMCD value
+					codeList.CodeListItems.forEach((item) => {
+						paramInfo = {
+							ordinal: parseInt(item.Rank || '0', 10),
+							codedValue: item.CodedValue,
+							decode: item.Decode || '',
+							isExternal: !!codeList.ExternalCodeList,
+							externalCodeList: codeList.ExternalCodeList
+								? {
+										dictionary: codeList.ExternalCodeList.Dictionary,
+										version: codeList.ExternalCodeList.Version
+									}
+								: undefined
+						};
+					});
+				}
+			}
+
+			// Process where clause if it exists
+			const whereClause = vlDef.WhereClauseOID
+				? processWhereClause(vlDef.WhereClauseOID, define.whereClauseDefs)
+				: undefined;
+
+			const method = vlDef.MethodOID ? processMethod(vlDef.MethodOID, define.methods) : undefined;
+
+			const itemRef: VLMItemRef = {
+				paramcd: whereClause?.checkValues[0] || '',
+				paramInfo,
+				whereClause,
+				method,
+				origin: processOriginInfo(itemDef),
+				itemDescription: itemDef.Description || null,
+				mandatory: vlDef.Mandatory === 'Yes',
+				orderNumber: parseInt(vlDef.OrderNumber || '0', 10),
+				sources: {}
+			};
+
+			// Add any source variables
+			if (whereClause?.source) {
+				itemRef.sources[whereClause.source.variable] = {
+					domain: whereClause.source.domain,
+					variable: whereClause.source.variable
+				};
+			}
+
+			vlmVariable.valueListDef.itemRefs.push(itemRef);
+		}
+	});
+
+	// Sort itemRefs by OrderNumber for each variable
+	result.variables.forEach((variable) => {
+		variable.valueListDef.itemRefs.sort((a, b) => {
+			// First try to sort by CodeList ordinal if available
+			const aOrd = a.paramInfo?.ordinal || 0;
+			const bOrd = b.paramInfo?.ordinal || 0;
+			if (aOrd !== bOrd) return aOrd - bOrd;
+
+			// Then by OrderNumber
+			if (a.orderNumber !== b.orderNumber) return a.orderNumber - b.orderNumber;
+
+			// Finally by PARAMCD
+			return a.paramcd.localeCompare(b.paramcd);
+		});
 	});
 
 	console.log('VLM Processing Complete:', {
+		dataset: normalizedDatasetName,
 		variableCount: result.variables.size,
-		variables: Array.from(result.variables.keys()),
-		sampleItemRefs:
-			result.variables.size > 0
-				? Array.from(result.variables.values())[0].valueListDef.itemRefs
-				: []
+		variables: Array.from(result.variables.keys())
 	});
 
 	return result;
 }
 
-// Helper function to extract dataset name from OID
+function findCodeList(define: ParsedDefineXML, codeListRef: string) {
+	return define.CodeLists.find((cl) => cl.OID === codeListRef);
+}
+
+function processWhereClause(
+	whereClauseOID: string,
+	whereClauseDefs: whereClauseDef[]
+): VLMItemRef['whereClause'] | undefined {
+	const whereClause = whereClauseDefs.find((wc) => wc.OID === whereClauseOID);
+	if (!whereClause) return undefined;
+
+	const itemOIDParts = whereClause.ItemOID?.split('.') || [];
+
+	return {
+		comparator: whereClause.Comparator || 'EQ',
+		checkValues: whereClause.CheckValues
+			? whereClause.CheckValues.split(',').map((v) => v.trim())
+			: [],
+		itemOID: whereClause.ItemOID,
+		source:
+			itemOIDParts.length >= 2
+				? {
+						domain: itemOIDParts[0],
+						variable: itemOIDParts[1]
+					}
+				: undefined
+	};
+}
+function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
+	if (!itemDef.OriginType && !itemDef.Origin) return undefined;
+
+	return {
+		type: itemDef.OriginType || '',
+		source: itemDef.Origin,
+		description: itemDef.Description || null,
+		translatedText: itemDef.OriginTranslatedText || null
+	};
+}
+
+function processMethod(methodOID: string, methods: method[]): MethodInfo | undefined {
+	const method = methods.find((m) => m.OID === methodOID);
+	if (!method) return undefined;
+
+	return {
+		type: method.Type || null,
+		description: method.Description || null,
+		document: method.Document,
+		translatedText: method.TranslatedText || null
+	};
+}
