@@ -23,22 +23,12 @@
 
 	// Effect to set active define
 	$effect(() => {
-		console.log('VLM View - Props received:', {
-			hasSDTM: !!sdtmDefine,
-			hasADaM: !!adamDefine,
-			datasetName
-		});
 		activeDefine = sdtmDefine || adamDefine;
 		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
 	});
 
 	// Effect to process data
 	$effect(() => {
-		console.log('VLM View - Processing:', {
-			hasActiveDefine: !!activeDefine,
-			cleanDatasetName
-		});
-
 		if (!activeDefine || !cleanDatasetName) {
 			displayData = { hasData: false };
 			return;
@@ -52,31 +42,39 @@
 				return;
 			}
 
-			const columns = new Set(['PARAMCD', 'PARAM']); // Ensure PARAM is included
-			const rows: any[] = [];
+			const columns = new Set(['PARAMCD', 'PARAM']);
+			const rows = new Map<string, any>();
 
+			// First pass: Collect all PARAMCDs and their PARAM values
 			vlmData.variables.forEach((variable, variableName) => {
 				if (!['PARAMCD', 'PARAM'].includes(variableName)) {
 					columns.add(variableName);
 				}
 
 				variable.valueListDef.itemRefs.forEach((itemRef) => {
-					let row = rows.find((r) => r.PARAMCD === itemRef.paramcd);
-					if (!row) {
-						row = {
+					if (!rows.has(itemRef.paramcd)) {
+						rows.set(itemRef.paramcd, {
 							PARAMCD: itemRef.paramcd,
 							PARAM: itemRef.paramInfo?.decode || ''
-						};
-						rows.push(row);
-					}
-					if (variableName !== 'PARAMCD' && variableName !== 'PARAM') {
-						row[variableName] = itemRef;
+						});
 					}
 				});
 			});
 
-			// Sort rows by codelist ordinal if available
-			rows.sort((a, b) => {
+			// Second pass: Add other variable information
+			vlmData.variables.forEach((variable, variableName) => {
+				if (variableName !== 'PARAMCD' && variableName !== 'PARAM') {
+					variable.valueListDef.itemRefs.forEach((itemRef) => {
+						const row = rows.get(itemRef.paramcd);
+						if (row) {
+							row[variableName] = itemRef;
+						}
+					});
+				}
+			});
+
+			// Convert rows Map to array and sort
+			const sortedRows = Array.from(rows.values()).sort((a, b) => {
 				const aRef = vlmData.variables
 					.get('PARAMCD')
 					?.valueListDef.itemRefs.find((ref) => ref.paramcd === a.PARAMCD);
@@ -90,7 +88,7 @@
 			displayData = {
 				hasData: true,
 				columns: Array.from(columns),
-				rows
+				rows: sortedRows
 			};
 		} catch (error) {
 			console.error('VLM View - Error:', error);
@@ -115,33 +113,35 @@
 		</Alert>
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
 		<div class="rounded-lg border bg-card">
-			<div class="overflow-x-auto">
-				<table class="w-full border-collapse border">
-					<thead>
-						<tr>
-							{#each displayData.columns as column}
-								<th class="whitespace-nowrap border p-2 text-left font-semibold">
-									{column}
-								</th>
-							{/each}
-						</tr>
-					</thead>
-					<tbody>
-						{#each displayData.rows as row}
-							<tr class="hover:bg-muted/50">
+			<div class="max-h-screen overflow-y-auto">
+				<div class="overflow-x-auto">
+					<table class="w-full border-collapse border">
+						<thead class="sticky top-0 z-10 bg-card">
+							<tr>
 								{#each displayData.columns as column}
-									<td class="border p-2">
-										{#if column === 'PARAMCD' || column === 'PARAM'}
-											{row[column]}
-										{:else if row[column]}
-											<ExpandableCell content={formatCellContent(row[column], column)} />
-										{/if}
-									</td>
+									<th class="whitespace-nowrap border p-2 text-left font-semibold">
+										{column}
+									</th>
 								{/each}
 							</tr>
-						{/each}
-					</tbody>
-				</table>
+						</thead>
+						<tbody>
+							{#each displayData.rows as row}
+								<tr class="hover:bg-muted/50">
+									{#each displayData.columns as column}
+										<td class="border p-2">
+											{#if column === 'PARAMCD' || column === 'PARAM'}
+												{row[column]}
+											{:else if row[column]}
+												<ExpandableCell content={formatCellContent(row[column], column)} />
+											{/if}
+										</td>
+									{/each}
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	{:else}
