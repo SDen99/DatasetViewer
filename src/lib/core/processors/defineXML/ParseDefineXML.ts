@@ -185,7 +185,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	);
 
 	const CodeLists: CodeList[] = Array.from(metaDataVersion.querySelectorAll('CodeList'))
-		.filter((codeList) => !codeList.querySelector('ExternalCodeList')) // Filter out CodeLists that have ExternalCodeList
+		.filter((codeList) => !codeList.querySelector('ExternalCodeList'))
 		.map((codeList) => ({
 			OID: codeList.getAttribute('OID') || null,
 			Name: codeList.getAttribute('Name') || null,
@@ -193,7 +193,19 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			IsNonStandard:
 				codeList.getAttribute('def:IsNonStandard') ||
 				codeList.getAttribute('def:StandardOID') ||
-				null
+				null,
+			// Add these properties
+			CodeListItems: Array.from(codeList.querySelectorAll('CodeListItem')).map((item) => ({
+				CodedValue: item.getAttribute('CodedValue'),
+				OrderNumber: item.getAttribute('OrderNumber'),
+				Decode: {
+					TranslatedText: item.querySelector('Decode TranslatedText')?.textContent || null
+				}
+			})),
+			EnumeratedItems: Array.from(codeList.querySelectorAll('EnumeratedItem')).map((item) => ({
+				CodedValue: item.getAttribute('CodedValue'),
+				OrderNumber: item.getAttribute('OrderNumber')
+			}))
 		}));
 
 	const Dictionaries: Dictionary[] = Array.from(metaDataVersion.querySelectorAll('CodeList'))
