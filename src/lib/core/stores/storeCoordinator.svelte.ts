@@ -4,6 +4,7 @@ import { findDatasetByName, normalizeDatasetId } from '$lib/core/utils/datasetUt
 import { StorageService } from '$lib/core/services/StorageServices';
 import { datasetStore } from './datasetStore.svelte';
 import { UIStore } from './UIStore.svelte';
+import { untrack } from 'svelte';
 
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
@@ -74,61 +75,74 @@ export class StoreCoordinator {
 		}
 	}
 
+	private batchUpdate(fn: () => void) {
+		untrack(fn); // Changed from $effect.untrack
+	}
+
 	selectDataset(id: string | null) {
-		if (id === null) {
-			datasetStore.selectedDatasetId = null;
-			tableUIStore.reset();
-			sortStore.reset();
-			return;
-		}
-
-		const normalizedId = normalizeDatasetId(id);
-		const originalId = datasetStore.getOriginalFilename(normalizedId) || id;
-
-		// Get dataset state to determine view mode
-		const dataset = datasetStore.datasets[originalId];
-		const hasData = !!dataset?.data;
-		const hasMetadata = this.hasMetadataForDataset(normalizedId);
-
-		datasetStore.selectedDatasetId = originalId;
-
-		if (hasData) {
-			// If we have data, initialize table store with dataset columns
-			this.setDataset(originalId, datasetStore.datasets, datasetStore.defineXmlDatasets);
-			UIStore.getInstance().setViewMode('data');
-			UIStore.getInstance().uiState = {
-				...UIStore.getInstance().uiState,
-				rightSidebarOpen: true
-			};
-		} else if (hasMetadata) {
-			// For metadata-only datasets, initialize table store with metadata columns
-			const defineData = datasetStore.defineXmlDatasets;
-
-			// Type assertion to handle the nullability while maintaining original behavior
-			const metadata = normalizedId
-				? defineData.SDTM?.itemGroups.find((g) => normalizeDatasetId(g.Name!) === normalizedId) ||
-					defineData.ADaM?.itemGroups.find((g) => normalizeDatasetId(g.Name!) === normalizedId)
-				: null;
-
-			if (metadata) {
-				const define = metadata.Name?.includes('AD') ? defineData.ADaM : defineData.SDTM;
-				const variables =
-					define?.itemDefs
-						.filter((item) => normalizeDatasetId(item.Dataset!) === normalizedId)
-						.map((v) => v.Name!)
-						.filter((name): name is string => name != null) || [];
-
-				tableUIStore.initialize(variables);
+		this.batchUpdate(() => {
+			if (id === null) {
+				datasetStore.selectedDatasetId = null;
+				tableUIStore.reset();
+				sortStore.reset();
+				return;
 			}
 
-			UIStore.getInstance().uiState = {
-				...UIStore.getInstance().uiState,
-				rightSidebarOpen: false
-			};
+			const normalizedId = normalizeDatasetId(id);
+			const originalId = datasetStore.getOriginalFilename(normalizedId) || id;
+			const dataset = datasetStore.datasets[originalId];
+			const hasData = !!dataset?.data;
+			const hasMetadata = this.hasMetadataForDataset(normalizedId);
 
-			sortStore.reset();
-			UIStore.getInstance().setViewMode('metadata');
-		}
+			// Set dataset ID first
+			datasetStore.selectedDatasetId = originalId;
+
+			if (hasData) {
+				// Batch data-related updates
+				this.setDataset(originalId, datasetStore.datasets, datasetStore.defineXmlDatasets);
+				const uiStore = UIStore.getInstance();
+				uiStore.uiState = {
+					...uiStore.uiState,
+					viewMode: 'data',
+					rightSidebarOpen: true
+				};
+			} else if (hasMetadata) {
+				const defineData = datasetStore.defineXmlDatasets;
+				const metadata = this.getMetadataForDataset(normalizedId, defineData);
+
+				if (metadata) {
+					// Batch metadata-related updates
+					const define = metadata.Name?.includes('AD') ? defineData.ADaM : defineData.SDTM;
+					const variables = this.getVariablesForDataset(normalizedId, define);
+
+					tableUIStore.initialize(variables);
+					const uiStore = UIStore.getInstance();
+					uiStore.uiState = {
+						...uiStore.uiState,
+						viewMode: 'metadata',
+						rightSidebarOpen: false
+					};
+				}
+				sortStore.reset();
+			}
+		});
+	}
+
+	// Helper methods to keep the code organized
+	private getMetadataForDataset(normalizedId: string, defineData: any) {
+		return (
+			defineData.SDTM?.itemGroups.find((g: any) => normalizeDatasetId(g.Name!) === normalizedId) ||
+			defineData.ADaM?.itemGroups.find((g: any) => normalizeDatasetId(g.Name!) === normalizedId)
+		);
+	}
+
+	private getVariablesForDataset(normalizedId: string, define: any) {
+		return (
+			define?.itemDefs
+				.filter((item: any) => normalizeDatasetId(item.Dataset!) === normalizedId)
+				.map((v: any) => v.Name!)
+				.filter((name: any): name is string => name != null) || []
+		);
 	}
 
 	private hasMetadataForDataset(normalizedName: string): boolean {

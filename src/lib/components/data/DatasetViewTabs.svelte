@@ -9,13 +9,30 @@
 
 	type ViewType = 'data' | 'metadata' | 'VLM';
 
-	// Base derived values with type assertions
+	// State declarations
 	let selectedId = $state('');
-	let dataset = $state(null);
+	let dataset = $state<any>(null);
 	let defineData = $state({ SDTM: null, ADaM: null });
 	let isLoading = $state(false);
 	let activeTab = $state<ViewType>('data');
 	let viewArray = $state<ViewType[]>([]);
+
+	// Derived values for metadata checks
+	let hasData = $derived(!!dataset?.data);
+	let normalizedDatasetName = $derived(selectedId ? normalizeDatasetId(selectedId) : '');
+	let hasSDTM = $derived(
+		defineData.SDTM?.itemGroups?.some(
+			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+		)
+	);
+	let hasADAM = $derived(
+		defineData.ADaM?.itemGroups?.some(
+			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+		)
+	);
+	let hasMetadata = $derived(hasSDTM || hasADAM);
+	const triggerClass =
+		'relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground';
 
 	// Update core state from stores
 	$effect(() => {
@@ -30,21 +47,8 @@
 
 	// Update available views
 	$effect(() => {
-		const normalizedDatasetName = selectedId ? normalizeDatasetId(selectedId) : '';
-		const hasData = !!dataset?.data;
-
-		const hasSDTM = defineData.SDTM?.itemGroups?.some(
-			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
-		);
-		const hasADAM = defineData.ADaM?.itemGroups?.some(
-			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
-		);
-		const hasMetadata = hasSDTM || hasADAM;
-
 		const newViews: ViewType[] = [];
-		if (hasData) {
-			newViews.push('data');
-		}
+		if (hasData) newViews.push('data');
 		if (hasMetadata) {
 			newViews.push('metadata');
 			newViews.push('VLM');
@@ -56,14 +60,6 @@
 		if (!isLoading && newViews.length > 0 && !newViews.includes(activeTab)) {
 			uiStore.setViewMode(newViews[0]);
 		}
-
-		console.log('Views Updated:', {
-			selectedId,
-			normalizedDatasetName,
-			hasData,
-			hasMetadata,
-			views: newViews
-		});
 	});
 
 	function handleTabChange(newMode: string) {
@@ -76,33 +72,19 @@
 		<Tabs.Root value={activeTab} onValueChange={handleTabChange}>
 			<Tabs.List class="w-full border-b bg-muted/50 px-4">
 				{#if viewArray.includes('data')}
-					<Tabs.Trigger
-						value="data"
-						class="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground"
-					>
-						Dataset
-					</Tabs.Trigger>
+					<Tabs.Trigger value="data" class={triggerClass}>Dataset</Tabs.Trigger>
 				{/if}
 
 				{#if viewArray.includes('metadata')}
-					<Tabs.Trigger
-						value="metadata"
-						class="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground"
-					>
-						Metadata
-					</Tabs.Trigger>
+					<Tabs.Trigger value="metadata" class={triggerClass}>Metadata</Tabs.Trigger>
 				{/if}
 
 				{#if viewArray.includes('VLM')}
-					<Tabs.Trigger
-						value="VLM"
-						class="relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground"
-					>
-						VLM
-					</Tabs.Trigger>
+					<Tabs.Trigger value="VLM" class={triggerClass}>VLM</Tabs.Trigger>
 				{/if}
 			</Tabs.List>
 
+			<!-- Add the Content sections -->
 			{#if viewArray.includes('data') && dataset?.data}
 				<Tabs.Content value="data" class="p-4">
 					<DataTable data={dataset.data} />
