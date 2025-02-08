@@ -99,19 +99,20 @@ export class DatasetStore {
 			this.originalFilenames[normalizedId] = filename;
 		});
 
-		// Only auto-select if we don't have a current selection
+		// Auto-select first dataset if none selected
 		if (!this.selectedDatasetId && Object.keys(newDatasets).length > 0) {
-			this.selectDataset(Object.keys(newDatasets)[0]);
+			const firstId = Object.keys(newDatasets)[0];
+			this.selectedDatasetId = firstId;
 		}
 	}
 
+	// Simplified selectDataset - coordination handled by StoreCoordinator effect
 	selectDataset(id: string | null) {
 		if (id) {
 			const normalizedId = normalizeDatasetId(id);
 			this.originalFilenames[normalizedId] = id;
 		}
 		this.selectedDatasetId = id;
-		storeCoordinator.setDataset(id, this.datasets, this.defineXmlDatasets);
 	}
 
 	getOriginalFilename(normalizedId: string): string | undefined {

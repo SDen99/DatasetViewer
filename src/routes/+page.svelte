@@ -107,7 +107,16 @@
 
 	let selectedDataset = $derived.by(() => {
 		if (!datasetStore.selectedDatasetId) return null;
-		return datasetStore.datasets[datasetStore.selectedDatasetId];
+		const dataset = datasetStore.datasets[datasetStore.selectedDatasetId];
+		return dataset;
+	});
+
+	let datasetDetails = $derived.by(() => {
+		if (!selectedDataset?.data || !selectedDataset?.details?.columns) return null;
+		return {
+			columns: selectedDataset.details.columns,
+			dtypes: selectedDataset.details.dtypes || {}
+		};
 	});
 
 	let hasDefineXml = $derived.by(() => {
@@ -143,7 +152,7 @@
 
 {#snippet rightbar()}
 	<div class="h-full">
-		{#if selectedDataset?.data}
+		{#if selectedDataset?.data && datasetDetails}
 			<Tabs.Root value="columns">
 				<Tabs.List>
 					<Tabs.Trigger value="columns">Column Order</Tabs.Trigger>
@@ -152,15 +161,15 @@
 				</Tabs.List>
 				<Tabs.Content value="columns">
 					<VariableList
-						variables={selectedDataset.details.columns.map((col: string) => ({
+						variables={datasetDetails.columns.map((col: string) => ({
 							name: col,
-							dtype: selectedDataset.details.dtypes[col] ?? ''
+							dtype: datasetDetails.dtypes[col] ?? ''
 						}))}
 					/>
 				</Tabs.Content>
 				<Tabs.Content value="sort">
 					<MultiColumnSort
-						variables={selectedDataset.details.columns.map((col: string) => ({
+						variables={datasetDetails.columns.map((col: string) => ({
 							name: col
 						}))}
 					/>
