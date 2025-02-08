@@ -1,5 +1,4 @@
 import type { ItemGroup } from '$lib/core/processors/defineXML/types';
-import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 import type { Dataset } from '../types/types';
 
 export function isDatasetLoaded(datasetName: string, loadedDatasets: Set<string>): boolean {
@@ -17,7 +16,9 @@ export function getDatasetMetadata(dataset: ItemGroup) {
 	};
 }
 
-export function normalizeDatasetId(name: string): string {
+export function normalizeDatasetId(name: string | null | undefined): string {
+	if (!name) return '';
+
 	// Remove file extension and convert to uppercase
 	return name
 		.replace(/\.(sas7bdat|xml)$/i, '')

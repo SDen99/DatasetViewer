@@ -43,33 +43,63 @@ export class DatasetStore {
 
 	async deleteDataset(id: string) {
 		try {
+			const normalizedId = normalizeDatasetId(id);
+			console.log('🟡 Starting deletion for:', id, 'normalized:', normalizedId);
+
+			// First, get all matching dataset IDs
+			const matchingIds = Object.keys(this.datasets).filter(
+				(key) => normalizeDatasetId(key) === normalizedId
+			);
+			console.log('🟡 Found matching datasets:', matchingIds);
+
+			// Delete from IndexedDB first
 			const datasetService = DatasetService.getInstance();
-			await datasetService.removeDataset(id);
+			await Promise.all(
+				matchingIds.map(async (datasetId) => {
+					console.log('🟡 Deleting from IndexedDB:', datasetId);
+					await datasetService.removeDataset(datasetId);
+				})
+			);
+			console.log('🟢 IndexedDB deletion complete');
 
 			// Update local state
 			const newDatasets = { ...this.datasets };
-			delete newDatasets[id];
+			matchingIds.forEach((datasetId) => {
+				console.log('🟡 Removing from local state:', datasetId);
+				delete newDatasets[datasetId];
+			});
 			this.datasets = newDatasets;
 
 			// Remove from filename mappings
-			const normalizedId = normalizeDatasetId(id);
 			const newFilenames = { ...this.originalFilenames };
 			delete newFilenames[normalizedId];
 			this.originalFilenames = newFilenames;
 
-			// Clear storage state for deleted dataset
+			// Clear storage state
 			const storage = StorageService.getInstance();
 			const state = storage.loadState();
-			const { [id]: _, ...remainingViews } = state.datasetViews;
-			storage.saveState({ datasetViews: remainingViews });
 
-			if (this.selectedDatasetId === id) {
+			// Remove all views for matching datasets
+			const remainingViews = Object.entries(state.datasetViews)
+				.filter(([key]) => !matchingIds.includes(key))
+				.reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+
+			await storage.saveState({ datasetViews: remainingViews });
+
+			// Update selection if needed
+			if (this.selectedDatasetId && normalizedId === normalizeDatasetId(this.selectedDatasetId)) {
 				this.selectDataset(null);
 				tableUIStore.reset();
 				sortStore.reset();
 			}
+
+			// Force a refresh of derived states
+			this.datasets = { ...this.datasets };
+
+			console.log('🟢 Deletion complete, final datasets:', this.datasets);
+			return true;
 		} catch (error) {
-			console.error('Error deleting dataset:', error);
+			console.error('🔴 Error during dataset deletion:', error);
 			throw error;
 		}
 	}
@@ -220,6 +250,80 @@ export class DatasetStore {
 			...Object.fromEntries(updatedDatasets)
 		};
 	}
+
+	getDatasetState(name: string) {
+		const normalizedName = normalizeDatasetId(name);
+
+		// Find dataset if it exists
+		const dataset = Object.entries(this.datasets).find(
+			([dataName]) => normalizeDatasetId(dataName) === normalizedName
+		)?.[1];
+
+		// Check loading state
+		const loadingDataset = Object.entries(this.loadingDatasets).find(
+			([loadingName]) => normalizeDatasetId(loadingName) === normalizedName
+		);
+
+		// Check metadata existence
+		const hasMetadata = Boolean(
+			this.defineXmlDatasets.SDTM?.itemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			) ||
+				this.defineXmlDatasets.ADaM?.itemGroups?.find(
+					(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+				)
+		);
+
+		// More specific check for data existence
+		const hasData = Boolean(
+			dataset?.data &&
+				Array.isArray(dataset.data) &&
+				dataset.data.length > 0 &&
+				dataset.details?.columns?.length > 0
+		);
+
+		return {
+			hasData,
+			hasMetadata,
+			isLoading: Boolean(loadingDataset),
+			error: loadingDataset?.[1]?.status === 'error' ? loadingDataset[1].error : undefined,
+			loadingProgress: loadingDataset?.[1]?.progress || 0
+		};
+	}
+
+	availableDatasets = $derived.by(() => {
+		const datasetSet = new Set<string>();
+		const { SDTM, ADaM } = this.defineXmlDatasets;
+
+		// Add from actual datasets
+		Object.entries(this.datasets).forEach(([name, dataset]) => {
+			// Check if it's not a Define.xml file
+			const isDefineXml =
+				dataset.data && typeof dataset.data === 'object' && 'metaData' in dataset.data;
+
+			if (!isDefineXml) {
+				datasetSet.add(normalizeDatasetId(name));
+			}
+		});
+
+		// Add from loading state
+		Object.entries(this.loadingDatasets).forEach((name) =>
+			datasetSet.add(normalizeDatasetId(name[0]))
+		);
+
+		// Add from Define.xml metadata
+		SDTM?.itemGroups?.forEach((group) => {
+			const name = group.SASDatasetName || group.Name || '';
+			if (name) datasetSet.add(normalizeDatasetId(name));
+		});
+
+		ADaM?.itemGroups?.forEach((group) => {
+			const name = group.SASDatasetName || group.Name || '';
+			if (name) datasetSet.add(normalizeDatasetId(name));
+		});
+
+		return Array.from(datasetSet).sort();
+	});
 }
 
 export const datasetStore = DatasetStore.getInstance();
