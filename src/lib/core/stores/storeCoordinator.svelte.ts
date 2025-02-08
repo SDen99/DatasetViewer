@@ -52,9 +52,14 @@ export class StoreCoordinator {
 					});
 					sortStore.restore(datasetState.sort);
 				} else if (foundDataset.data?.[0]) {
-					const columns = Object.keys(foundDataset.data[0]);
-					tableUIStore.initialize(columns);
-					sortStore.reset();
+					// Use details.columns if available, otherwise try to get from first row
+					const columns = foundDataset.details?.columns || Object.keys(foundDataset.data[0]);
+					if (columns?.length) {
+						tableUIStore.initialize(columns);
+						// Also set column order explicitly
+						tableUIStore.updateColumnOrder(columns);
+						sortStore.reset();
+					}
 				}
 			} else {
 				tableUIStore.reset();
