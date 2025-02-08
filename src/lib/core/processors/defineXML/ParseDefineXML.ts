@@ -237,16 +237,36 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 
 	const valueListDefs: valueListDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'ValueListDef')
-	).flatMap((vld) => {
-		const OID = vld.getAttribute('OID') || null;
-		return Array.from(vld.querySelectorAll('ItemRef')).map((ir) => ({
-			OID,
-			ItemOID: ir.getAttribute('ItemOID') || null,
-			Mandatory: ir.getAttribute('Mandatory') || null,
-			OrderNumber: ir.getAttribute('OrderNumber') || null,
-			MethodOID: ir.getAttribute('MethodOID') || null,
-			WhereClauseOID: ir.querySelector('WhereClauseRef')?.getAttribute('WhereClauseOID') || null
-		}));
+	).map((vld) => {
+		// Get the basic ValueListDef attributes
+		const valueListDef = {
+			OID: vld.getAttribute('OID') || null,
+			// Map ItemRefs array properly handling namespaces
+			ItemRefs: Array.from(vld.children)
+				.filter((child) => child.localName === 'ItemRef')
+				.map((ir) => ({
+					ItemOID: ir.getAttribute('ItemOID') || null,
+					Mandatory: ir.getAttribute('Mandatory') || null,
+					OrderNumber: ir.getAttribute('OrderNumber') || null,
+					MethodOID: ir.getAttribute('MethodOID') || null,
+					// Find WhereClauseRef using namespace
+					WhereClauseOID:
+						Array.from(ir.children)
+							.find(
+								(child) =>
+									child.localName === 'WhereClauseRef' && child.namespaceURI === namespaceURI
+							)
+							?.getAttribute('WhereClauseOID') || null
+				}))
+		};
+
+		console.log('Parsed ValueListDef:', {
+			OID: valueListDef.OID,
+			ItemRefCount: valueListDef.ItemRefs.length,
+			ItemRefs: valueListDef.ItemRefs
+		});
+
+		return valueListDef;
 	});
 
 	const Documents: Document[] = Array.from(metaDataVersion.children)

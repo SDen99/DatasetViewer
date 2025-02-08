@@ -115,11 +115,13 @@ export interface whereClauseDef {
 
 export interface valueListDef {
 	OID: string | null;
-	ItemOID: string | null;
-	Mandatory: string | null;
-	OrderNumber: string | null;
-	MethodOID: string | null;
-	WhereClauseOID: string | null;
+	ItemRefs: {
+		ItemOID: string | null;
+		Mandatory: string | null;
+		OrderNumber: string | null;
+		MethodOID: string | null;
+		WhereClauseOID: string | null;
+	}[];
 }
 
 export interface Dictionary {
