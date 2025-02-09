@@ -27,17 +27,19 @@ export function normalizeDatasetId(name: string | null | undefined): string {
 }
 
 export function findDatasetByName(
-	datasets: Record<string, any>,
+	datasets: Record<string, Dataset>,
 	name: string,
 	defineXmlDatasets: any
 ): Dataset | null {
 	const normalizedName = normalizeDatasetId(name);
 
-	// First try direct lookup
-	const dataset = datasets[name];
-	if (dataset) return dataset;
+	// Log the actual datasets for debugging
+	console.log('Finding dataset:', {
+		normalizedName,
+		availableDatasets: Object.keys(datasets).map((k) => normalizeDatasetId(k))
+	});
 
-	// Then try normalized lookup
+	// Search through datasets with normalized keys
 	for (const [key, value] of Object.entries(datasets)) {
 		if (normalizeDatasetId(key) === normalizedName) {
 			return value;

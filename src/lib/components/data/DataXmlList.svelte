@@ -105,7 +105,8 @@
 				isInitialized,
 				isDeleting,
 				datasets: datasets.length,
-				hasDatasetToDelete: Boolean(datasetToDelete)
+				hasDatasetToDelete: Boolean(datasetToDelete),
+				selectedDatasetId
 			});
 		});
 	});
@@ -124,7 +125,7 @@
 							description={metadata.description}
 							class={metadata.class}
 							state={datasetStore.getDatasetState(name)}
-							isSelected={name === selectedDatasetId}
+							isSelected={normalizeDatasetId(name) === normalizeDatasetId(selectedDatasetId)}
 							loadingProgress={datasetStore.getDatasetState(name).loadingProgress}
 							onDelete={() => handleDeleteClick(name)}
 							onClick={() => handleDatasetClick(name)}

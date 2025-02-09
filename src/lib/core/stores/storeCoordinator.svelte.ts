@@ -18,7 +18,7 @@ export class StoreCoordinator {
 		$effect.root(() => {
 			// Monitor Define XML status
 			$effect(() => {
-				const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+				const { SDTM, ADaM } = untrack(() => datasetStore.defineXmlDatasets);
 				UIStore.getInstance().setDefineXMLType(Boolean(SDTM), Boolean(ADaM));
 			});
 
@@ -82,8 +82,18 @@ export class StoreCoordinator {
 		}
 
 		const normalizedId = normalizeDatasetId(id);
-		const originalId = datasetStore.getOriginalFilename(normalizedId) || id;
-		datasetStore.selectedDatasetId = originalId;
+
+		// First try to find the dataset with data
+		const datasetKeys = Object.keys(datasetStore.datasets);
+		const matchingKey = datasetKeys.find((key) => normalizeDatasetId(key) === normalizedId);
+
+		// If we found a matching dataset with data, use its full filename
+		if (matchingKey) {
+			datasetStore.selectedDatasetId = matchingKey;
+		} else {
+			// Otherwise use the original id for metadata-only datasets
+			datasetStore.selectedDatasetId = id;
+		}
 	}
 
 	updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {

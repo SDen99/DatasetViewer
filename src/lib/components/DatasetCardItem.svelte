@@ -69,9 +69,12 @@
 	});
 
 	const containerClass = $derived.by(() => {
-		return `overflow-hidden rounded-lg border ${
-			props.isSelected ? 'border-primary' : 'border-border'
-		}`;
+		const baseClasses = 'overflow-hidden rounded-lg';
+		const selectedClasses = props.isSelected
+			? 'border-2 border-primary bg-primary/5'
+			: 'border-border hover:border-primary/50';
+
+		return `${baseClasses} ${selectedClasses}`;
 	});
 
 	const getClassAbbreviation = (classType: string | undefined) => {
@@ -107,9 +110,7 @@
 
 <button
 	type="button"
-	class="{containerClass} w-full text-left {isClickable
-		? 'hover:border-primary/50'
-		: 'cursor-not-allowed opacity-70'}"
+	class="{containerClass} w-full text-left {!isClickable ? 'cursor-not-allowed opacity-70' : ''}"
 	onclick={handleClick}
 	disabled={!isClickable || props.state.isLoading}
 	aria-label="Select dataset {props.name}"
