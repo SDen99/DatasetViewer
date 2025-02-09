@@ -3,6 +3,7 @@
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import SidebarToggleButtons from '$lib/components/layout/SidebarToggleButtons.svelte';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
+	import DefineXMLBadges from '$lib/components/data/DefineXMLBadges.svelte';
 
 	let { navigation, leftbar, mainContent, rightbar, footer } = $props<{
 		navigation: Snippet;
@@ -17,7 +18,13 @@
 	{@render navigation()}
 
 	<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
-		<Sidebar position="left" open={uiStore.uiState.leftSidebarOpen} title="Datasets">
+		<Sidebar position="left" open={uiStore.uiState.leftSidebarOpen}>
+			<svelte:fragment slot="header">
+				<div class="flex items-center justify-between">
+					<h2 class=" mr-2 text-lg font-semibold">Define(s):</h2>
+					<DefineXMLBadges />
+				</div>
+			</svelte:fragment>
 			{@render leftbar()}
 		</Sidebar>
 
@@ -25,7 +32,10 @@
 			{@render mainContent()}
 		</div>
 
-		<Sidebar position="right" open={uiStore.uiState.rightSidebarOpen} title="Variables">
+		<Sidebar position="right" open={uiStore.uiState.rightSidebarOpen}>
+			<svelte:fragment slot="header">
+				<h2 class="text-lg font-semibold">Variables</h2>
+			</svelte:fragment>
 			{@render rightbar()}
 		</Sidebar>
 	</div>
