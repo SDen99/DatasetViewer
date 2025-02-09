@@ -101,200 +101,240 @@
 </script>
 
 {#if datasetMetadata()}
-	<div class="max-h-[calc(100vh-12rem)] space-y-6 overflow-y-auto p-4">
-		<!-- Dataset Information -->
-		<div>
-			<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
-			<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
-			{#if datasetMetadata().Class}
-				<div class="mt-2">
-					<Badge variant="outline">{datasetMetadata().Class}</Badge>
+	<div class="flex h-[calc(100vh-12rem)] flex-col">
+		<!-- Fixed Header Section -->
+		<div class="flex-none space-y-6 p-4">
+			<!-- Dataset Information -->
+			<div>
+				<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
+				<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
+				{#if datasetMetadata().Class}
+					<div class="mt-2">
+						<Badge variant="outline">{datasetMetadata().Class}</Badge>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Controls -->
+			<div class="flex items-center justify-between">
+				<div class="relative w-64">
+					<Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+					<Input
+						type="text"
+						placeholder="Search variables..."
+						class="pl-8"
+						bind:value={searchTerm}
+					/>
+				</div>
+
+				<div class="flex gap-2">
+					<Button
+						variant="default"
+						size="icon"
+						onclick={() => (view.isTable = true)}
+						aria-label="Table view"
+					>
+						<TableIcon class="h-4 w-4" />
+					</Button>
+
+					<Button
+						variant="default"
+						size="icon"
+						onclick={() => (view.isTable = false)}
+						aria-label="Card view"
+					>
+						<LayoutList class="h-4 w-4" />
+					</Button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Scrollable Content Section -->
+		<div class="flex-1 overflow-y-auto p-4 pt-0">
+			{#if isTableView}
+				<div class="rounded-lg border">
+					<Table>
+						<TableHeader>
+							<TableRow class="bg-muted/50">
+								<TableHead class="w-16">Order</TableHead>
+								<TableHead class="w-32">Name</TableHead>
+								<TableHead>Label</TableHead>
+								<TableHead class="w-20">Type</TableHead>
+								<TableHead class="w-20">Length</TableHead>
+								<TableHead class="w-20">Format</TableHead>
+								<TableHead class="w-16">Req</TableHead>
+								<TableHead class="w-16">Orig</TableHead>
+								<TableHead class="w-32">Origin Ref</TableHead>
+								<TableHead class="w-32">Method OID</TableHead>
+								<TableHead class="w-32">Where Clause</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{#each filteredVariables() as variable}
+								<TableRow>
+									<TableCell class="font-mono text-sm">
+										{variable.OrderNumber}
+										{#if variable.KeySequence}
+											<Badge variant="outline" class="ml-1 px-1 py-0">K</Badge>
+										{/if}
+									</TableCell>
+
+									<TableCell>
+										<div class="flex items-center gap-1">
+											<span class="font-mono">
+												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+											</span>
+											{#if variable.hasVLM}
+												<Badge variant="secondary" class="px-1 py-0">V</Badge>
+											{/if}
+										</div>
+									</TableCell>
+
+									<TableCell class="text-sm">
+										{variable.itemDef?.Description || '-'}
+									</TableCell>
+
+									<TableCell class="text-sm">{variable.itemDef?.DataType || '-'}</TableCell>
+									<TableCell class="text-sm">{variable.itemDef?.Length || '-'}</TableCell>
+									<TableCell class="font-mono text-sm">{variable.itemDef?.Format || '-'}</TableCell>
+
+									<TableCell>
+										<Badge
+											variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+											class="px-1 py-0"
+										>
+											{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
+										</Badge>
+									</TableCell>
+
+									<TableCell class="text-sm">
+										{#if variable.itemDef?.OriginType}
+											<Badge variant="outline" class="px-1 py-0">
+												{getOriginAbbrev(variable.itemDef.OriginType)}
+											</Badge>
+										{:else}
+											-
+										{/if}
+									</TableCell>
+
+									<TableCell class="font-mono text-xs">
+										{variable.itemDef?.Origin || '-'}
+									</TableCell>
+									<TableCell class="font-mono text-xs">
+										{variable.MethodOID || '-'}
+									</TableCell>
+									<TableCell class="font-mono text-xs">
+										{variable.WhereClauseOID || '-'}
+									</TableCell>
+								</TableRow>
+							{/each}
+						</TableBody>
+					</Table>
+				</div>
+			{:else}
+				<div class="max-w-5xl space-y-2">
+					{#each filteredVariables() as variable}
+						<Card>
+							<CardContent class="p-4">
+								<div class="flex gap-8">
+									<!-- Variable Identifier Section -->
+									<div class="w-48 shrink-0">
+										<div class="flex items-center gap-2">
+											<span class="font-mono font-medium">
+												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+											</span>
+											<div class="flex gap-1">
+												{#if variable.KeySequence}
+													<Badge variant="outline" class="px-1 py-0">Key</Badge>
+												{/if}
+												{#if variable.hasVLM}
+													<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
+												{/if}
+											</div>
+										</div>
+										<p class="mt-1 text-sm text-muted-foreground">
+											{variable.itemDef?.Description || '-'}
+										</p>
+									</div>
+
+									<!-- Technical Details Section -->
+									<div class="flex items-start gap-8">
+										<!-- Core Properties -->
+										<div class="w-32 space-y-1">
+											<div class="text-sm">
+												<span class="text-muted-foreground">Type:</span>
+												<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
+											</div>
+											<div class="text-sm">
+												<span class="text-muted-foreground">Length:</span>
+												<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
+											</div>
+											{#if variable.itemDef?.Format}
+												<div class="text-sm">
+													<span class="text-muted-foreground">Format:</span>
+													<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
+												</div>
+											{/if}
+										</div>
+
+										<!-- Status -->
+										<div class="w-32 space-y-1">
+											<div class="text-sm">
+												<Badge
+													variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+													class="px-1 py-0"
+												>
+													{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
+												</Badge>
+											</div>
+											{#if variable.itemDef?.OriginType}
+												<div class="text-sm">
+													<Badge variant="outline" class="px-1 py-0">
+														{getOriginAbbrev(variable.itemDef.OriginType)}
+													</Badge>
+												</div>
+											{/if}
+										</div>
+
+										<!-- Origin Reference -->
+										{#if variable.itemDef?.Origin}
+											<div class="w-64">
+												<span class="text-sm text-muted-foreground">Origin:</span>
+												<code class="mt-1 block text-xs">
+													{variable.itemDef.Origin}
+												</code>
+											</div>
+										{/if}
+
+										<!-- Method & Where Clause -->
+										{#if variable.MethodOID || variable.WhereClauseOID}
+											<div class="w-64 space-y-2">
+												{#if variable.MethodOID}
+													<div>
+														<span class="text-sm text-muted-foreground">Method OID:</span>
+														<code class="mt-1 block text-xs">
+															{variable.MethodOID}
+														</code>
+													</div>
+												{/if}
+												{#if variable.WhereClauseOID}
+													<div>
+														<span class="text-sm text-muted-foreground">Where Clause:</span>
+														<code class="mt-1 block text-xs">
+															{variable.WhereClauseOID}
+														</code>
+													</div>
+												{/if}
+											</div>
+										{/if}
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+					{/each}
 				</div>
 			{/if}
 		</div>
-
-		<!-- Controls -->
-		<div class="flex items-center justify-between">
-			<div class="relative w-64">
-				<Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-				<Input type="text" placeholder="Search variables..." class="pl-8" bind:value={searchTerm} />
-			</div>
-
-			<div class="flex gap-2">
-				<Button
-					variant="default"
-					size="icon"
-					onclick={() => (view.isTable = true)}
-					aria-label="Table view"
-				>
-					<TableIcon class="h-4 w-4" />
-				</Button>
-
-				<Button
-					variant="default"
-					size="icon"
-					onclick={() => (view.isTable = false)}
-					aria-label="Card view"
-				>
-					<LayoutList class="h-4 w-4" />
-				</Button>
-			</div>
-		</div>
-
-		<!-- Content -->
-		{#if isTableView}
-			<div class="rounded-lg border">
-				<Table>
-					<TableHeader>
-						<TableRow class="bg-muted/50">
-							<TableHead class="w-16">Order</TableHead>
-							<TableHead class="w-32">Name</TableHead>
-							<TableHead>Label</TableHead>
-							<TableHead class="w-20">Type</TableHead>
-							<TableHead class="w-20">Length</TableHead>
-							<TableHead class="w-20">Format</TableHead>
-							<TableHead class="w-16">Req</TableHead>
-							<TableHead class="w-16">Orig</TableHead>
-							<TableHead class="w-32">Origin Ref</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{#each filteredVariables() as variable}
-							<TableRow>
-								<TableCell class="font-mono text-sm">
-									{variable.OrderNumber}
-									{#if variable.KeySequence}
-										<Badge variant="outline" class="ml-1 px-1 py-0">K</Badge>
-									{/if}
-								</TableCell>
-
-								<TableCell>
-									<div class="flex items-center gap-1">
-										<span class="font-mono">
-											{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-										</span>
-										{#if variable.hasVLM}
-											<Badge variant="secondary" class="px-1 py-0">V</Badge>
-										{/if}
-									</div>
-								</TableCell>
-
-								<TableCell class="text-sm">
-									{variable.itemDef?.Description || '-'}
-								</TableCell>
-
-								<TableCell class="text-sm">{variable.itemDef?.DataType || '-'}</TableCell>
-								<TableCell class="text-sm">{variable.itemDef?.Length || '-'}</TableCell>
-								<TableCell class="font-mono text-sm">{variable.itemDef?.Format || '-'}</TableCell>
-
-								<TableCell>
-									<Badge
-										variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-										class="px-1 py-0"
-									>
-										{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
-									</Badge>
-								</TableCell>
-
-								<TableCell class="text-sm">
-									{#if variable.itemDef?.OriginType}
-										<Badge variant="outline" class="px-1 py-0">
-											{variable.itemDef.OriginType}
-										</Badge>
-									{:else}
-										-
-									{/if}
-								</TableCell>
-
-								<TableCell class="font-mono text-xs">
-									{variable.itemDef?.Origin || '-'}
-								</TableCell>
-							</TableRow>
-						{/each}
-					</TableBody>
-				</Table>
-			</div>
-		{:else}
-			<div class="max-w-5xl space-y-2">
-				{#each filteredVariables() as variable}
-					<Card>
-						<CardContent class="p-4">
-							<div class="flex gap-8">
-								<!-- Variable Identifier Section -->
-								<div class="w-48 shrink-0">
-									<div class="flex items-center gap-2">
-										<span class="font-mono font-medium">
-											{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-										</span>
-										<div class="flex gap-1">
-											{#if variable.KeySequence}
-												<Badge variant="outline" class="px-1 py-0">Key</Badge>
-											{/if}
-											{#if variable.hasVLM}
-												<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
-											{/if}
-										</div>
-									</div>
-									<p class="mt-1 text-sm text-muted-foreground">
-										{variable.itemDef?.Description || '-'}
-									</p>
-								</div>
-
-								<!-- Technical Details Section -->
-								<div class="flex items-start gap-8">
-									<!-- Core Properties -->
-									<div class="w-32 space-y-1">
-										<div class="text-sm">
-											<span class="text-muted-foreground">Type:</span>
-											<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
-										</div>
-										<div class="text-sm">
-											<span class="text-muted-foreground">Length:</span>
-											<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
-										</div>
-										{#if variable.itemDef?.Format}
-											<div class="text-sm">
-												<span class="text-muted-foreground">Format:</span>
-												<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
-											</div>
-										{/if}
-									</div>
-
-									<!-- Status -->
-									<div class="w-32 space-y-1">
-										<div class="text-sm">
-											<Badge
-												variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-												class="px-1 py-0"
-											>
-												{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
-											</Badge>
-										</div>
-										{#if variable.itemDef?.OriginType}
-											<div class="text-sm">
-												<Badge variant="outline" class="px-1 py-0">
-													{getOriginAbbrev(variable.itemDef.OriginType)}
-												</Badge>
-											</div>
-										{/if}
-									</div>
-
-									<!-- Origin Reference -->
-									{#if variable.itemDef?.Origin}
-										<div class="w-64">
-											<span class="text-sm text-muted-foreground">Origin:</span>
-											<code class="mt-1 block text-xs">
-												{variable.itemDef.Origin}
-											</code>
-										</div>
-									{/if}
-								</div>
-							</div>
-						</CardContent>
-					</Card>
-				{/each}
-			</div>
-		{/if}
 	</div>
 {:else}
 	<div class="flex h-[200px] items-center justify-center text-muted-foreground">
