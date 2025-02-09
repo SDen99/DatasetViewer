@@ -96,6 +96,7 @@ export interface itemRef {
 	OrderNumber: string | null;
 	MethodOID: string | null;
 	WhereClauseOID: string | null;
+	KeySequence: string | null;
 }
 
 export interface CodeList {

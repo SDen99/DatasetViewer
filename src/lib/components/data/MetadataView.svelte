@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML, itemDef, itemRef } from '$lib/core/processors/defineXML/types';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
@@ -18,15 +18,14 @@
 			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
 		);
 
-		console.log('MetadataView - Dataset lookup:', {
-			normalizedName,
-			sdtm: !!sdtmDataset,
-			adam: !!adamDataset,
-			foundDataset: sdtmDataset || adamDataset
-		});
-
 		return sdtmDataset || adamDataset;
 	});
+
+	// Enhanced variables to include both ItemRef and ItemDef data
+	interface EnhancedVariable extends itemRef {
+		itemDef?: itemDef;
+		hasVLM: boolean;
+	}
 
 	let variables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
@@ -34,18 +33,42 @@
 			return [];
 		}
 
-		const vars = define.itemDefs.filter(
-			(item: { Dataset: string }) =>
-				normalizeDatasetId(item.Dataset) === normalizeDatasetId(datasetName)
-		);
-		return vars;
+		// Filter ItemRefs for the current dataset
+		const datasetRefs = define.itemRefs.filter((ref) => {
+			// ItemOID format: "IT.DATASETNAME.VARNAME"
+			const refDataset = ref.OID?.split('.')[1] || '';
+			return normalizeDatasetId(refDataset) === normalizeDatasetId(datasetName);
+		});
+
+		// Join with ItemDefs and check for VLM
+		const enhancedVariables: EnhancedVariable[] = datasetRefs.map((ref) => {
+			const itemDef = define.itemDefs.find((def) => def.OID === ref.OID);
+
+			// Check if variable has value level metadata
+			const varName = ref.OID?.split('.')[2] || '';
+			const hasVLM = define.valueListDefs.some((vld) =>
+				vld.OID?.includes(`VL.${datasetName}.${varName}`)
+			);
+
+			return {
+				...ref,
+				itemDef,
+				hasVLM
+			};
+		});
+
+		// Sort by OrderNumber
+		return enhancedVariables.sort((a, b) => {
+			const orderA = parseInt(a.OrderNumber || '0');
+			const orderB = parseInt(b.OrderNumber || '0');
+			return orderA - orderB;
+		});
 	});
 
 	$effect.root(() => {
 		$effect(() => {
 			const hasSDTM = !!sdtmDefine;
 			const hasADaM = !!adamDefine;
-			//  storeCoordinator.updateDefineXMLStatus(hasSDTM, hasADaM);
 		});
 	});
 </script>
@@ -72,19 +95,45 @@
 				<table class="w-full">
 					<thead class="bg-muted/50">
 						<tr class="border-b">
+							<th class="p-2 text-left">Order</th>
+							<th class="p-2 text-left">Key</th>
 							<th class="p-2 text-left">Name</th>
+							<th class="p-2 text-left">VLM</th>
 							<th class="p-2 text-left">Label</th>
 							<th class="p-2 text-left">Type</th>
+							<th class="p-2 text-left">Length</th>
 							<th class="p-2 text-left">Format</th>
+							<th class="p-2 text-left">Mandatory</th>
+							<th class="p-2 text-left">Origin Type</th>
+							<th class="p-2 text-left">Origin</th>
+							<th class="p-2 text-left">Method OID</th>
+							<th class="p-2 text-left">Where Clause OID</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each variables() as variable}
 							<tr class="border-b">
-								<td class="p-2">{variable.Name}</td>
-								<td class="p-2">{variable.Description}</td>
-								<td class="p-2">{variable.DataType}</td>
-								<td class="p-2">{variable.Format || '-'}</td>
+								<td class="p-2">{variable.OrderNumber}</td>
+								<td class="p-2">{variable.KeySequence || '-'}</td>
+								<td class="p-2">{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}</td>
+								<td class="p-2">
+									{#if variable.hasVLM}
+										<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800"
+											>VLM</span
+										>
+									{:else}
+										-
+									{/if}
+								</td>
+								<td class="p-2">{variable.itemDef?.Description || '-'}</td>
+								<td class="p-2">{variable.itemDef?.DataType || '-'}</td>
+								<td class="p-2">{variable.itemDef?.Length || '-'}</td>
+								<td class="p-2">{variable.itemDef?.Format || '-'}</td>
+								<td class="p-2">{variable.Mandatory}</td>
+								<td class="p-2">{variable.itemDef?.OriginType || '-'}</td>
+								<td class="p-2">{variable.itemDef?.Origin || '-'}</td>
+								<td class="p-2">{variable.MethodOID || '-'}</td>
+								<td class="p-2">{variable.WhereClauseOID || '-'}</td>
 							</tr>
 						{/each}
 					</tbody>

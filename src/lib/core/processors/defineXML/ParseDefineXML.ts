@@ -171,18 +171,19 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		})
 	);
 
-	const itemRefs: itemRef[] = Array.from(metaDataVersion.querySelectorAll('ItemRef')).map(
-		(item) => ({
-			OID: getAttribute(item, 'ItemOID') || null,
-			Mandatory: getAttribute(item, 'Mandatory') || null,
-			OrderNumber: getAttribute(item, 'OrderNumber') || null,
-			MethodOID: getAttribute(item, 'MethodOID') || null,
-			WhereClauseOID:
-				item
-					.getElementsByTagNameNS(namespaceURI, 'WhereClauseRef')[0]
-					?.getAttribute('WhereClauseOID') || null
-		})
-	);
+	const itemRefs: itemRef[] = Array.from(
+		metaDataVersion.querySelectorAll('ItemGroupDef > ItemRef')
+	).map((item) => ({
+		OID: getAttribute(item, 'ItemOID') || null,
+		Mandatory: getAttribute(item, 'Mandatory') || null,
+		OrderNumber: getAttribute(item, 'OrderNumber') || null,
+		MethodOID: getAttribute(item, 'MethodOID') || null,
+		WhereClauseOID:
+			item
+				.getElementsByTagNameNS(namespaceURI, 'WhereClauseRef')[0]
+				?.getAttribute('WhereClauseOID') || null,
+		KeySequence: getAttribute(item, 'KeySequence') || null
+	}));
 
 	const CodeLists: CodeList[] = Array.from(metaDataVersion.querySelectorAll('CodeList'))
 		.filter((codeList) => !codeList.querySelector('ExternalCodeList'))

@@ -116,14 +116,14 @@ function processWhereClause(
 	paramcdToParamMap: Map<string, string>,
 	datasetName: string
 ): string[] {
-	console.log('\nProcessing WhereClause:', whereClauseOID);
+	//console.log('\nProcessing WhereClause:', whereClauseOID);
 
 	const normalizedDatasetName = normalizeDatasetId(datasetName);
 	const pattern = new RegExp(`WC\\.${normalizedDatasetName}\\.PARAMCD\\.(EQ|IN)\\.(.+)$`);
 	const match = whereClauseOID.match(pattern);
 
 	if (!match) {
-		console.log('No match found for WhereClause pattern');
+		//	console.log('No match found for WhereClause pattern');
 		return [];
 	}
 
@@ -151,7 +151,7 @@ function processWhereClause(
 			remaining = remaining.slice(longestMatch.length);
 		}
 
-		console.log('Extracted PARAMCDs:', params);
+		//console.log('Extracted PARAMCDs:', params);
 		return params;
 	}
 }
@@ -162,23 +162,23 @@ function processValueListDefs(
 	paramcdToParamMap: Map<string, string>,
 	datasetName: string
 ): VLMItemRef[] {
-	console.log(
+	/*console.log(
 		`\nProcessing ValueListDef ${valueListDef.OID} with ${valueListDef.ItemRefs?.length || 0} ItemRefs`
-	);
+	); */
 	const itemRefs: VLMItemRef[] = [];
 
 	if (!valueListDef.ItemRefs) {
-		console.log('No ItemRefs found in ValueListDef');
+		//	console.log('No ItemRefs found in ValueListDef');
 		return itemRefs;
 	}
 
 	valueListDef.ItemRefs.forEach((itemRef, index) => {
-		console.log(`\nProcessing ItemRef ${index + 1}:`, {
+		/*	console.log(`\nProcessing ItemRef ${index + 1}:`, {
 			ItemOID: itemRef.ItemOID,
 			WhereClauseOID: itemRef.WhereClauseOID,
 			Mandatory: itemRef.Mandatory,
 			MethodOID: itemRef.MethodOID
-		});
+		}); */
 
 		if (!itemRef.WhereClauseOID) {
 			console.log('No WhereClauseOID found for ItemRef');
@@ -192,12 +192,12 @@ function processValueListDefs(
 			datasetName
 		);
 
-		console.log('Found PARAMCDs for ItemRef:', paramcds);
+		//console.log('Found PARAMCDs for ItemRef:', paramcds);
 
 		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
 
 		if (!itemDef) {
-			console.log('No ItemDef found for:', itemRef.ItemOID);
+			//	console.log('No ItemDef found for:', itemRef.ItemOID);
 			return;
 		}
 
@@ -219,11 +219,11 @@ function processValueListDefs(
 			});
 		});
 	});
-
+	/*
 	console.log(
 		`Completed processing ValueListDef ${valueListDef.OID}, created ${itemRefs.length} itemRefs`
 	);
-	return itemRefs;
+*/ return itemRefs;
 }
 
 function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
@@ -259,16 +259,16 @@ export function processValueLevelMetadata(
 	};
 
 	const paramcdToParamMap = buildParamcdMapping(define, datasetName);
-	console.log('PARAMCD to PARAM mappings:', Array.from(paramcdToParamMap.entries()));
+	//console.log('PARAMCD to PARAM mappings:', Array.from(paramcdToParamMap.entries()));
 
 	const valueListDefs = findValueListDefs(define, datasetName);
-	console.log(
+	/*	console.log(
 		'Found ValueListDefs with ItemRefs:',
 		valueListDefs.map((def) => ({
 			OID: def.OID,
 			ItemRefCount: def.ItemRefs?.length || 0
 		}))
-	);
+	);*/
 
 	valueListDefs.forEach((valueListDef) => {
 		if (!valueListDef.OID) return;
@@ -292,7 +292,7 @@ export function processValueLevelMetadata(
 		vlmVariable.valueListDef.itemRefs.push(...itemRefs);
 	});
 
-	console.log('Processing complete:', {
+	/*	console.log('Processing complete:', {
 		variables: Array.from(result.variables.entries()).map(([name, variable]) => ({
 			variable: name,
 			itemRefs: variable.valueListDef.itemRefs.map((ref) => ({
@@ -301,6 +301,6 @@ export function processValueLevelMetadata(
 			}))
 		}))
 	});
-
+*/
 	return result;
 }
