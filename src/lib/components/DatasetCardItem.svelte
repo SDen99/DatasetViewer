@@ -3,9 +3,12 @@
 	import * as Button from '$lib/components/core/button';
 	import { Progress } from '$lib/components/core/progress';
 	import * as Tooltip from '$lib/components/core/tooltip';
+	import { Badge } from '$lib/components/core/badge';
 
 	const props = $props<{
 		name: string;
+		description?: string;
+		class?: string;
 		state: {
 			hasData: boolean;
 			hasMetadata: boolean;
@@ -65,43 +68,56 @@
 		};
 	});
 
-	const buttonClass = $derived.by(() => {
-		const baseClass = 'flex-1 text-left';
-		const interactiveClass =
-			props.state.hasData || props.state.hasMetadata
-				? 'hover:text-primary'
-				: 'cursor-not-allowed opacity-70';
-		return `${baseClass} ${interactiveClass}`;
-	});
-
 	const containerClass = $derived.by(() => {
 		return `overflow-hidden rounded-lg border ${
 			props.isSelected ? 'border-primary' : 'border-border'
 		}`;
 	});
 
-	$effect.root(() => {
-		$effect(() => {
-			$inspect({
-				name: props.name,
-				state: props.state,
-				isSelected: props.isSelected
-			});
-		});
+	const getClassAbbreviation = (classType: string | undefined) => {
+		if (!classType) return '';
+
+		const abbreviations: Record<string, string> = {
+			'BASIC DATA STRUCTURE': 'BDS',
+			'OCCURRENCE DATA STRUCTURE': 'OCCUR',
+			'SUBJECT LEVEL ANALYSIS DATASET': 'SLAD'
+		};
+
+		return abbreviations[classType.toUpperCase()] || classType;
+	};
+
+	const isClickable = $derived.by(() => {
+		return props.state.hasData || props.state.hasMetadata;
 	});
+
+	const handleClick = (event: MouseEvent) => {
+		// Prevent click if clicking the delete button
+		const target = event.target as HTMLElement;
+		if (target.closest('button[data-delete-button]')) {
+			return;
+		}
+
+		if (isClickable && !props.state.isLoading) {
+			props.onClick();
+		}
+	};
 
 	const Icon = $derived.by(() => stateInfo.icon);
 </script>
 
-<div class={containerClass}>
-	<div class="flex items-center justify-between p-3">
-		<button
-			type="button"
-			class={buttonClass}
-			onclick={props.onClick}
-			disabled={props.state.isLoading}
-		>
-			<div class="flex items-center gap-2">
+<button
+	type="button"
+	class="{containerClass} w-full text-left {isClickable
+		? 'hover:border-primary/50'
+		: 'cursor-not-allowed opacity-70'}"
+	onclick={handleClick}
+	disabled={!isClickable || props.state.isLoading}
+	aria-label="Select dataset {props.name}"
+>
+	<div class="flex flex-col border p-3">
+		<!-- Main Content -->
+		<div class="flex items-center justify-between">
+			<div class="flex flex-1 items-center gap-2">
 				<Tooltip.Provider>
 					<Tooltip.Root>
 						<Tooltip.Trigger asChild>
@@ -114,19 +130,51 @@
 						</Tooltip.Content>
 					</Tooltip.Root>
 				</Tooltip.Provider>
-				<span class="truncate font-medium">{props.name}</span>
+				<span class="truncate text-base font-medium">{props.name}</span>
 			</div>
-		</button>
 
-		{#if props.state.hasData && !props.state.isLoading}
-			<Button.Root
-				variant="ghost"
-				size="icon"
-				class="h-8 w-8 text-muted-foreground hover:text-destructive"
-				onclick={props.onDelete}
-			>
-				<Trash2 class="h-4 w-4" />
-			</Button.Root>
+			<!-- Actions Section -->
+			<div class="flex items-center gap-2">
+				{#if props.class}
+					<Tooltip.Provider>
+						<Tooltip.Root>
+							<Tooltip.Trigger asChild>
+								<div>
+									<Badge variant="outline" class="text-xs font-medium">
+										{getClassAbbreviation(props.class)}
+									</Badge>
+								</div>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>{props.class}</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					</Tooltip.Provider>
+				{/if}
+
+				{#if props.state.hasData && !props.state.isLoading}
+					<Button.Root
+						variant="ghost"
+						size="icon"
+						class="h-8 w-8 text-muted-foreground hover:text-destructive"
+						onclick={(e) => {
+							e.stopPropagation();
+							props.onDelete();
+						}}
+						data-delete-button
+						aria-label="Delete dataset"
+					>
+						<Trash2 class="h-4 w-4" />
+					</Button.Root>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Description -->
+		{#if props.description}
+			<div class="mt-1.5">
+				<p class="line-clamp-2 text-sm text-muted-foreground">{props.description}</p>
+			</div>
 		{/if}
 	</div>
 
@@ -135,4 +183,4 @@
 			<Progress value={props.loadingProgress ?? 0} />
 		</div>
 	{/if}
-</div>
+</button>

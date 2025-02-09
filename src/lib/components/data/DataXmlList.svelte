@@ -5,6 +5,7 @@
 	import { DatasetService } from '$lib/core/services/datasetService';
 	import DatasetCardItem from '../DatasetCardItem.svelte';
 	import DatasetDeleteDialog from '../DatasetDeleteDialog.svelte';
+	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 
 	// Local state using Runes
 	let dialogOpen = $state(false);
@@ -79,6 +80,25 @@
 		}
 	}
 
+	const getDatasetMetadata = (name: string) => {
+		const normalizedName = normalizeDatasetId(name);
+		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+
+		// Look for metadata in both SDTM and ADaM
+		const metadata =
+			SDTM?.itemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			) ||
+			ADaM?.itemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			);
+
+		return {
+			description: metadata?.Description || undefined,
+			class: metadata?.Class || undefined
+		};
+	};
+
 	$effect.root(() => {
 		$effect(() => {
 			console.log('State Debug:', {
@@ -98,8 +118,11 @@
 			<div class="space-y-2">
 				{#if datasets.length > 0}
 					{#each datasets as name}
+						{@const metadata = getDatasetMetadata(name)}
 						<DatasetCardItem
 							{name}
+							description={metadata.description}
+							class={metadata.class}
 							state={datasetStore.getDatasetState(name)}
 							isSelected={name === selectedDatasetId}
 							loadingProgress={datasetStore.getDatasetState(name).loadingProgress}

@@ -104,17 +104,6 @@
 	<div class="flex h-[calc(100vh-12rem)] flex-col">
 		<!-- Fixed Header Section -->
 		<div class="flex-none space-y-6 p-4">
-			<!-- Dataset Information -->
-			<div>
-				<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
-				<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
-				{#if datasetMetadata().Class}
-					<div class="mt-2">
-						<Badge variant="outline">{datasetMetadata().Class}</Badge>
-					</div>
-				{/if}
-			</div>
-
 			<!-- Controls -->
 			<div class="flex items-center justify-between">
 				<div class="relative w-64">
