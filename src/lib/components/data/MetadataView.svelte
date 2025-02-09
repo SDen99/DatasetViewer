@@ -1,6 +1,19 @@
 <script lang="ts">
 	import type { ParsedDefineXML, itemDef, itemRef } from '$lib/core/processors/defineXML/types';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
+	import { Badge } from '$lib/components/core/badge';
+	import { Card, CardContent } from '$lib/components/core/card';
+	import { Input } from '$lib/components/core/input';
+	import { Search, Table as TableIcon, LayoutList } from 'lucide-svelte';
+	import {
+		Table,
+		TableBody,
+		TableCell,
+		TableHead,
+		TableHeader,
+		TableRow
+	} from '$lib/components/core/table';
+	import { Button } from '$lib/components/core/button';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -8,138 +21,280 @@
 		datasetName: string;
 	}>();
 
+	const ORIGIN_ABBREV: Record<string, string> = {
+		Collected: 'CRF',
+		Derived: 'DER',
+		Assigned: 'ASG',
+		Protocol: 'PRT',
+		Predecessor: 'PRE'
+	};
+
+	let searchTerm = $state('');
+	let view = $state({ isTable: true });
+
+	let isTableView = $derived(view.isTable);
+
 	let datasetMetadata = $derived(() => {
+		const define = sdtmDefine || adamDefine;
+		if (!define) return null;
+
 		const normalizedName = normalizeDatasetId(datasetName);
-
-		const sdtmDataset = sdtmDefine?.itemGroups.find(
+		return define.itemGroups.find(
 			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
 		);
-		const adamDataset = adamDefine?.itemGroups.find(
-			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
-		);
-
-		return sdtmDataset || adamDataset;
 	});
 
-	// Enhanced variables to include both ItemRef and ItemDef data
 	interface EnhancedVariable extends itemRef {
 		itemDef?: itemDef;
 		hasVLM: boolean;
 	}
 
-	let variables = $derived(() => {
+	let baseVariables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
-		if (!define || !datasetMetadata) {
-			return [];
-		}
+		if (!define || !datasetMetadata()) return [];
 
-		// Filter ItemRefs for the current dataset
+		const normalizedDatasetName = normalizeDatasetId(datasetName);
+
 		const datasetRefs = define.itemRefs.filter((ref) => {
-			// ItemOID format: "IT.DATASETNAME.VARNAME"
 			const refDataset = ref.OID?.split('.')[1] || '';
-			return normalizeDatasetId(refDataset) === normalizeDatasetId(datasetName);
+			return normalizeDatasetId(refDataset) === normalizedDatasetName;
 		});
 
-		// Join with ItemDefs and check for VLM
-		const enhancedVariables: EnhancedVariable[] = datasetRefs.map((ref) => {
-			const itemDef = define.itemDefs.find((def) => def.OID === ref.OID);
+		const itemDefsMap = new Map(define.itemDefs.map((def) => [def.OID, def]));
 
-			// Check if variable has value level metadata
-			const varName = ref.OID?.split('.')[2] || '';
-			const hasVLM = define.valueListDefs.some((vld) =>
-				vld.OID?.includes(`VL.${datasetName}.${varName}`)
-			);
+		const vlmVars = new Set(
+			define.valueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
+		);
 
-			return {
-				...ref,
-				itemDef,
-				hasVLM
-			};
-		});
+		return datasetRefs
+			.map((ref) => {
+				const varName = ref.OID?.split('.')[2] || '';
+				return {
+					...ref,
+					itemDef: itemDefsMap.get(ref.OID),
+					hasVLM: vlmVars.has(varName)
+				};
+			})
+			.sort((a, b) => {
+				return parseInt(a.OrderNumber || '0') - parseInt(b.OrderNumber || '0');
+			});
+	});
 
-		// Sort by OrderNumber
-		return enhancedVariables.sort((a, b) => {
-			const orderA = parseInt(a.OrderNumber || '0');
-			const orderB = parseInt(b.OrderNumber || '0');
-			return orderA - orderB;
+	let filteredVariables = $derived(() => {
+		const vars = baseVariables();
+		if (!vars?.length) return [];
+
+		const searchLower = searchTerm.toLowerCase();
+		if (!searchLower) return vars;
+
+		return vars.filter((variable) => {
+			const name = variable.itemDef?.Name?.toLowerCase() || '';
+			const description = variable.itemDef?.Description?.toLowerCase() || '';
+			return name.includes(searchLower) || description.includes(searchLower);
 		});
 	});
 
-	$effect.root(() => {
-		$effect(() => {
-			const hasSDTM = !!sdtmDefine;
-			const hasADaM = !!adamDefine;
-		});
-	});
+	function getOriginAbbrev(originType: string | undefined): string {
+		if (!originType) return '-';
+		return ORIGIN_ABBREV[originType] || originType;
+	}
 </script>
 
 {#if datasetMetadata()}
-	<div class="max-h-[calc(100vh-12rem)] space-y-6 overflow-y-auto">
+	<div class="max-h-[calc(100vh-12rem)] space-y-6 overflow-y-auto p-4">
 		<!-- Dataset Information -->
 		<div>
 			<h3 class="text-lg font-semibold">Dataset: {datasetMetadata().Name}</h3>
 			<p class="text-sm text-muted-foreground">{datasetMetadata().Description}</p>
 			{#if datasetMetadata().Class}
 				<div class="mt-2">
-					<span class="rounded-md bg-muted px-2 py-1 text-sm">
-						{datasetMetadata().Class}
-					</span>
+					<Badge variant="outline">{datasetMetadata().Class}</Badge>
 				</div>
 			{/if}
 		</div>
 
-		<!-- Variables -->
-		<div>
-			<h4 class="text-md mb-4 font-semibold">Variables</h4>
-			<div class="rounded-md border">
-				<table class="w-full">
-					<thead class="bg-muted/50">
-						<tr class="border-b">
-							<th class="p-2 text-left">Order</th>
-							<th class="p-2 text-left">Key</th>
-							<th class="p-2 text-left">Name</th>
-							<th class="p-2 text-left">VLM</th>
-							<th class="p-2 text-left">Label</th>
-							<th class="p-2 text-left">Type</th>
-							<th class="p-2 text-left">Length</th>
-							<th class="p-2 text-left">Format</th>
-							<th class="p-2 text-left">Mandatory</th>
-							<th class="p-2 text-left">Origin Type</th>
-							<th class="p-2 text-left">Origin</th>
-							<th class="p-2 text-left">Method OID</th>
-							<th class="p-2 text-left">Where Clause OID</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each variables() as variable}
-							<tr class="border-b">
-								<td class="p-2">{variable.OrderNumber}</td>
-								<td class="p-2">{variable.KeySequence || '-'}</td>
-								<td class="p-2">{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}</td>
-								<td class="p-2">
-									{#if variable.hasVLM}
-										<span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800"
-											>VLM</span
-										>
+		<!-- Controls -->
+		<div class="flex items-center justify-between">
+			<div class="relative w-64">
+				<Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+				<Input type="text" placeholder="Search variables..." class="pl-8" bind:value={searchTerm} />
+			</div>
+
+			<div class="flex gap-2">
+				<Button
+					variant="default"
+					size="icon"
+					onclick={() => (view.isTable = true)}
+					aria-label="Table view"
+				>
+					<TableIcon class="h-4 w-4" />
+				</Button>
+
+				<Button
+					variant="default"
+					size="icon"
+					onclick={() => (view.isTable = false)}
+					aria-label="Card view"
+				>
+					<LayoutList class="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+
+		<!-- Content -->
+		{#if isTableView}
+			<div class="rounded-lg border">
+				<Table>
+					<TableHeader>
+						<TableRow class="bg-muted/50">
+							<TableHead class="w-16">Order</TableHead>
+							<TableHead class="w-32">Name</TableHead>
+							<TableHead>Label</TableHead>
+							<TableHead class="w-20">Type</TableHead>
+							<TableHead class="w-20">Length</TableHead>
+							<TableHead class="w-20">Format</TableHead>
+							<TableHead class="w-16">Req</TableHead>
+							<TableHead class="w-16">Orig</TableHead>
+							<TableHead class="w-32">Origin Ref</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{#each filteredVariables() as variable}
+							<TableRow>
+								<TableCell class="font-mono text-sm">
+									{variable.OrderNumber}
+									{#if variable.KeySequence}
+										<Badge variant="outline" class="ml-1 px-1 py-0">K</Badge>
+									{/if}
+								</TableCell>
+
+								<TableCell>
+									<div class="flex items-center gap-1">
+										<span class="font-mono">
+											{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+										</span>
+										{#if variable.hasVLM}
+											<Badge variant="secondary" class="px-1 py-0">V</Badge>
+										{/if}
+									</div>
+								</TableCell>
+
+								<TableCell class="text-sm">
+									{variable.itemDef?.Description || '-'}
+								</TableCell>
+
+								<TableCell class="text-sm">{variable.itemDef?.DataType || '-'}</TableCell>
+								<TableCell class="text-sm">{variable.itemDef?.Length || '-'}</TableCell>
+								<TableCell class="font-mono text-sm">{variable.itemDef?.Format || '-'}</TableCell>
+
+								<TableCell>
+									<Badge
+										variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+										class="px-1 py-0"
+									>
+										{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
+									</Badge>
+								</TableCell>
+
+								<TableCell class="text-sm">
+									{#if variable.itemDef?.OriginType}
+										<Badge variant="outline" class="px-1 py-0">
+											{variable.itemDef.OriginType}
+										</Badge>
 									{:else}
 										-
 									{/if}
-								</td>
-								<td class="p-2">{variable.itemDef?.Description || '-'}</td>
-								<td class="p-2">{variable.itemDef?.DataType || '-'}</td>
-								<td class="p-2">{variable.itemDef?.Length || '-'}</td>
-								<td class="p-2">{variable.itemDef?.Format || '-'}</td>
-								<td class="p-2">{variable.Mandatory}</td>
-								<td class="p-2">{variable.itemDef?.OriginType || '-'}</td>
-								<td class="p-2">{variable.itemDef?.Origin || '-'}</td>
-								<td class="p-2">{variable.MethodOID || '-'}</td>
-								<td class="p-2">{variable.WhereClauseOID || '-'}</td>
-							</tr>
+								</TableCell>
+
+								<TableCell class="font-mono text-xs">
+									{variable.itemDef?.Origin || '-'}
+								</TableCell>
+							</TableRow>
 						{/each}
-					</tbody>
-				</table>
+					</TableBody>
+				</Table>
 			</div>
-		</div>
+		{:else}
+			<div class="max-w-5xl space-y-2">
+				{#each filteredVariables() as variable}
+					<Card>
+						<CardContent class="p-4">
+							<div class="flex gap-8">
+								<!-- Variable Identifier Section -->
+								<div class="w-48 shrink-0">
+									<div class="flex items-center gap-2">
+										<span class="font-mono font-medium">
+											{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+										</span>
+										<div class="flex gap-1">
+											{#if variable.KeySequence}
+												<Badge variant="outline" class="px-1 py-0">Key</Badge>
+											{/if}
+											{#if variable.hasVLM}
+												<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
+											{/if}
+										</div>
+									</div>
+									<p class="mt-1 text-sm text-muted-foreground">
+										{variable.itemDef?.Description || '-'}
+									</p>
+								</div>
+
+								<!-- Technical Details Section -->
+								<div class="flex items-start gap-8">
+									<!-- Core Properties -->
+									<div class="w-32 space-y-1">
+										<div class="text-sm">
+											<span class="text-muted-foreground">Type:</span>
+											<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
+										</div>
+										<div class="text-sm">
+											<span class="text-muted-foreground">Length:</span>
+											<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
+										</div>
+										{#if variable.itemDef?.Format}
+											<div class="text-sm">
+												<span class="text-muted-foreground">Format:</span>
+												<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
+											</div>
+										{/if}
+									</div>
+
+									<!-- Status -->
+									<div class="w-32 space-y-1">
+										<div class="text-sm">
+											<Badge
+												variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+												class="px-1 py-0"
+											>
+												{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
+											</Badge>
+										</div>
+										{#if variable.itemDef?.OriginType}
+											<div class="text-sm">
+												<Badge variant="outline" class="px-1 py-0">
+													{getOriginAbbrev(variable.itemDef.OriginType)}
+												</Badge>
+											</div>
+										{/if}
+									</div>
+
+									<!-- Origin Reference -->
+									{#if variable.itemDef?.Origin}
+										<div class="w-64">
+											<span class="text-sm text-muted-foreground">Origin:</span>
+											<code class="mt-1 block text-xs">
+												{variable.itemDef.Origin}
+											</code>
+										</div>
+									{/if}
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+				{/each}
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div class="flex h-[200px] items-center justify-center text-muted-foreground">
