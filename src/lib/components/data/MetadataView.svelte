@@ -145,7 +145,7 @@
 					<Table>
 						<TableHeader>
 							<TableRow class="bg-muted/50">
-								<TableHead class="w-16">Order</TableHead>
+								<TableHead class="w-40">Order</TableHead>
 								<TableHead class="w-32">Name</TableHead>
 								<TableHead>Label</TableHead>
 								<TableHead class="w-20">Type</TableHead>
@@ -155,7 +155,6 @@
 								<TableHead class="w-16">Orig</TableHead>
 								<TableHead class="w-32">Origin Ref</TableHead>
 								<TableHead class="w-32">Method OID</TableHead>
-								<TableHead class="w-32">Where Clause</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -164,7 +163,7 @@
 									<TableCell class="font-mono text-sm">
 										{variable.OrderNumber}
 										{#if variable.KeySequence}
-											<Badge variant="outline" class="ml-1 px-1 py-0">K</Badge>
+											<Badge variant="outline" class="py-0">K{variable.KeySequence}</Badge>
 										{/if}
 									</TableCell>
 
@@ -174,7 +173,7 @@
 												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
 											</span>
 											{#if variable.hasVLM}
-												<Badge variant="secondary" class="px-1 py-0">V</Badge>
+												<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
 											{/if}
 										</div>
 									</TableCell>
@@ -212,9 +211,6 @@
 									<TableCell class="font-mono text-xs">
 										{variable.MethodOID || '-'}
 									</TableCell>
-									<TableCell class="font-mono text-xs">
-										{variable.WhereClauseOID || '-'}
-									</TableCell>
 								</TableRow>
 							{/each}
 						</TableBody>
@@ -234,7 +230,7 @@
 											</span>
 											<div class="flex gap-1">
 												{#if variable.KeySequence}
-													<Badge variant="outline" class="px-1 py-0">Key</Badge>
+													<Badge variant="outline" class="px-1 py-0">K{variable.KeySequence}</Badge>
 												{/if}
 												{#if variable.hasVLM}
 													<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
