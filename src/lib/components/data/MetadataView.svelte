@@ -14,6 +14,7 @@
 		TableRow
 	} from '$lib/components/core/table';
 	import { Button } from '$lib/components/core/button';
+	import MethodCell from '$lib/components/data/MethodCell.svelte';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -44,10 +45,7 @@
 		);
 	});
 
-	interface EnhancedVariable extends itemRef {
-		itemDef?: itemDef;
-		hasVLM: boolean;
-	}
+	let methods = $derived((sdtmDefine || adamDefine)?.methods || []);
 
 	let baseVariables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
@@ -98,6 +96,8 @@
 		if (!originType) return '-';
 		return ORIGIN_ABBREV[originType] || originType;
 	}
+
+	let expandedMethodOID = $state<string | null>(null);
 </script>
 
 {#if datasetMetadata()}
@@ -208,10 +208,27 @@
 									<TableCell class="font-mono text-xs">
 										{variable.itemDef?.Origin || '-'}
 									</TableCell>
-									<TableCell class="font-mono text-xs">
-										{variable.MethodOID || '-'}
+									<TableCell class="max-w-md">
+										<MethodCell
+											methodOID={variable.MethodOID}
+											{methods}
+											isExpanded={expandedMethodOID === variable.MethodOID}
+											onToggle={() =>
+												(expandedMethodOID =
+													expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
+										/>
 									</TableCell>
 								</TableRow>
+
+								<!-- Method Details Row -->
+								{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+									<TableCell colspan="10" class="px-4 py-2">
+										<div class="text-sm text-muted-foreground">
+											{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+												'No description available'}
+										</div>
+									</TableCell>
+								{/if}
 							{/each}
 						</TableBody>
 					</Table>
@@ -221,98 +238,119 @@
 					{#each filteredVariables() as variable}
 						<Card>
 							<CardContent class="p-4">
-								<div class="flex gap-8">
-									<!-- Variable Identifier Section -->
-									<div class="w-48 shrink-0">
-										<div class="flex items-center gap-2">
-											<span class="font-mono font-medium">
-												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-											</span>
-											<div class="flex gap-1">
-												{#if variable.KeySequence}
-													<Badge variant="outline" class="px-1 py-0">K{variable.KeySequence}</Badge>
-												{/if}
-												{#if variable.hasVLM}
-													<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
-												{/if}
-											</div>
-										</div>
-										<p class="mt-1 text-sm text-muted-foreground">
-											{variable.itemDef?.Description || '-'}
-										</p>
-									</div>
-
-									<!-- Technical Details Section -->
-									<div class="flex items-start gap-8">
-										<!-- Core Properties -->
-										<div class="w-32 space-y-1">
-											<div class="text-sm">
-												<span class="text-muted-foreground">Type:</span>
-												<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
-											</div>
-											<div class="text-sm">
-												<span class="text-muted-foreground">Length:</span>
-												<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
-											</div>
-											{#if variable.itemDef?.Format}
-												<div class="text-sm">
-													<span class="text-muted-foreground">Format:</span>
-													<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
+								<div class="flex flex-col gap-4">
+									<!-- Main Content -->
+									<div class="flex gap-8">
+										<!-- Variable Identifier Section -->
+										<div class="w-48 shrink-0">
+											<div class="flex items-center gap-2">
+												<span class="font-mono font-medium">
+													{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+												</span>
+												<div class="flex gap-1">
+													{#if variable.KeySequence}
+														<Badge variant="outline" class="px-1 py-0"
+															>K{variable.KeySequence}</Badge
+														>
+													{/if}
+													{#if variable.hasVLM}
+														<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
+													{/if}
 												</div>
-											{/if}
+											</div>
+											<p class="mt-1 text-sm text-muted-foreground">
+												{variable.itemDef?.Description || '-'}
+											</p>
 										</div>
 
-										<!-- Status -->
-										<div class="w-32 space-y-1">
-											<div class="text-sm">
-												<Badge
-													variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-													class="px-1 py-0"
-												>
-													{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
-												</Badge>
-											</div>
-											{#if variable.itemDef?.OriginType}
+										<!-- Technical Details Section -->
+										<div class="flex items-start gap-8">
+											<!-- Core Properties -->
+											<div class="w-32 space-y-1">
 												<div class="text-sm">
-													<Badge variant="outline" class="px-1 py-0">
-														{getOriginAbbrev(variable.itemDef.OriginType)}
+													<span class="text-muted-foreground">Type:</span>
+													<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
+												</div>
+												<div class="text-sm">
+													<span class="text-muted-foreground">Length:</span>
+													<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
+												</div>
+												{#if variable.itemDef?.Format}
+													<div class="text-sm">
+														<span class="text-muted-foreground">Format:</span>
+														<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
+													</div>
+												{/if}
+											</div>
+
+											<!-- Status -->
+											<div class="w-32 space-y-1">
+												<div class="text-sm">
+													<Badge
+														variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+														class="px-1 py-0"
+													>
+														{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
 													</Badge>
 												</div>
+												{#if variable.itemDef?.OriginType}
+													<div class="text-sm">
+														<Badge variant="outline" class="px-1 py-0">
+															{getOriginAbbrev(variable.itemDef.OriginType)}
+														</Badge>
+													</div>
+												{/if}
+											</div>
+
+											<!-- Origin Reference -->
+											{#if variable.itemDef?.Origin}
+												<div class="w-64">
+													<span class="text-sm text-muted-foreground">Origin:</span>
+													<code class="mt-1 block text-xs">
+														{variable.itemDef.Origin}
+													</code>
+												</div>
+											{/if}
+
+											<!-- Method & Where Clause -->
+											{#if variable.MethodOID || variable.WhereClauseOID}
+												<div class="w-64 space-y-2">
+													{#if variable.MethodOID}
+														<div>
+															<MethodCell
+																methodOID={variable.MethodOID}
+																{methods}
+																isExpanded={expandedMethodOID === variable.MethodOID}
+																onToggle={() =>
+																	(expandedMethodOID =
+																		expandedMethodOID === variable.MethodOID
+																			? null
+																			: variable.MethodOID)}
+															/>
+														</div>
+													{/if}
+													{#if variable.WhereClauseOID}
+														<div>
+															<span class="text-sm text-muted-foreground">Where Clause:</span>
+															<code class="mt-1 block text-xs">
+																{variable.WhereClauseOID}
+															</code>
+														</div>
+													{/if}
+												</div>
 											{/if}
 										</div>
-
-										<!-- Origin Reference -->
-										{#if variable.itemDef?.Origin}
-											<div class="w-64">
-												<span class="text-sm text-muted-foreground">Origin:</span>
-												<code class="mt-1 block text-xs">
-													{variable.itemDef.Origin}
-												</code>
-											</div>
-										{/if}
-
-										<!-- Method & Where Clause -->
-										{#if variable.MethodOID || variable.WhereClauseOID}
-											<div class="w-64 space-y-2">
-												{#if variable.MethodOID}
-													<div>
-														<span class="text-sm text-muted-foreground">Method OID:</span>
-														<code class="mt-1 block text-xs">
-															{variable.MethodOID}
-														</code>
-													</div>
-												{/if}
-												{#if variable.WhereClauseOID}
-													<div>
-														<span class="text-sm text-muted-foreground">Where Clause:</span>
-														<code class="mt-1 block text-xs">
-															{variable.WhereClauseOID}
-														</code>
-													</div>
-												{/if}
-											</div>
-										{/if}
 									</div>
+
+									<!-- Expanded Method Section -->
+									{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+										<div class="mt-2 border-t pt-4">
+											<div class="text-sm text-muted-foreground">
+												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+													'No description available'}
+											</div>
+										</div>
+									{/if}
 								</div>
 							</CardContent>
 						</Card>
