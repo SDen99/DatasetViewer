@@ -55,7 +55,13 @@
 		const normalizedDatasetName = normalizeDatasetId(datasetName);
 
 		const datasetRefs = define.itemRefs.filter((ref) => {
-			const refDataset = ref.OID?.split('.')[1] || '';
+			let refDataset;
+
+			if (sdtmDefine) {
+				refDataset = ref.OID?.split('.')[0] || '';
+			} else if (adamDefine) {
+				refDataset = ref.OID?.split('.')[1] || '';
+			}
 			return normalizeDatasetId(refDataset) === normalizedDatasetName;
 		});
 
