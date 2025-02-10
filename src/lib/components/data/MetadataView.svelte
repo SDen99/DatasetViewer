@@ -46,6 +46,7 @@
 	});
 
 	let methods = $derived((sdtmDefine || adamDefine)?.methods || []);
+	let comments = $derived((sdtmDefine || adamDefine)?.comments || []);
 
 	let baseVariables = $derived(() => {
 		const define = sdtmDefine || adamDefine;
@@ -222,12 +223,25 @@
 
 								<!-- Method Details Row -->
 								{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
-									<TableCell colspan="10" class="px-4 py-2">
-										<div class="text-sm text-muted-foreground">
-											{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-												'No description available'}
-										</div>
-									</TableCell>
+									<TableRow>
+										<TableCell colspan="10" class="bg-muted/20 px-4 py-2">
+											<div class="text-sm text-muted-foreground">
+												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+													'No description available'}
+											</div>
+
+											<!-- Comments Row -->
+											{#if variable.itemDef?.Comment}
+												<div class="space-y-1">
+													<div class="items-center gap-2 text-muted-foreground">
+														Comment:
+														{comments.find((c) => c.OID === variable.itemDef?.Comment)
+															?.Description || 'No comment description available'}
+													</div>
+												</div>
+											{/if}
+										</TableCell>
+									</TableRow>
 								{/if}
 							{/each}
 						</TableBody>
@@ -312,8 +326,8 @@
 												</div>
 											{/if}
 
-											<!-- Method & Where Clause -->
-											{#if variable.MethodOID || variable.WhereClauseOID}
+											<!-- Method  -->
+											{#if variable.MethodOID}
 												<div class="w-64 space-y-2">
 													{#if variable.MethodOID}
 														<div>
@@ -329,14 +343,6 @@
 															/>
 														</div>
 													{/if}
-													{#if variable.WhereClauseOID}
-														<div>
-															<span class="text-sm text-muted-foreground">Where Clause:</span>
-															<code class="mt-1 block text-xs">
-																{variable.WhereClauseOID}
-															</code>
-														</div>
-													{/if}
 												</div>
 											{/if}
 										</div>
@@ -350,6 +356,13 @@
 													'No description available'}
 											</div>
 										</div>
+										{#if variable.itemDef?.Comment}
+											<div class="space-y-2 text-sm text-muted-foreground">
+												Comment:
+												{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
+													'No comment description available'}
+											</div>
+										{/if}
 									{/if}
 								</div>
 							</CardContent>
