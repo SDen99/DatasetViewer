@@ -26,11 +26,11 @@
 		<div class="flex items-center gap-2">
 			<svelte:component this={isExpanded ? ChevronDown : ChevronRight} class="h-4 w-4 shrink-0" />
 			<span class="font-mono text-xs">{methodInfo.Name}</span>
-			{#if typeAbbrev}
+			<!--	{#if typeAbbrev}
 				<Badge variant="outline" class="px-1 py-0 text-xs">
 					{typeAbbrev}
 				</Badge>
-			{/if}
+			{/if} -->
 		</div>
 	</div>
 {/if}

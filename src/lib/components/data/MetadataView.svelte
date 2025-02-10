@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ParsedDefineXML, itemDef, itemRef } from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { Badge } from '$lib/components/core/badge';
 	import { Card, CardContent } from '$lib/components/core/card';
@@ -32,6 +32,7 @@
 
 	let searchTerm = $state('');
 	let view = $state({ isTable: true });
+	let expandedMethodOID = $state<string | null>(null);
 
 	let isTableView = $derived(view.isTable);
 
@@ -56,7 +57,6 @@
 
 		const datasetRefs = define.itemRefs.filter((ref) => {
 			let refDataset;
-
 			if (sdtmDefine) {
 				refDataset = ref.OID?.split('.')[0] || '';
 			} else if (adamDefine) {
@@ -66,7 +66,6 @@
 		});
 
 		const itemDefsMap = new Map(define.itemDefs.map((def) => [def.OID, def]));
-
 		const vlmVars = new Set(
 			define.valueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
 		);
@@ -103,15 +102,13 @@
 		if (!originType) return '-';
 		return ORIGIN_ABBREV[originType] || originType;
 	}
-
-	let expandedMethodOID = $state<string | null>(null);
 </script>
 
 {#if datasetMetadata()}
+	<!-- Main container - takes up all available space minus the top nav -->
 	<div class="flex h-[calc(100vh-12rem)] flex-col">
-		<!-- Fixed Header Section -->
-		<div class="flex-none space-y-6 p-4">
-			<!-- Controls -->
+		<!-- Controls section - fixed height -->
+		<div class="flex-none p-4">
 			<div class="flex items-center justify-between">
 				<div class="relative w-64">
 					<Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -132,7 +129,6 @@
 					>
 						<TableIcon class="h-4 w-4" />
 					</Button>
-
 					<Button
 						variant="default"
 						size="icon"
@@ -145,238 +141,259 @@
 			</div>
 		</div>
 
-		<!-- Scrollable Content Section -->
-		<div class="flex-1 overflow-y-auto p-4 pt-0">
+		<!-- Content section - takes remaining height -->
+		<div class="flex-1 overflow-hidden px-4">
 			{#if isTableView}
-				<div class="rounded-lg border">
-					<Table>
-						<TableHeader>
-							<TableRow class="bg-muted/50">
-								<TableHead class="w-40">Order</TableHead>
-								<TableHead class="w-32">Name</TableHead>
-								<TableHead>Label</TableHead>
-								<TableHead class="w-20">Type</TableHead>
-								<TableHead class="w-20">Length</TableHead>
-								<TableHead class="w-20">Format</TableHead>
-								<TableHead class="w-16">Req</TableHead>
-								<TableHead class="w-16">Orig</TableHead>
-								<TableHead class="w-48">Origin/Method</TableHead>
-							</TableRow>
-						</TableHeader>
-
-						<TableBody>
-							{#each filteredVariables() as variable}
-								<TableRow>
-									<TableCell class="font-mono text-sm">
-										{variable.OrderNumber}
-										{#if variable.KeySequence}
-											<Badge variant="outline" class="py-0">K{variable.KeySequence}</Badge>
-										{/if}
-									</TableCell>
-
-									<TableCell>
-										<div class="flex items-center gap-1">
-											<span class="font-mono">
-												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-											</span>
-											{#if variable.hasVLM}
-												<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
-											{/if}
-										</div>
-									</TableCell>
-
-									<TableCell class="text-sm">
-										{variable.itemDef?.Description || '-'}
-									</TableCell>
-
-									<TableCell class="text-sm">{variable.itemDef?.DataType || '-'}</TableCell>
-									<TableCell class="text-sm">{variable.itemDef?.Length || '-'}</TableCell>
-									<TableCell class="font-mono text-sm">{variable.itemDef?.Format || '-'}</TableCell>
-
-									<TableCell>
-										<Badge
-											variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-											class="px-1 py-0"
-										>
-											{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
-										</Badge>
-									</TableCell>
-
-									<TableCell class="text-sm">
-										{#if variable.itemDef?.OriginType}
-											<Badge variant="outline" class="px-1 py-0">
-												{getOriginAbbrev(variable.itemDef.OriginType)}
-											</Badge>
-										{:else}
-											-
-										{/if}
-									</TableCell>
-
-									<TableCell class="max-w-md">
-										{#if variable.itemDef?.Origin}
-											<code class="text-xs">
-												{variable.itemDef.Origin}
-											</code>
-										{:else if variable.MethodOID}
-											<MethodCell
-												methodOID={variable.MethodOID}
-												{methods}
-												isExpanded={expandedMethodOID === variable.MethodOID}
-												onToggle={() =>
-													(expandedMethodOID =
-														expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
-											/>
-										{/if}
-									</TableCell>
+				<!-- Table container with border -->
+				<div class="flex h-full flex-col rounded-lg border">
+					<!-- Fixed header -->
+					<div class="w-full border-b bg-white">
+						<Table>
+							<TableHeader>
+								<TableRow class="bg-muted/50">
+									<TableHead class="w-40">Order</TableHead>
+									<TableHead class="w-32">Name</TableHead>
+									<TableHead>Label</TableHead>
+									<TableHead class="w-20">Type</TableHead>
+									<TableHead class="w-20">Length</TableHead>
+									<TableHead class="w-20">Format</TableHead>
+									<TableHead class="w-16">Req</TableHead>
+									<TableHead class="w-16">Orig</TableHead>
+									<TableHead class="w-48">Origin/Method</TableHead>
 								</TableRow>
+							</TableHeader>
+						</Table>
+					</div>
 
-								<!-- Method Details Row -->
-								{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+					<!-- Scrollable body -->
+					<div class="flex-1 overflow-y-auto">
+						<Table>
+							<TableBody>
+								{#each filteredVariables() as variable}
 									<TableRow>
-										<TableCell colspan="10" class="bg-muted/20 px-4 py-2">
-											<div class="text-sm text-muted-foreground">
-												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-													'No description available'}
-											</div>
+										<TableCell class="w-40 font-mono text-sm">
+											{variable.OrderNumber}
+											{#if variable.KeySequence}
+												<Badge variant="outline" class="py-0">
+													K{variable.KeySequence}
+												</Badge>
+											{/if}
+										</TableCell>
 
-											<!-- Comments Row -->
-											{#if variable.itemDef?.Comment}
-												<div class="space-y-1">
-													<div class="items-center gap-2 text-muted-foreground">
-														Comment:
-														{comments.find((c) => c.OID === variable.itemDef?.Comment)
-															?.Description || 'No comment description available'}
-													</div>
-												</div>
+										<TableCell class="w-32">
+											<div class="flex items-center gap-1">
+												<span class="font-mono">
+													{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+												</span>
+												{#if variable.hasVLM}
+													<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
+												{/if}
+											</div>
+										</TableCell>
+
+										<TableCell class="text-sm">
+											{variable.itemDef?.Description || '-'}
+										</TableCell>
+
+										<TableCell class="w-20 text-sm">
+											{variable.itemDef?.DataType || '-'}
+										</TableCell>
+
+										<TableCell class="w-20 text-sm">
+											{variable.itemDef?.Length || '-'}
+										</TableCell>
+
+										<TableCell class="w-20 font-mono text-sm">
+											{variable.itemDef?.Format || '-'}
+										</TableCell>
+
+										<TableCell class="w-16">
+											<Badge
+												variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+												class="px-1 py-0"
+											>
+												{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
+											</Badge>
+										</TableCell>
+
+										<TableCell class="w-16 text-sm">
+											{#if variable.itemDef?.OriginType}
+												<Badge variant="outline" class="px-1 py-0">
+													{getOriginAbbrev(variable.itemDef.OriginType)}
+												</Badge>
+											{:else}
+												-
+											{/if}
+										</TableCell>
+
+										<TableCell class="w-48 max-w-md">
+											{#if variable.itemDef?.Origin}
+												<code class="text-xs">
+													{variable.itemDef.Origin}
+												</code>
+											{:else if variable.MethodOID}
+												<MethodCell
+													methodOID={variable.MethodOID}
+													{methods}
+													isExpanded={expandedMethodOID === variable.MethodOID}
+													onToggle={() =>
+														(expandedMethodOID =
+															expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
+												/>
 											{/if}
 										</TableCell>
 									</TableRow>
-								{/if}
-							{/each}
-						</TableBody>
-					</Table>
+
+									{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+										<TableRow>
+											<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
+												<div class="text-sm text-muted-foreground">
+													{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+														'No description available'}
+												</div>
+
+												{#if variable.itemDef?.Comment}
+													<div class="mt-2 space-y-1">
+														<div class="items-center gap-2 text-muted-foreground">
+															Comment:
+															{comments.find((c) => c.OID === variable.itemDef?.Comment)
+																?.Description || 'No comment description available'}
+														</div>
+													</div>
+												{/if}
+											</TableCell>
+										</TableRow>
+									{/if}
+								{/each}
+							</TableBody>
+						</Table>
+					</div>
 				</div>
 			{:else}
-				<div class="max-w-5xl space-y-2">
-					{#each filteredVariables() as variable}
-						<Card>
-							<CardContent class="p-4">
-								<div class="flex flex-col gap-4">
-									<!-- Main Content -->
-									<div class="flex gap-8">
-										<!-- Variable Identifier Section -->
-										<div class="w-48 shrink-0">
-											<div class="flex items-center gap-2">
-												<span class="font-mono font-medium">
-													{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-												</span>
-												<div class="flex gap-1">
-													{#if variable.KeySequence}
-														<Badge variant="outline" class="px-1 py-0"
-															>K{variable.KeySequence}</Badge
+				<!-- Card view - directly scrollable -->
+				<div class="h-full overflow-y-auto">
+					<div class="max-w-5xl space-y-2">
+						{#each filteredVariables() as variable}
+							<Card>
+								<CardContent class="p-4">
+									<div class="flex flex-col gap-4">
+										<!-- Main Content -->
+										<div class="flex gap-8">
+											<!-- Variable Identifier Section -->
+											<div class="w-48 shrink-0">
+												<div class="flex items-center gap-2">
+													<span class="font-mono font-medium">
+														{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+													</span>
+													<div class="flex gap-1">
+														{#if variable.KeySequence}
+															<Badge variant="outline" class="px-1 py-0"
+																>K{variable.KeySequence}</Badge
+															>
+														{/if}
+														{#if variable.hasVLM}
+															<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
+														{/if}
+													</div>
+												</div>
+												<p class="mt-1 text-sm text-muted-foreground">
+													{variable.itemDef?.Description || '-'}
+												</p>
+											</div>
+
+											<!-- Technical Details Section -->
+											<div class="flex items-start gap-8">
+												<!-- Core Properties -->
+												<div class="w-32 space-y-1">
+													<div class="text-sm">
+														<span class="text-muted-foreground">Type:</span>
+														<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span
 														>
-													{/if}
-													{#if variable.hasVLM}
-														<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
-													{/if}
-												</div>
-											</div>
-											<p class="mt-1 text-sm text-muted-foreground">
-												{variable.itemDef?.Description || '-'}
-											</p>
-										</div>
-
-										<!-- Technical Details Section -->
-										<div class="flex items-start gap-8">
-											<!-- Core Properties -->
-											<div class="w-32 space-y-1">
-												<div class="text-sm">
-													<span class="text-muted-foreground">Type:</span>
-													<span class="ml-1 font-medium">{variable.itemDef?.DataType || '-'}</span>
-												</div>
-												<div class="text-sm">
-													<span class="text-muted-foreground">Length:</span>
-													<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
-												</div>
-												{#if variable.itemDef?.Format}
-													<div class="text-sm">
-														<span class="text-muted-foreground">Format:</span>
-														<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
 													</div>
-												{/if}
-											</div>
-
-											<!-- Status -->
-											<div class="w-32 space-y-1">
-												<div class="text-sm">
-													<Badge
-														variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-														class="px-1 py-0"
-													>
-														{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
-													</Badge>
-												</div>
-												{#if variable.itemDef?.OriginType}
 													<div class="text-sm">
-														<Badge variant="outline" class="px-1 py-0">
-															{getOriginAbbrev(variable.itemDef.OriginType)}
-														</Badge>
+														<span class="text-muted-foreground">Length:</span>
+														<span class="ml-1 font-medium">{variable.itemDef?.Length || '-'}</span>
 													</div>
-												{/if}
-											</div>
-
-											<!-- Origin Reference -->
-											{#if variable.itemDef?.Origin}
-												<div class="w-64">
-													<span class="text-sm text-muted-foreground">Origin:</span>
-													<code class="mt-1 block text-xs">
-														{variable.itemDef.Origin}
-													</code>
-												</div>
-											{/if}
-
-											<!-- Method  -->
-											{#if variable.MethodOID}
-												<div class="w-64 space-y-2">
-													{#if variable.MethodOID}
-														<div>
-															<MethodCell
-																methodOID={variable.MethodOID}
-																{methods}
-																isExpanded={expandedMethodOID === variable.MethodOID}
-																onToggle={() =>
-																	(expandedMethodOID =
-																		expandedMethodOID === variable.MethodOID
-																			? null
-																			: variable.MethodOID)}
-															/>
+													{#if variable.itemDef?.Format}
+														<div class="text-sm">
+															<span class="text-muted-foreground">Format:</span>
+															<span class="ml-1 font-mono">{variable.itemDef.Format}</span>
 														</div>
 													{/if}
 												</div>
-											{/if}
-										</div>
-									</div>
 
-									<!-- Expanded Method Section -->
-									{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
-										<div class="mt-2 border-t pt-4">
-											<div class="text-sm text-muted-foreground">
-												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-													'No description available'}
+												<!-- Status -->
+												<div class="w-32 space-y-1">
+													<div class="text-sm">
+														<Badge
+															variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+															class="px-1 py-0"
+														>
+															{variable.Mandatory === 'Yes' ? 'Required' : 'Optional'}
+														</Badge>
+													</div>
+													{#if variable.itemDef?.OriginType}
+														<div class="text-sm">
+															<Badge variant="outline" class="px-1 py-0">
+																{getOriginAbbrev(variable.itemDef.OriginType)}
+															</Badge>
+														</div>
+													{/if}
+												</div>
+
+												<!-- Origin Reference -->
+												{#if variable.itemDef?.Origin}
+													<div class="w-64">
+														<span class="text-sm text-muted-foreground">Origin:</span>
+														<code class="mt-1 block text-xs">
+															{variable.itemDef.Origin}
+														</code>
+													</div>
+												{/if}
+
+												<!-- Method  -->
+												{#if variable.MethodOID}
+													<div class="w-64 space-y-2">
+														{#if variable.MethodOID}
+															<div>
+																<MethodCell
+																	methodOID={variable.MethodOID}
+																	{methods}
+																	isExpanded={expandedMethodOID === variable.MethodOID}
+																	onToggle={() =>
+																		(expandedMethodOID =
+																			expandedMethodOID === variable.MethodOID
+																				? null
+																				: variable.MethodOID)}
+																/>
+															</div>
+														{/if}
+													</div>
+												{/if}
 											</div>
 										</div>
-										{#if variable.itemDef?.Comment}
-											<div class="space-y-2 text-sm text-muted-foreground">
-												Comment:
-												{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
-													'No comment description available'}
+
+										<!-- Expanded Method Section -->
+										{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+											<div class="mt-2 border-t pt-4">
+												<div class="text-sm text-muted-foreground">
+													{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+														'No description available'}
+												</div>
 											</div>
+											{#if variable.itemDef?.Comment}
+												<div class="space-y-2 text-sm text-muted-foreground">
+													Comment:
+													{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
+														'No comment description available'}
+												</div>
+											{/if}
 										{/if}
-									{/if}
-								</div>
-							</CardContent>
-						</Card>
-					{/each}
+									</div>
+								</CardContent>
+							</Card>
+						{/each}
+					</div>
 				</div>
 			{/if}
 		</div>
