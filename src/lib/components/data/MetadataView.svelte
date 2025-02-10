@@ -154,10 +154,10 @@
 								<TableHead class="w-20">Format</TableHead>
 								<TableHead class="w-16">Req</TableHead>
 								<TableHead class="w-16">Orig</TableHead>
-								<TableHead class="w-32">Origin Ref</TableHead>
-								<TableHead class="w-32">Method OID</TableHead>
+								<TableHead class="w-48">Origin/Method</TableHead>
 							</TableRow>
 						</TableHeader>
+
 						<TableBody>
 							{#each filteredVariables() as variable}
 								<TableRow>
@@ -206,18 +206,21 @@
 										{/if}
 									</TableCell>
 
-									<TableCell class="font-mono text-xs">
-										{variable.itemDef?.Origin || '-'}
-									</TableCell>
 									<TableCell class="max-w-md">
-										<MethodCell
-											methodOID={variable.MethodOID}
-											{methods}
-											isExpanded={expandedMethodOID === variable.MethodOID}
-											onToggle={() =>
-												(expandedMethodOID =
-													expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
-										/>
+										{#if variable.itemDef?.Origin}
+											<code class="text-xs">
+												{variable.itemDef.Origin}
+											</code>
+										{:else if variable.MethodOID}
+											<MethodCell
+												methodOID={variable.MethodOID}
+												{methods}
+												isExpanded={expandedMethodOID === variable.MethodOID}
+												onToggle={() =>
+													(expandedMethodOID =
+														expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
+											/>
+										{/if}
 									</TableCell>
 								</TableRow>
 
