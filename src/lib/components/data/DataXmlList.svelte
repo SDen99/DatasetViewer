@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { ScrollArea } from '$lib/components/core/scroll-area';
+	import { Input } from '$lib/components/core/input';
+	import { Search } from 'lucide-svelte';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 	import { storeCoordinator } from '$lib/core/stores/storeCoordinator.svelte';
 	import { DatasetService } from '$lib/core/services/datasetService';
@@ -12,10 +14,25 @@
 	let datasetToDelete = $state<string | null>(null);
 	let isInitialized = $state(false);
 	let isDeleting = $state(false);
+	let searchTerm = $state('');
 
 	// Using derived Runes
 	const datasets = $derived.by(() => {
-		return isInitialized ? datasetStore.availableDatasets : [];
+		if (!isInitialized) return [];
+
+		const allDatasets = datasetStore.availableDatasets;
+		if (!searchTerm) return allDatasets;
+
+		return allDatasets.filter((name) => {
+			const metadata = getDatasetMetadata(name);
+			const searchLower = searchTerm.toLowerCase();
+
+			return (
+				name.toLowerCase().includes(searchLower) ||
+				metadata.description?.toLowerCase().includes(searchLower) ||
+				metadata.class?.toLowerCase().includes(searchLower)
+			);
+		});
 	});
 
 	const selectedDatasetId = $derived.by(() => datasetStore.selectedDatasetId);
@@ -106,7 +123,8 @@
 				isDeleting,
 				datasets: datasets.length,
 				hasDatasetToDelete: Boolean(datasetToDelete),
-				selectedDatasetId
+				selectedDatasetId,
+				searchTerm
 			});
 		});
 	});
@@ -114,7 +132,14 @@
 
 <div class="flex flex-col">
 	<h3 class="pb-3 text-lg font-semibold">Datasets:</h3>
-	<ScrollArea class="h-[calc(100vh-14rem)]">
+
+	<!-- Search Input -->
+	<div class="relative mb-3 px-3">
+		<Search class="absolute left-5 top-2.5 h-4 w-4 text-muted-foreground" />
+		<Input type="text" placeholder="Search datasets..." bind:value={searchTerm} class="pl-9" />
+	</div>
+
+	<ScrollArea class="h-[calc(100vh-18rem)]">
 		<div class="px-3">
 			<div class="space-y-2">
 				{#if datasets.length > 0}
@@ -126,14 +151,14 @@
 							class={metadata.class}
 							state={datasetStore.getDatasetState(name)}
 							isSelected={normalizeDatasetId(name) === normalizeDatasetId(selectedDatasetId)}
-							loadingProgress={datasetStore.getDatasetState(name).loadingProgress}
+							loadingProgress={datasetStore.getDatasetState(name).loadingState}
 							onDelete={() => handleDeleteClick(name)}
 							onClick={() => handleDatasetClick(name)}
 						/>
 					{/each}
 				{:else}
 					<div class="flex h-[150px] items-center justify-center text-muted-foreground">
-						<p>No datasets available</p>
+						<p>{searchTerm ? 'No matching datasets found' : 'No datasets available'}</p>
 					</div>
 				{/if}
 			</div>
