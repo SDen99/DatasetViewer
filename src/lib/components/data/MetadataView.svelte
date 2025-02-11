@@ -146,128 +146,122 @@
 			{#if isTableView}
 				<!-- Table container with border -->
 				<div class="flex h-full flex-col rounded-lg border">
-					<!-- Fixed header -->
-					<div class="w-full border-b bg-white">
-						<Table>
-							<TableHeader>
-								<TableRow class="bg-muted/50">
-									<TableHead class="w-40">Order</TableHead>
-									<TableHead class="w-32">Name</TableHead>
-									<TableHead>Label</TableHead>
-									<TableHead class="w-20">Type</TableHead>
-									<TableHead class="w-20">Length</TableHead>
-									<TableHead class="w-20">Format</TableHead>
-									<TableHead class="w-16">Req</TableHead>
-									<TableHead class="w-16">Orig</TableHead>
-									<TableHead class="w-48">Origin/Method</TableHead>
-								</TableRow>
-							</TableHeader>
-						</Table>
-					</div>
+					<Table>
+						<!-- Fixed header -->
+						<TableHeader class="sticky top-0 bg-white">
+							<TableRow class="bg-muted/50">
+								<TableHead style="min-width: 160px; width: 160px">Order</TableHead>
+								<TableHead style="min-width: 128px; width: 128px">Name</TableHead>
+								<TableHead>Label</TableHead>
+								<TableHead style="min-width: 80px; width: 80px">Type</TableHead>
+								<TableHead style="min-width: 80px; width: 80px">Length</TableHead>
+								<TableHead style="min-width: 80px; width: 80px">Format</TableHead>
+								<TableHead style="min-width: 64px; width: 64px">Req</TableHead>
+								<TableHead style="min-width: 64px; width: 64px">Orig</TableHead>
+								<TableHead style="min-width: 192px; width: 192px">Origin/Method</TableHead>
+							</TableRow>
+						</TableHeader>
 
-					<!-- Scrollable body -->
-					<div class="flex-1 overflow-y-auto">
-						<Table>
-							<TableBody>
-								{#each filteredVariables() as variable}
-									<TableRow>
-										<TableCell class="w-40 font-mono text-sm">
-											{variable.OrderNumber}
-											{#if variable.KeySequence}
-												<Badge variant="outline" class="py-0">
-													K{variable.KeySequence}
-												</Badge>
-											{/if}
-										</TableCell>
-
-										<TableCell class="w-32">
-											<div class="flex items-center gap-1">
-												<span class="font-mono">
-													{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
-												</span>
-												{#if variable.hasVLM}
-													<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
-												{/if}
-											</div>
-										</TableCell>
-
-										<TableCell class="text-sm">
-											{variable.itemDef?.Description || '-'}
-										</TableCell>
-
-										<TableCell class="w-20 text-sm">
-											{variable.itemDef?.DataType || '-'}
-										</TableCell>
-
-										<TableCell class="w-20 text-sm">
-											{variable.itemDef?.Length || '-'}
-										</TableCell>
-
-										<TableCell class="w-20 font-mono text-sm">
-											{variable.itemDef?.Format || '-'}
-										</TableCell>
-
-										<TableCell class="w-16">
-											<Badge
-												variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
-												class="px-1 py-0"
-											>
-												{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
+						<!-- Scrollable body -->
+						<TableBody class="overflow-y-auto">
+							{#each filteredVariables() as variable}
+								<TableRow>
+									<TableCell style="min-width: 160px; width: 160px" class="font-mono text-sm">
+										{variable.OrderNumber}
+										{#if variable.KeySequence}
+											<Badge variant="outline" class="py-0">
+												K{variable.KeySequence}
 											</Badge>
-										</TableCell>
+										{/if}
+									</TableCell>
 
-										<TableCell class="w-16 text-sm">
-											{#if variable.itemDef?.OriginType}
-												<Badge variant="outline" class="px-1 py-0">
-													{getOriginAbbrev(variable.itemDef.OriginType)}
-												</Badge>
-											{:else}
-												-
+									<TableCell style="min-width: 128px; width: 128px">
+										<div class="flex items-center gap-1">
+											<span class="font-mono">
+												{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+											</span>
+											{#if variable.hasVLM}
+												<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
 											{/if}
-										</TableCell>
+										</div>
+									</TableCell>
 
-										<TableCell class="w-48 max-w-md">
-											{#if variable.itemDef?.Origin}
-												<code class="text-xs">
-													{variable.itemDef.Origin}
-												</code>
-											{:else if variable.MethodOID}
-												<MethodCell
-													methodOID={variable.MethodOID}
-													{methods}
-													isExpanded={expandedMethodOID === variable.MethodOID}
-													onToggle={() =>
-														(expandedMethodOID =
-															expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
-												/>
+									<TableCell>
+										{variable.itemDef?.Description || '-'}
+									</TableCell>
+
+									<TableCell style="min-width: 80px; width: 80px" class="text-sm">
+										{variable.itemDef?.DataType || '-'}
+									</TableCell>
+
+									<TableCell style="min-width: 80px; width: 80px" class="text-sm">
+										{variable.itemDef?.Length || '-'}
+									</TableCell>
+
+									<TableCell style="min-width: 80px; width: 80px" class="font-mono text-sm">
+										{variable.itemDef?.Format || '-'}
+									</TableCell>
+
+									<TableCell style="min-width: 64px; width: 64px">
+										<Badge
+											variant={variable.Mandatory === 'Yes' ? 'default' : 'secondary'}
+											class="px-1 py-0"
+										>
+											{variable.Mandatory === 'Yes' ? 'Y' : 'N'}
+										</Badge>
+									</TableCell>
+
+									<TableCell style="min-width: 64px; width: 64px">
+										{#if variable.itemDef?.OriginType}
+											<Badge variant="outline" class="px-1 py-0">
+												{getOriginAbbrev(variable.itemDef.OriginType)}
+											</Badge>
+										{:else}
+											-
+										{/if}
+									</TableCell>
+
+									<TableCell style="min-width: 192px; width: 192px">
+										{#if variable.itemDef?.Origin}
+											<code class="text-xs">
+												{variable.itemDef.Origin}
+											</code>
+										{:else if variable.MethodOID}
+											<MethodCell
+												methodOID={variable.MethodOID}
+												{methods}
+												isExpanded={expandedMethodOID === variable.MethodOID}
+												onToggle={() =>
+													(expandedMethodOID =
+														expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
+											/>
+										{/if}
+									</TableCell>
+								</TableRow>
+
+								{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+									<TableRow>
+										<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
+											<div class="text-sm text-muted-foreground">
+												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+													'No description available'}
+											</div>
+
+											{#if variable.itemDef?.Comment}
+												<div class="mt-2 space-y-1">
+													<div class="items-center gap-2 text-muted-foreground">
+														Comment:
+														{comments.find((c) => c.OID === variable.itemDef?.Comment)
+															?.Description || 'No comment description available'}
+													</div>
+												</div>
 											{/if}
 										</TableCell>
 									</TableRow>
-
-									{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
-										<TableRow>
-											<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
-												<div class="text-sm text-muted-foreground">
-													{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-														'No description available'}
-												</div>
-
-												{#if variable.itemDef?.Comment}
-													<div class="mt-2 space-y-1">
-														<div class="items-center gap-2 text-muted-foreground">
-															Comment:
-															{comments.find((c) => c.OID === variable.itemDef?.Comment)
-																?.Description || 'No comment description available'}
-														</div>
-													</div>
-												{/if}
-											</TableCell>
-										</TableRow>
-									{/if}
-								{/each}
-							</TableBody>
-						</Table>
-					</div>
+								{/if}
+							{/each}
+						</TableBody>
+					</Table>
 				</div>
 			{:else}
 				<!-- Card view - directly scrollable -->
