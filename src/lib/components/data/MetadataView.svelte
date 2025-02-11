@@ -32,7 +32,7 @@
 
 	let searchTerm = $state('');
 	let view = $state({ isTable: true });
-	let expandedMethodOID = $state<string | null>(null);
+	let expandedMethodKeys = $state<Set<string>>(new Set());
 
 	let isTableView = $derived(view.isTable);
 
@@ -101,6 +101,10 @@
 	function getOriginAbbrev(originType: string | undefined): string {
 		if (!originType) return '-';
 		return ORIGIN_ABBREV[originType] || originType;
+	}
+
+	function getMethodKey(variableOID: string | undefined, methodOID: string | undefined): string {
+		return `${variableOID || ''}-${methodOID || ''}`;
 	}
 </script>
 
@@ -230,16 +234,27 @@
 											<MethodCell
 												methodOID={variable.MethodOID}
 												{methods}
-												isExpanded={expandedMethodOID === variable.MethodOID}
-												onToggle={() =>
-													(expandedMethodOID =
-														expandedMethodOID === variable.MethodOID ? null : variable.MethodOID)}
+												isExpanded={variable.MethodOID
+													? expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))
+													: false}
+												onToggle={() => {
+													if (variable.MethodOID) {
+														const methodKey = getMethodKey(variable.OID, variable.MethodOID);
+														const newExpanded = new Set(expandedMethodKeys);
+														if (newExpanded.has(methodKey)) {
+															newExpanded.delete(methodKey);
+														} else {
+															newExpanded.add(methodKey);
+														}
+														expandedMethodKeys = newExpanded;
+													}
+												}}
 											/>
 										{/if}
 									</TableCell>
 								</TableRow>
 
-								{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+								{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
 									<TableRow>
 										<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
 											<div class="text-sm text-muted-foreground">
@@ -348,27 +363,39 @@
 												<!-- Method  -->
 												{#if variable.MethodOID}
 													<div class="w-64 space-y-2">
-														{#if variable.MethodOID}
-															<div>
-																<MethodCell
-																	methodOID={variable.MethodOID}
-																	{methods}
-																	isExpanded={expandedMethodOID === variable.MethodOID}
-																	onToggle={() =>
-																		(expandedMethodOID =
-																			expandedMethodOID === variable.MethodOID
-																				? null
-																				: variable.MethodOID)}
-																/>
-															</div>
-														{/if}
+														<div>
+															<MethodCell
+																methodOID={variable.MethodOID}
+																{methods}
+																isExpanded={variable.MethodOID
+																	? expandedMethodKeys.has(
+																			getMethodKey(variable.OID, variable.MethodOID)
+																		)
+																	: false}
+																onToggle={() => {
+																	if (variable.MethodOID) {
+																		const methodKey = getMethodKey(
+																			variable.OID,
+																			variable.MethodOID
+																		);
+																		const newExpanded = new Set(expandedMethodKeys);
+																		if (newExpanded.has(methodKey)) {
+																			newExpanded.delete(methodKey);
+																		} else {
+																			newExpanded.add(methodKey);
+																		}
+																		expandedMethodKeys = newExpanded;
+																	}
+																}}
+															/>
+														</div>
 													</div>
 												{/if}
 											</div>
 										</div>
 
 										<!-- Expanded Method Section -->
-										{#if variable.MethodOID && expandedMethodOID === variable.MethodOID}
+										{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
 											<div class="mt-2 border-t pt-4">
 												<div class="text-sm text-muted-foreground">
 													{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
