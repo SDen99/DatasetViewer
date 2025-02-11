@@ -4,7 +4,7 @@
 	import { Badge } from '$lib/components/core/badge';
 	import { Card, CardContent } from '$lib/components/core/card';
 	import { Input } from '$lib/components/core/input';
-	import { Search, Table as TableIcon, LayoutList } from 'lucide-svelte';
+	import { Search, Table as TableIcon, LayoutList, ChevronDown, ChevronRight } from 'lucide-svelte';
 	import {
 		Table,
 		TableBody,
@@ -84,6 +84,24 @@
 			});
 	});
 
+	let allMethodsExpanded = $derived(
+		filteredVariables().every((v) =>
+			v.MethodOID ? expandedMethodKeys.has(getMethodKey(v.OID, v.MethodOID)) : true
+		)
+	);
+
+	function toggleAllMethods(expand: boolean) {
+		const newExpanded = new Set<string>();
+		if (expand) {
+			filteredVariables().forEach((variable) => {
+				if (variable.MethodOID) {
+					newExpanded.add(getMethodKey(variable.OID, variable.MethodOID));
+				}
+			});
+		}
+		expandedMethodKeys = newExpanded;
+	}
+
 	let filteredVariables = $derived(() => {
 		const vars = baseVariables();
 		if (!vars?.length) return [];
@@ -122,6 +140,24 @@
 						class="pl-8"
 						bind:value={searchTerm}
 					/>
+				</div>
+
+				<div class="flex items-center gap-4">
+					<!-- expand/collapse all button -->
+					<Button
+						variant="outline"
+						size="sm"
+						class="gap-2"
+						onclick={() => toggleAllMethods(!allMethodsExpanded)}
+					>
+						{#if allMethodsExpanded}
+							<ChevronDown class="h-4 w-4" />
+							<span>Collapse All</span>
+						{:else}
+							<ChevronRight class="h-4 w-4" />
+							<span>Expand All</span>
+						{/if}
+					</Button>
 				</div>
 
 				<div class="flex gap-2">

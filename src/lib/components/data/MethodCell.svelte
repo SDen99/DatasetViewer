@@ -17,20 +17,30 @@
 	let typeAbbrev = $derived(
 		!methodInfo?.Type ? '' : methodInfo.Type === 'Computation' ? 'CMP' : 'IMP'
 	);
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onToggle();
+		}
+	}
 </script>
 
 {#if !methodOID || !methodInfo}
 	<span class="text-xs">-</span>
 {:else}
-	<div class="cursor-pointer" onclick={onToggle} role="button" tabindex="0">
-		<div class="flex items-center gap-2">
-			<svelte:component this={isExpanded ? ChevronDown : ChevronRight} class="h-4 w-4 shrink-0" />
-			<span class="font-mono text-xs">{methodInfo.Name}</span>
-			<!--	{#if typeAbbrev}
-				<Badge variant="outline" class="px-1 py-0 text-xs">
-					{typeAbbrev}
-				</Badge>
-			{/if} -->
-		</div>
+	<div
+		class="flex cursor-pointer items-center gap-2"
+		role="button"
+		tabindex="0"
+		onclick={onToggle}
+		onkeydown={handleKeydown}
+	>
+		{#if isExpanded}
+			<ChevronDown class="h-4 w-4 shrink-0" />
+		{:else}
+			<ChevronRight class="h-4 w-4 shrink-0" />
+		{/if}
+		<span class="font-mono text-xs">{methodInfo.Name}</span>
 	</div>
 {/if}
