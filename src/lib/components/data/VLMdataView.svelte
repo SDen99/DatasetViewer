@@ -113,7 +113,7 @@
 		</Alert>
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
 		<div class="rounded-lg border bg-card">
-			<div class="max-h-screen overflow-y-auto">
+			<div class="h-[calc(100vh-14rem)] overflow-y-auto">
 				<div class="overflow-x-auto">
 					<table class="w-full border-collapse border">
 						<thead class="sticky top-0 z-10 bg-card">

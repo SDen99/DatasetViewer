@@ -286,6 +286,11 @@
 													}
 												}}
 											/>
+										{:else if variable.itemDef?.Comment}
+											<div class="text-xs">
+												{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
+													'No comment description available'}
+											</div>
 										{/if}
 									</TableCell>
 								</TableRow>
