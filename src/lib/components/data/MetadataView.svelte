@@ -298,14 +298,14 @@
 								{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
 									<TableRow>
 										<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
-											<div class="text-sm text-muted-foreground">
-												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-													'No description available'}
-											</div>
+											<pre
+												class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
+													(m) => m.OID === variable.MethodOID
+												)?.Description || 'No description available'}</pre>
 
 											{#if variable.itemDef?.Comment}
 												<div class="mt-2 space-y-1">
-													<div class="items-center gap-2 text-muted-foreground">
+													<div class="text-sm text-muted-foreground">
 														Comment:
 														{comments.find((c) => c.OID === variable.itemDef?.Comment)
 															?.Description || 'No comment description available'}
@@ -438,10 +438,10 @@
 										<!-- Expanded Method Section -->
 										{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
 											<div class="mt-2 border-t pt-4">
-												<div class="text-sm text-muted-foreground">
-													{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-														'No description available'}
-												</div>
+												<pre
+													class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
+														(m) => m.OID === variable.MethodOID
+													)?.Description || 'No description available'}</pre>
 											</div>
 											{#if variable.itemDef?.Comment}
 												<div class="space-y-2 text-sm text-muted-foreground">

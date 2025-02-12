@@ -41,6 +41,6 @@
 		{:else}
 			<ChevronRight class="h-4 w-4 shrink-0" />
 		{/if}
-		<span class="font-mono text-xs">{methodInfo.Name}</span>
+		<span class="whitespace-normal font-mono text-xs">{methodInfo.Name}</span>
 	</div>
 {/if}
