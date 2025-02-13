@@ -106,6 +106,57 @@
 	function handleResize(column: string, width: number) {
 		columnWidths[column] = width;
 	}
+
+	function handleDragStart(e: DragEvent, column: string) {
+		draggedColumn = column;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', column);
+		}
+	}
+
+	function handleDragOver(e: DragEvent, column: string) {
+		e.preventDefault();
+		if (draggedColumn === column) return;
+		dragOverColumn = column;
+		e.dataTransfer!.dropEffect = 'move';
+	}
+
+	function handleDrop(e: DragEvent, targetColumn: string) {
+		e.preventDefault();
+
+		if (!draggedColumn || draggedColumn === targetColumn) {
+			dragOverColumn = null;
+			return;
+		}
+
+		const fromIndex = displayData.columns?.indexOf(draggedColumn);
+		const toIndex = displayData.columns?.indexOf(targetColumn);
+
+		// Create new arrays to trigger reactivity
+		const newColumns = [...(displayData.columns || [])];
+		const newRows = displayData?.rows?.map((row) => {
+			const newRow: Record<string, any> = {}; // Define newRow with a Record type
+			Object.keys(row).forEach((key) => {
+				newRow[key] = row[key];
+			});
+			return newRow;
+		});
+
+		// Reorder columns
+		newColumns.splice(fromIndex, 1);
+		newColumns.splice(toIndex, 0, draggedColumn);
+
+		// Update the display data
+		displayData = {
+			...displayData,
+			columns: newColumns,
+			rows: newRows
+		};
+
+		dragOverColumn = null;
+		draggedColumn = null;
+	}
 </script>
 
 <!-- Debug info -->
