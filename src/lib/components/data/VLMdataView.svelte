@@ -1,4 +1,6 @@
 <script lang="ts">
+	import DragHandle from '$lib/components/data/DataTable/DragHandle.svelte';
+	import ResizeHandle from '$lib/components/data/DataTable/ResizeHandle.svelte';
 	import { formatCellContent } from './cellFormatting';
 	import ExpandableCell from './ExpandableCell.svelte';
 	import { Alert, AlertDescription } from '$lib/components/core/alert';
@@ -20,6 +22,10 @@
 		columns?: string[];
 		rows?: any[];
 	}>({ hasData: false });
+
+	let columnWidths = $state<Record<string, number>>({});
+	let draggedColumn = $state<string | null>(null);
+	let dragOverColumn = $state<string | null>(null);
 
 	// Effect to set active define
 	$effect(() => {
@@ -96,6 +102,10 @@
 			displayData = { hasData: false };
 		}
 	});
+
+	function handleResize(column: string, width: number) {
+		columnWidths[column] = width;
+	}
 </script>
 
 <!-- Debug info -->
@@ -111,16 +121,29 @@
 				Error processing value level metadata: {processingError}
 			</AlertDescription>
 		</Alert>
+		Untitled
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
 		<div class="rounded-lg border bg-card">
-			<div class="h-[calc(100vh-14rem)] overflow-y-auto">
-				<div class="overflow-x-auto">
-					<table class="w-full border-collapse border">
-						<thead class="sticky top-0 z-10 bg-card">
-							<tr>
+			<div class="h-[calc(100vh-14rem)] w-full">
+				<div class="h-full overflow-auto">
+					<table class="w-full table-fixed border-collapse">
+						<thead class="sticky top-0 z-10">
+							<tr class="bg-card">
 								{#each displayData.columns as column}
-									<th class="whitespace-nowrap border p-2 text-left font-semibold">
-										{column}
+									<th
+										class="group/header relative whitespace-nowrap border bg-card p-2 text-left font-semibold
+											   {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+										style="width: {columnWidths[column] || 150}px"
+										draggable={true}
+										ondragstart={(e) => handleDragStart(e, column)}
+										ondragover={(e) => handleDragOver(e, column)}
+										ondrop={(e) => handleDrop(e, column)}
+									>
+										<div class="flex h-full select-none items-center gap-2">
+											<DragHandle />
+											<span class="flex-1">{column}</span>
+											<ResizeHandle onResize={(width) => handleResize(column, width)} />
+										</div>
 									</th>
 								{/each}
 							</tr>
@@ -129,7 +152,10 @@
 							{#each displayData.rows as row}
 								<tr class="hover:bg-muted/50">
 									{#each displayData.columns as column}
-										<td class="border p-2">
+										<td
+											class="overflow-hidden text-ellipsis border p-2"
+											style="width: {columnWidths[column] || 150}px"
+										>
 											{#if column === 'PARAMCD' || column === 'PARAM'}
 												{row[column]}
 											{:else if row[column]}
