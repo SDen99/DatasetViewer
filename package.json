@@ -56,6 +56,7 @@
 	},
 	"dependencies": {
 		"@sveltejs/adapter-vercel": "^5.4.8",
+		"@vercel/analytics": "^1.5.0",
 		"class-variance-authority": "^0.7.1",
 		"dependency-cruiser": "^16.9.0",
 		"pyodide": "^0.26.3",
