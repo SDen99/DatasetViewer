@@ -99,6 +99,30 @@ export class StoreCoordinator {
 	updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {
 		UIStore.getInstance().setDefineXMLType(hasSDTM, hasADaM);
 	}
+
+	private handleVLMState(actualId: string, displayData: { columns?: string[] }) {
+		const storage = StorageService.getInstance();
+		const state = storage.loadState();
+		const vlmState = state.vlmViews?.[actualId];
+
+		if (vlmState && displayData.columns) {
+			vlmStore.initialize(actualId, displayData.columns);
+			// Restore saved state
+			if (vlmState.columnWidths) {
+				Object.entries(vlmState.columnWidths).forEach(([col, width]) => {
+					vlmStore.updateColumnWidth(actualId, col, width);
+				});
+			}
+			if (vlmState.columnOrder) {
+				vlmStore.updateColumnOrder(actualId, vlmState.columnOrder);
+			}
+		} else if (displayData.columns) {
+			// Initialize with default values
+			vlmStore.initialize(actualId, displayData.columns);
+		} else {
+			vlmStore.reset(actualId);
+		}
+	}
 }
 
 export const storeCoordinator = StoreCoordinator.getInstance();

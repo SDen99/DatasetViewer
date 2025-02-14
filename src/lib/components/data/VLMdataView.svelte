@@ -7,6 +7,7 @@
 	import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { processValueLevelMetadata } from '$lib/core/processors/defineXML/VLMProcessingLogic';
+	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -23,16 +24,22 @@
 		rows?: any[];
 	}>({ hasData: false });
 
-	let columnWidths = $state<Record<string, number>>({});
 	let draggedColumn = $state<string | null>(null);
 	let dragOverColumn = $state<string | null>(null);
 
+	let columnWidths = $derived(() => {
+		return cleanDatasetName ? vlmStore.getColumnWidths(cleanDatasetName) : {};
+	});
 	// Effect to set active define
 	$effect(() => {
 		activeDefine = sdtmDefine || adamDefine;
 		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
 	});
-
+	$effect(() => {
+		if (displayData.hasData && displayData.columns && cleanDatasetName) {
+			vlmStore.initialize(cleanDatasetName, displayData.columns);
+		}
+	});
 	// Effect to process data
 	$effect(() => {
 		if (!activeDefine || !cleanDatasetName) {
@@ -102,9 +109,58 @@
 			displayData = { hasData: false };
 		}
 	});
+	$effect(() => {
+		console.log('Dataset changed:', cleanDatasetName);
+		console.log('Current column widths:', columnWidths);
+		console.log('DisplayData:', displayData);
+	});
+
+	$effect(() => {
+		console.log('Dataset changed:', cleanDatasetName);
+		console.log('Current column widths:', columnWidths);
+		console.log('DisplayData:', displayData);
+	});
 
 	function handleResize(column: string, width: number) {
-		columnWidths[column] = width;
+		console.log('Resize:', {
+			column,
+			width,
+			cleanDatasetName,
+			beforeWidths: vlmStore.getColumnWidths(cleanDatasetName)
+		});
+
+		if (cleanDatasetName) {
+			vlmStore.updateColumnWidth(cleanDatasetName, column, width);
+			console.log('After resize:', {
+				column,
+				width,
+				afterWidths: vlmStore.getColumnWidths(cleanDatasetName)
+			});
+		}
+	}
+
+	function handleDrop(e: DragEvent, targetColumn: string) {
+		e.preventDefault();
+
+		if (!draggedColumn || draggedColumn === targetColumn || !cleanDatasetName) {
+			dragOverColumn = null;
+			return;
+		}
+
+		const fromIndex = displayData.columns.indexOf(draggedColumn);
+		const toIndex = displayData.columns.indexOf(targetColumn);
+
+		// Create new columns array
+		const newColumns = [...displayData.columns];
+		newColumns.splice(fromIndex, 1);
+		newColumns.splice(toIndex, 0, draggedColumn);
+
+		// Update both local state and store
+		displayData.columns = newColumns;
+		vlmStore.updateColumnOrder(cleanDatasetName, newColumns);
+
+		dragOverColumn = null;
+		draggedColumn = null;
 	}
 
 	function handleDragStart(e: DragEvent, column: string) {
@@ -120,42 +176,6 @@
 		if (draggedColumn === column) return;
 		dragOverColumn = column;
 		e.dataTransfer!.dropEffect = 'move';
-	}
-
-	function handleDrop(e: DragEvent, targetColumn: string) {
-		e.preventDefault();
-
-		if (!draggedColumn || draggedColumn === targetColumn) {
-			dragOverColumn = null;
-			return;
-		}
-
-		const fromIndex = displayData.columns?.indexOf(draggedColumn);
-		const toIndex = displayData.columns?.indexOf(targetColumn);
-
-		// Create new arrays to trigger reactivity
-		const newColumns = [...(displayData.columns || [])];
-		const newRows = displayData?.rows?.map((row) => {
-			const newRow: Record<string, any> = {}; // Define newRow with a Record type
-			Object.keys(row).forEach((key) => {
-				newRow[key] = row[key];
-			});
-			return newRow;
-		});
-
-		// Reorder columns
-		newColumns.splice(fromIndex, 1);
-		newColumns.splice(toIndex, 0, draggedColumn);
-
-		// Update the display data
-		displayData = {
-			...displayData,
-			columns: newColumns,
-			rows: newRows
-		};
-
-		dragOverColumn = null;
-		draggedColumn = null;
 	}
 </script>
 
@@ -183,8 +203,8 @@
 								{#each displayData.columns as column}
 									<th
 										class="group/header relative whitespace-nowrap border bg-card p-2 text-left font-semibold
-											   {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
-										style="width: {columnWidths[column] || 150}px"
+								   {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+										style="width: {vlmStore.getColumnWidths(cleanDatasetName)[column] || 150}px"
 										draggable={true}
 										ondragstart={(e) => handleDragStart(e, column)}
 										ondragover={(e) => handleDragOver(e, column)}
