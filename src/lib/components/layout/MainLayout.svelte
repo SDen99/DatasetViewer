@@ -14,30 +14,38 @@
 	}>();
 </script>
 
+{#snippet leftSidebarHeader()}
+	<div class="flex items-center justify-between">
+		<h2 class="mr-2 text-lg font-semibold">Define(s):</h2>
+		<DefineXMLBadges />
+	</div>
+{/snippet}
+
+{#snippet rightSidebarHeader()}
+	<h2 class="text-lg font-semibold">Variables</h2>
+{/snippet}
+
 <main class="flex max-h-screen min-h-screen flex-col bg-background">
 	{@render navigation()}
 
 	<div class="flex h-[calc(100vh-8rem)] flex-1 overflow-hidden">
-		<Sidebar position="left" open={uiStore.uiState.leftSidebarOpen}>
-			<svelte:fragment slot="header">
-				<div class="flex items-center justify-between">
-					<h2 class=" mr-2 text-lg font-semibold">Define(s):</h2>
-					<DefineXMLBadges />
-				</div>
-			</svelte:fragment>
-			{@render leftbar()}
-		</Sidebar>
+		<Sidebar
+			position="left"
+			open={uiStore.uiState.leftSidebarOpen}
+			headerContent={leftSidebarHeader}
+			sidebarContent={leftbar}
+		/>
 
 		<div class="min-w-0 flex-1 overflow-hidden">
 			{@render mainContent()}
 		</div>
 
-		<Sidebar position="right" open={uiStore.uiState.rightSidebarOpen}>
-			<svelte:fragment slot="header">
-				<h2 class="text-lg font-semibold">Variables</h2>
-			</svelte:fragment>
-			{@render rightbar()}
-		</Sidebar>
+		<Sidebar
+			position="right"
+			open={uiStore.uiState.rightSidebarOpen}
+			headerContent={rightSidebarHeader}
+			sidebarContent={rightbar}
+		/>
 	</div>
 
 	{@render footer()}

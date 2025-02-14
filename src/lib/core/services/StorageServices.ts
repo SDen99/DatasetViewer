@@ -4,6 +4,9 @@ import { StorageQueue } from '$lib/core/services/StorageQueue';
 export interface UIState {
 	leftSidebarOpen: boolean;
 	rightSidebarOpen: boolean;
+	leftSidebarWidth: number;
+	rightSidebarWidth: number;
+
 	viewMode: 'data' | 'metadata';
 	SDTM: boolean;
 	ADaM: boolean;
@@ -47,6 +50,8 @@ export class StorageService {
 			uiPreferences: {
 				leftSidebarOpen: true,
 				rightSidebarOpen: true,
+				leftSidebarWidth: 320,
+				rightSidebarWidth: 320,
 				viewMode: 'data',
 				SDTM: false,
 				ADaM: false
