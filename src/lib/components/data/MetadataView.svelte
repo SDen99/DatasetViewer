@@ -124,6 +124,14 @@
 	function getMethodKey(variableOID: string | undefined, methodOID: string | undefined): string {
 		return `${variableOID || ''}-${methodOID || ''}`;
 	}
+
+	let codeLists = $derived((sdtmDefine || adamDefine)?.CodeLists || []);
+
+	// Helper function to get codelist for a variable
+	function getCodeList(itemDef: itemDef | undefined) {
+		if (!itemDef?.CodeListOID) return null;
+		return codeLists.find((cl) => cl.OID === itemDef.CodeListOID) || null;
+	}
 </script>
 
 {#if datasetMetadata()}
@@ -296,22 +304,120 @@
 								</TableRow>
 
 								{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
+									{@const methodDescription =
+										methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+										'No description available'}
+									{@const methodObj = methods.find((m) => m.OID === variable.MethodOID)}
+									{@const charCodes = [...methodDescription].map((char) => char.charCodeAt(0))}
+									{console.log('Method Description:', {
+										raw: methodDescription,
+										length: methodDescription.length,
+										firstChars: [...methodDescription].slice(0, 10),
+										charCodes: charCodes.slice(0, 10)
+									})}
 									<TableRow>
 										<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
-											<pre
-												class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
-													(m) => m.OID === variable.MethodOID
-												)?.Description || 'No description available'}</pre>
+											<div
+												class={`grid gap-4 ${variable.itemDef?.CodeListOID ? 'grid-cols-2' : 'grid-cols-1'} items-start`}
+											>
+												<!-- Method Description -->
+												<div class="space-y-2">
+													<h4 class="text-sm font-medium">Method</h4>
+													<pre
+														class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
+															(m) => m.OID === variable.MethodOID
+														)?.Description || 'No description available'}</pre>
 
-											{#if variable.itemDef?.Comment}
-												<div class="mt-2 space-y-1">
-													<div class="text-sm text-muted-foreground">
-														Comment:
-														{comments.find((c) => c.OID === variable.itemDef?.Comment)
-															?.Description || 'No comment description available'}
-													</div>
+													{#if variable.itemDef?.Comment}
+														<div class="mt-2 space-y-1">
+															<div class="text-sm text-muted-foreground">
+																Comment:
+																{comments.find((c) => c.OID === variable.itemDef?.Comment)
+																	?.Description || 'No comment description available'}
+															</div>
+														</div>
+													{/if}
 												</div>
-											{/if}
+
+												<!-- CodeList Details - only show if exists -->
+												{#if variable.itemDef?.CodeListOID}
+													<div class="space-y-2 border-l pl-4">
+														{#if variable.itemDef}
+															{@const codeList = getCodeList(variable.itemDef)}
+															{#if codeList}
+																<div class="space-y-2">
+																	<div class="text-sm font-medium">{codeList.Name}</div>
+
+																	{#if codeList.CodeListItems?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				Coded Values:
+																			</div>
+																			{#each codeList.CodeListItems as item}
+																				<div class="grid grid-cols-[100px,1fr] gap-2 text-sm">
+																					<code class="text-xs">{item.CodedValue}</code>
+																					<div>
+																						{item.Decode?.TranslatedText}
+																						{#if item.ExtendedValue}
+																							<Badge class="ml-2 px-1 py-0">Extended</Badge>
+																						{/if}
+																						{#if item.Aliases?.length}
+																							<div class="mt-1 text-xs text-muted-foreground">
+																								Aliases: {item.Aliases.map(
+																									(a) => `${a.Name} (${a.Context})`
+																								).join(', ')}
+																							</div>
+																						{/if}
+																					</div>
+																				</div>
+																			{/each}
+																		</div>
+																	{/if}
+
+																	{#if codeList.EnumeratedItems?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				Enumerated Items:
+																			</div>
+																			{#each codeList.EnumeratedItems as item}
+																				<div class="flex gap-2 whitespace-nowrap text-sm">
+																					<code class="w-[100px] shrink-0 text-xs"
+																						>{item.CodedValue}</code
+																					>
+																					{#if item.Aliases?.length}
+																						<div
+																							class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
+																						>
+																							Aliases: {item.Aliases.map(
+																								(a) => `${a.Name} (${a.Context})`
+																							).join(', ')}
+																						</div>
+																					{/if}
+																				</div>
+																			{/each}
+																		</div>
+																	{/if}
+
+																	{#if codeList.Aliases?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				CodeList Aliases:
+																			</div>
+																			<div class="text-xs text-muted-foreground">
+																				{codeList.Aliases.map(
+																					(a) => `${a.Name} (${a.Context})`
+																				).join(', ')}
+																			</div>
+																		</div>
+																	{/if}
+																</div>
+															{:else}
+																<div class="text-sm text-muted-foreground">No codelist defined</div>
+															{/if}
+														{/if}
+													</div>
+												{/if}
+											</div>
 										</TableCell>
 									</TableRow>
 								{/if}
@@ -320,7 +426,6 @@
 					</Table>
 				</div>
 			{:else}
-				<!-- Card view - directly scrollable -->
 				<div class="h-full overflow-y-auto">
 					<div class="max-w-5xl space-y-2">
 						{#each filteredVariables() as variable}
@@ -391,65 +496,143 @@
 													{/if}
 												</div>
 
-												<!-- Origin Reference -->
-												{#if variable.itemDef?.Origin}
-													<div class="w-64">
+												<!-- Origin/Method Section -->
+												<div class="w-64">
+													{#if variable.itemDef?.Origin}
 														<span class="text-sm text-muted-foreground">Origin:</span>
 														<code class="mt-1 block text-xs">
 															{variable.itemDef.Origin}
 														</code>
-													</div>
-												{/if}
-
-												<!-- Method  -->
-												{#if variable.MethodOID}
-													<div class="w-64 space-y-2">
-														<div>
-															<MethodCell
-																methodOID={variable.MethodOID}
-																{methods}
-																isExpanded={variable.MethodOID
-																	? expandedMethodKeys.has(
-																			getMethodKey(variable.OID, variable.MethodOID)
-																		)
-																	: false}
-																onToggle={() => {
-																	if (variable.MethodOID) {
-																		const methodKey = getMethodKey(
-																			variable.OID,
-																			variable.MethodOID
-																		);
-																		const newExpanded = new Set(expandedMethodKeys);
-																		if (newExpanded.has(methodKey)) {
-																			newExpanded.delete(methodKey);
-																		} else {
-																			newExpanded.add(methodKey);
-																		}
-																		expandedMethodKeys = newExpanded;
+													{:else if variable.MethodOID}
+														<MethodCell
+															methodOID={variable.MethodOID}
+															{methods}
+															isExpanded={variable.MethodOID
+																? expandedMethodKeys.has(
+																		getMethodKey(variable.OID, variable.MethodOID)
+																	)
+																: false}
+															onToggle={() => {
+																if (variable.MethodOID) {
+																	const methodKey = getMethodKey(variable.OID, variable.MethodOID);
+																	const newExpanded = new Set(expandedMethodKeys);
+																	if (newExpanded.has(methodKey)) {
+																		newExpanded.delete(methodKey);
+																	} else {
+																		newExpanded.add(methodKey);
 																	}
-																}}
-															/>
-														</div>
-													</div>
-												{/if}
+																	expandedMethodKeys = newExpanded;
+																}
+															}}
+														/>
+													{/if}
+												</div>
 											</div>
 										</div>
 
-										<!-- Expanded Method Section -->
+										<!-- Expanded Details Section -->
 										{#if variable.MethodOID && expandedMethodKeys.has(getMethodKey(variable.OID, variable.MethodOID))}
-											<div class="mt-2 border-t pt-4">
-												<pre
-													class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
-														(m) => m.OID === variable.MethodOID
-													)?.Description || 'No description available'}</pre>
-											</div>
-											{#if variable.itemDef?.Comment}
-												<div class="space-y-2 text-sm text-muted-foreground">
-													Comment:
-													{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
-														'No comment description available'}
+											<div
+												class={`grid gap-4 ${variable.itemDef?.CodeListOID ? 'grid-cols-2' : 'grid-cols-1'}`}
+											>
+												<!-- Method Description -->
+												<div class="space-y-2">
+													<h4 class="text-sm font-medium">Method</h4>
+													<pre
+														class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
+															(m) => m.OID === variable.MethodOID
+														)?.Description || 'No description available'}</pre>
+
+													{#if variable.itemDef?.Comment}
+														<div class="mt-2 space-y-1">
+															<div class="text-sm text-muted-foreground">
+																Comment:
+																{comments.find((c) => c.OID === variable.itemDef?.Comment)
+																	?.Description || 'No comment description available'}
+															</div>
+														</div>
+													{/if}
 												</div>
-											{/if}
+
+												<!-- CodeList Details - only show if exists -->
+												{#if variable.itemDef?.CodeListOID}
+													<div class="space-y-2 border-l pl-4">
+														{#if variable.itemDef}
+															{@const codeList = getCodeList(variable.itemDef)}
+															{#if codeList}
+																<div class="space-y-2">
+																	<div class="text-sm font-medium">{codeList.Name}</div>
+
+																	{#if codeList.CodeListItems?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				Coded Values:
+																			</div>
+																			{#each codeList.CodeListItems as item}
+																				<div class="grid grid-cols-[100px,1fr] gap-2 text-sm">
+																					<code class="text-xs">{item.CodedValue}</code>
+																					<div>
+																						{item.Decode?.TranslatedText}
+																						{#if item.ExtendedValue}
+																							<Badge class="ml-2 px-1 py-0">Extended</Badge>
+																						{/if}
+																						{#if item.Aliases?.length}
+																							<div class="mt-1 text-xs text-muted-foreground">
+																								Aliases: {item.Aliases.map(
+																									(a) => `${a.Name} (${a.Context})`
+																								).join(', ')}
+																							</div>
+																						{/if}
+																					</div>
+																				</div>
+																			{/each}
+																		</div>
+																	{/if}
+
+																	{#if codeList.EnumeratedItems?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				Enumerated Items:
+																			</div>
+																			{#each codeList.EnumeratedItems as item}
+																				<div class="flex gap-2 whitespace-nowrap text-sm">
+																					<code class="w-[100px] shrink-0 text-xs"
+																						>{item.CodedValue}</code
+																					>
+																					{#if item.Aliases?.length}
+																						<div
+																							class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
+																						>
+																							Aliases: {item.Aliases.map(
+																								(a) => `${a.Name} (${a.Context})`
+																							).join(', ')}
+																						</div>
+																					{/if}
+																				</div>
+																			{/each}
+																		</div>
+																	{/if}
+
+																	{#if codeList.Aliases?.length}
+																		<div class="space-y-1">
+																			<div class="text-sm font-medium text-muted-foreground">
+																				CodeList Aliases:
+																			</div>
+																			<div class="text-xs text-muted-foreground">
+																				{codeList.Aliases.map(
+																					(a) => `${a.Name} (${a.Context})`
+																				).join(', ')}
+																			</div>
+																		</div>
+																	{/if}
+																</div>
+															{:else}
+																<div class="text-sm text-muted-foreground">No codelist defined</div>
+															{/if}
+														{/if}
+													</div>
+												{/if}
+											</div>
 										{/if}
 									</div>
 								</CardContent>
