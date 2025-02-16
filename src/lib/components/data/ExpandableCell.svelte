@@ -16,7 +16,7 @@
 	{#if shouldTruncate}
 		<button
 			class="mt-1 text-xs text-blue-500 hover:text-blue-700"
-			on:click={() => (isExpanded = !isExpanded)}
+			onclick={() => (isExpanded = !isExpanded)}
 		>
 			{isExpanded ? 'Show Less' : 'Show More'}
 		</button>

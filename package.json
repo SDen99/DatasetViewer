@@ -61,6 +61,7 @@
 		"dependency-cruiser": "^16.9.0",
 		"pyodide": "^0.26.3",
 		"runed": "^0.22.0",
+		"terser": "^5.39.0",
 		"vaul-svelte": "^0.3.2"
 	},
 	"description": "Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).",
