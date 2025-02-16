@@ -188,24 +188,46 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	const CodeLists: CodeList[] = Array.from(metaDataVersion.querySelectorAll('CodeList'))
 		.filter((codeList) => !codeList.querySelector('ExternalCodeList'))
 		.map((codeList) => ({
-			OID: codeList.getAttribute('OID') || null,
-			Name: codeList.getAttribute('Name') || null,
-			DataType: codeList.getAttribute('DataType') || null,
-			IsNonStandard:
-				codeList.getAttribute('def:IsNonStandard') ||
-				codeList.getAttribute('def:StandardOID') ||
-				null,
-			// Add these properties
+			OID: getAttribute(codeList, 'OID') || null,
+			Name: getAttribute(codeList, 'Name') || null,
+			DataType: getAttribute(codeList, 'DataType') || null,
+			SASFormatName: getAttribute(codeList, 'SASFormatName') || null,
+			StandardOID: getAttribute(codeList, 'def:StandardOID') || null,
+			IsNonStandard: getAttribute(codeList, 'def:IsNonStandard') || null,
+			ExtendedValue: getAttribute(codeList, 'def:ExtendedValue') === 'Yes' ? true : null,
+
+			// Parse CodeListItems
 			CodeListItems: Array.from(codeList.querySelectorAll('CodeListItem')).map((item) => ({
-				CodedValue: item.getAttribute('CodedValue'),
-				OrderNumber: item.getAttribute('OrderNumber'),
-				Decode: {
-					TranslatedText: item.querySelector('Decode TranslatedText')?.textContent || null
-				}
+				CodedValue: getAttribute(item, 'CodedValue'),
+				OrderNumber: getAttribute(item, 'OrderNumber'),
+				Rank: getAttribute(item, 'Rank'),
+				ExtendedValue: getAttribute(item, 'def:ExtendedValue') === 'Yes',
+				Decode: item.querySelector('Decode')
+					? {
+							TranslatedText: item.querySelector('Decode TranslatedText')?.textContent || null,
+							lang: item.querySelector('Decode TranslatedText')?.getAttribute('xml:lang') || null
+						}
+					: null,
+				Aliases: Array.from(item.querySelectorAll('Alias')).map((alias) => ({
+					Name: getAttribute(alias, 'Name'),
+					Context: getAttribute(alias, 'Context')
+				}))
 			})),
+
+			// Parse EnumeratedItems
 			EnumeratedItems: Array.from(codeList.querySelectorAll('EnumeratedItem')).map((item) => ({
-				CodedValue: item.getAttribute('CodedValue'),
-				OrderNumber: item.getAttribute('OrderNumber')
+				CodedValue: getAttribute(item, 'CodedValue'),
+				OrderNumber: getAttribute(item, 'OrderNumber'),
+				Aliases: Array.from(item.querySelectorAll('Alias')).map((alias) => ({
+					Name: getAttribute(alias, 'Name'),
+					Context: getAttribute(alias, 'Context')
+				}))
+			})),
+
+			// Parse CodeList level Aliases
+			Aliases: Array.from(codeList.querySelectorAll(':scope > Alias')).map((alias) => ({
+				Name: getAttribute(alias, 'Name'),
+				Context: getAttribute(alias, 'Context')
 			}))
 		}));
 

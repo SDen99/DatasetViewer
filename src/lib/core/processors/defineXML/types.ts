@@ -103,7 +103,36 @@ export interface CodeList {
 	OID: string | null;
 	Name: string | null;
 	DataType: string | null;
+	SASFormatName: string | null;
+	StandardOID: string | null;
 	IsNonStandard: string | null;
+	ExtendedValue: boolean | null; // Changed from def:ExtendedValue
+	CodeListItems: {
+		CodedValue: string | null;
+		OrderNumber: string | null;
+		Rank?: string | null;
+		ExtendedValue?: boolean;
+		Decode?: {
+			TranslatedText: string | null;
+			lang?: string | null;
+		};
+		Aliases?: {
+			Name: string | null;
+			Context: string | null;
+		}[];
+	}[];
+	EnumeratedItems: {
+		CodedValue: string | null;
+		OrderNumber: string | null;
+		Aliases?: {
+			Name: string | null;
+			Context: string | null;
+		}[];
+	}[];
+	Aliases?: {
+		Name: string | null;
+		Context: string | null;
+	}[];
 }
 
 export interface whereClauseDef {
