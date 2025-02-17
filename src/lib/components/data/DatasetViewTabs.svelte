@@ -2,7 +2,7 @@
 	import { Tabs } from 'bits-ui';
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
-	import MetadataView from '$lib/components/data/MetadataView.svelte';
+	import MetadataView from '$lib/components/metadata/MetadataView.svelte';
 	import VLMView from '$lib/components/data/VLMdataView.svelte';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { method } from '$lib/core/processors/defineXML/types';
-	import { Badge } from '$lib/components/core/badge';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 
 	let { methodOID, methods, isExpanded, onToggle } = $props<{
@@ -12,10 +11,6 @@
 
 	let methodInfo = $derived(
 		!methodOID || !methods?.length ? null : methods.find((m) => m.OID === methodOID)
-	);
-
-	let typeAbbrev = $derived(
-		!methodInfo?.Type ? '' : methodInfo.Type === 'Computation' ? 'CMP' : 'IMP'
 	);
 
 	function handleKeydown(e: KeyboardEvent) {

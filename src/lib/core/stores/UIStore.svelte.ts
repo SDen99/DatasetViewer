@@ -14,7 +14,8 @@ export class UIStore {
 		rightSidebarWidth: 320,
 		viewMode: 'data' as const,
 		SDTM: false,
-		ADaM: false
+		ADaM: false,
+		metadataViewMode: 'table' as const // or 'card'
 	});
 
 	private debouncedSaveState() {

@@ -10,6 +10,7 @@ export interface UIState {
 	viewMode: 'data' | 'metadata';
 	SDTM: boolean;
 	ADaM: boolean;
+	metadataViewMode: String;
 }
 
 interface DatasetViewState {
