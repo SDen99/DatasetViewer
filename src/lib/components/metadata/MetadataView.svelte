@@ -8,6 +8,7 @@
 	import MetadataCard from './card/MetadataCard.svelte';
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
+	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -88,6 +89,35 @@
 		});
 	}
 
+	function areAllMethodsExpanded() {
+		const filteredVars = getFilteredVariables();
+		const methodVariables = filteredVars.filter((v) => v.MethodOID);
+		if (methodVariables.length === 0) return false;
+
+		// Get the expandedMethods and ensure it's a Set
+		const methods = rawState.expandedMethods;
+		const expandedMethodsSet =
+			methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : []);
+
+		return methodVariables.every((v) => expandedMethodsSet.has(`${v.OID}-${v.MethodOID}`));
+	}
+
+	// Update toggleAllMethods to also ensure expandedMethods is a Set
+	function toggleAllMethods() {
+		const allExpanded = areAllMethodsExpanded();
+		const filteredVars = getFilteredVariables();
+		const methodVariables = filteredVars.filter((v) => v.MethodOID);
+
+		if (allExpanded) {
+			// Collapse all
+			metadataViewStore.collapseAllMethods(datasetName);
+		} else {
+			// Expand all
+			const methodKeys = methodVariables.map((v) => `${v.OID}-${v.MethodOID}`);
+			metadataViewStore.expandAllMethods(datasetName, methodKeys);
+		}
+	}
+
 	function toggleView() {
 		uiStore.setMetadataViewMode(isTableView ? 'card' : 'table');
 	}
@@ -97,6 +127,7 @@
 	}
 </script>
 
+<!-- Content section -->
 <div class="flex h-[calc(100vh-12rem)] flex-col">
 	<!-- Controls section -->
 	<div class="flex-none p-4">
@@ -112,6 +143,19 @@
 				/>
 			</div>
 
+			<!-- Add expand/collapse all button -->
+			<div class="flex items-center gap-4">
+				<Button variant="outline" size="sm" class="gap-2" onclick={toggleAllMethods}>
+					{#if areAllMethodsExpanded()}
+						<ChevronDown class="h-4 w-4" />
+						<span>Collapse All</span>
+					{:else}
+						<ChevronRight class="h-4 w-4" />
+						<span>Expand All</span>
+					{/if}
+				</Button>
+			</div>
+
 			<div class="flex gap-2">
 				<Button variant="default" size="icon" onclick={toggleView} aria-label="Toggle view">
 					{#if isTableView}
@@ -123,33 +167,29 @@
 			</div>
 		</div>
 	</div>
-
-	<!-- Content section -->
-	<div class="flex-1 overflow-hidden px-4">
-		{#if define}
-			{#if isTableView}
-				<MetadataTable
-					{define}
-					{datasetName}
-					filteredVariables={getFilteredVariables()}
-					{methods}
-					{comments}
-					{codeLists}
-				/>
-			{:else}
-				<MetadataCard
-					{define}
-					{datasetName}
-					filteredVariables={getFilteredVariables()}
-					{methods}
-					{comments}
-					{codeLists}
-				/>
-			{/if}
+	{#if define}
+		{#if isTableView}
+			<MetadataTable
+				{define}
+				{datasetName}
+				filteredVariables={getFilteredVariables()}
+				{methods}
+				{comments}
+				{codeLists}
+			/>
 		{:else}
-			<div class="flex h-[200px] items-center justify-center text-muted-foreground">
-				<p>No metadata available for this dataset</p>
-			</div>
+			<MetadataCard
+				{define}
+				{datasetName}
+				filteredVariables={getFilteredVariables()}
+				{methods}
+				{comments}
+				{codeLists}
+			/>
 		{/if}
-	</div>
+	{:else}
+		<div class="flex h-[200px] items-center justify-center text-muted-foreground">
+			<p>No metadata available for this dataset</p>
+		</div>
+	{/if}
 </div>

@@ -18,8 +18,8 @@
 	import VariableDetails from '../shared/VariableDetails.svelte';
 	import MethodCell from '$lib/components/data/MethodCell.svelte';
 	import MethodExpansion from '../shared/MethodExpansion.svelte';
-
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
+	import { toggleMethodExpansion } from '../shared/methodExpansionUtils';
 
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
 		define: ParsedDefineXML;
@@ -30,44 +30,38 @@
 		codeLists: CodeList[];
 	}>();
 
-	$effect(() => {
-		// Only log on first render or when filteredVariables changes length
-		let lastLength = 0;
-
-		const currentLength = filteredVariables?.length || 0;
-		if (currentLength !== lastLength) {
-			console.log(`MetadataTable: filteredVariables length changed to ${currentLength}`);
-			lastLength = currentLength;
-
-			if (currentLength > 0) {
-				// Just log the count, not the full objects
-				console.log(`First variable name: ${filteredVariables[0]?.itemDef?.Name || 'unknown'}`);
-			}
-		}
+	// Debug the store's state immediately
+	console.log('Table view - store state direct access:', {
+		datasetName,
+		state: metadataViewStore.getDatasetState(datasetName)
 	});
 
-	let state = $derived(() => {
-		const datasetState = metadataViewStore.getDatasetState(datasetName) || {};
-		// Ensure expandedMethods is always a Set with defensive checks
-		const methods = datasetState.expandedMethods;
-		return {
-			...datasetState,
-			expandedMethods:
-				methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : [])
-		};
-	});
+	// Access expandedMethods directly from the store, with safety checks
+	function getExpandedMethodsSet() {
+		const state = metadataViewStore.getDatasetState(datasetName);
+		const methods = state.expandedMethods;
 
-	function toggleMethod(variableOID: string, methodOID: string) {
-		metadataViewStore.toggleMethod(datasetName, `${variableOID}-${methodOID}`);
+		console.log('Table view - raw expandedMethods:', {
+			type: typeof methods,
+			isSet: methods instanceof Set,
+			isArray: Array.isArray(methods),
+			value: methods
+		});
+
+		if (methods instanceof Set) return methods;
+		if (Array.isArray(methods)) return new Set(methods);
+		return new Set();
 	}
 
-	$effect(() => {
-		console.log('Child component received:', {
-			definePresent: !!define,
-			filteredVariablesCount: filteredVariables?.length || 0,
-			firstItem: filteredVariables?.[0] ? JSON.stringify(filteredVariables[0]) : 'none'
-		});
-	});
+	// Create simplified helper to check expansion
+	function isExpanded(variableOID, methodOID) {
+		if (!variableOID || !methodOID) return false;
+		const key = `${variableOID}-${methodOID}`;
+		const expandedSet = getExpandedMethodsSet();
+		const result = expandedSet.has(key);
+		console.log(`Table view - isExpanded check for ${key}: ${result}`);
+		return result;
+	}
 </script>
 
 <div class="flex h-full flex-col rounded-lg border">
@@ -87,10 +81,10 @@
 		</TableHeader>
 
 		<TableBody class="overflow-y-auto">
-			{#each filteredVariables || [] as variable}
+			{#each filteredVariables || [] as variable, idx (variable.OID)}
+				<!-- Regular row with variable data -->
 				<TableRow>
 					<TableCell style="min-width: 160px; width: 160px" class="font-mono text-sm">
-						{console.log('Variable being passed to details:', variable)}
 						<VariableDetails
 							variable={variable.itemDef}
 							displayMode="table-row"
@@ -98,6 +92,12 @@
 							orderNumber={variable.OrderNumber}
 							keySequence={variable.KeySequence}
 						/>
+					</TableCell>
+
+					<TableCell style="min-width: 128px; width: 128px">
+						<div class="font-mono">
+							{variable.itemDef?.Name || variable.OID?.split('.')[2] || ''}
+						</div>
 					</TableCell>
 
 					<TableCell>
@@ -134,10 +134,8 @@
 							<MethodCell
 								methodOID={variable.MethodOID}
 								{methods}
-								isExpanded={state?.expandedMethods?.has?.(
-									`${variable.OID}-${variable.MethodOID}`
-								) || false}
-								onToggle={() => toggleMethod(variable.OID, variable.MethodOID)}
+								isExpanded={isExpanded(variable.OID, variable.MethodOID)}
+								onToggle={() => toggleMethodExpansion(variable, datasetName)}
 							/>
 						{:else if variable.itemDef?.Comment}
 							<div class="text-xs">
@@ -148,9 +146,13 @@
 					</TableCell>
 				</TableRow>
 
-				{#if variable.MethodOID && state?.expandedMethods?.has?.(`${variable.OID}-${variable.MethodOID}`)}
-					<TableRow>
+				<!-- Expansion row - only rendered if method is expanded -->
+				{#if variable.MethodOID && isExpanded(variable.OID, variable.MethodOID)}
+					<TableRow data-expanded-row style="border: 2px solid green;">
 						<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
+							<div class="bg-red-100 p-2 text-xs">
+								DEBUG: Method {variable.MethodOID} is expanded in table view!
+							</div>
 							<MethodExpansion
 								methodOID={variable.MethodOID}
 								{methods}

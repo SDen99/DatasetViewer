@@ -23,12 +23,17 @@
 	}
 
 	$effect(() => {
-		console.log('Method expansion props:', {
+		console.log('MethodExpansion rendered:', {
 			methodOID,
-			methodsAvailable: methods?.length || 0,
-			commentsAvailable: comments?.length || 0,
-			codeListsAvailable: codeLists?.length || 0,
-			itemDefPresent: !!itemDef
+			foundMethod: !!methodInfo,
+			methodName: methodInfo?.Name || 'unknown',
+			methodDescription: methodInfo?.Description
+				? `${methodInfo.Description.substring(0, 50)}...`
+				: 'no description',
+			commentFound: itemDef?.Comment ? !!comments.find((c) => c.OID === itemDef.Comment) : false,
+			codeListFound: itemDef?.CodeListOID
+				? !!codeLists.find((cl) => cl.OID === itemDef.CodeListOID)
+				: false
 		});
 	});
 </script>

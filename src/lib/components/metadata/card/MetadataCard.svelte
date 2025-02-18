@@ -11,6 +11,7 @@
 	import MethodCell from '$lib/components/data/MethodCell.svelte';
 	import MethodExpansion from '../shared/MethodExpansion.svelte';
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
+	import { isMethodExpanded, toggleMethodExpansion } from '../shared/methodExpansionUtils';
 
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
 		define: ParsedDefineXML;
@@ -21,26 +22,38 @@
 		codeLists: CodeList[];
 	}>();
 
-	let state = $derived(metadataViewStore.getDatasetState(datasetName));
+	// Debug the store's state immediately
+	console.log('Store state direct access:', {
+		datasetName,
+		state: metadataViewStore.getDatasetState(datasetName)
+	});
 
-	function toggleMethod(variableOID: string, methodOID: string) {
-		metadataViewStore.toggleMethod(datasetName, `${variableOID}-${methodOID}`);
-	}
+	// Access expandedMethods directly from the store, with safety checks
+	function getExpandedMethodsSet() {
+		const state = metadataViewStore.getDatasetState(datasetName);
+		const methods = state.expandedMethods;
 
-	$effect(() => {
-		console.log('Received props:', {
-			define: define !== undefined,
-			datasetName,
-			filteredVariables: filteredVariables?.length || 0,
-			methods: methods?.length || 0,
-			comments: comments?.length || 0,
-			codeLists: codeLists?.length || 0
+		console.log('Raw expandedMethods:', {
+			type: typeof methods,
+			isSet: methods instanceof Set,
+			isArray: Array.isArray(methods),
+			value: methods
 		});
 
-		if (filteredVariables?.length > 0) {
-			console.log('First variable structure:', JSON.stringify(filteredVariables[0], null, 2));
-		}
-	});
+		if (methods instanceof Set) return methods;
+		if (Array.isArray(methods)) return new Set(methods);
+		return new Set();
+	}
+
+	// Create simplified helper to check expansion
+	function isExpanded(variableOID, methodOID) {
+		if (!variableOID || !methodOID) return false;
+		const key = `${variableOID}-${methodOID}`;
+		const expandedSet = getExpandedMethodsSet();
+		const result = expandedSet.has(key);
+		console.log(`isExpanded check for ${key}: ${result}`);
+		return result;
+	}
 </script>
 
 <div class="h-full overflow-y-auto">
@@ -49,8 +62,8 @@
 			<Card>
 				<CardContent class="p-4">
 					<div class="flex flex-col gap-4">
+						<!-- Primary Variable Info -->
 						<div class="flex gap-8">
-							<!-- Primary Variable Info -->
 							<div class="w-48 shrink-0">
 								<VariableDetails
 									variable={variable.itemDef}
@@ -72,22 +85,27 @@
 									<MethodCell
 										methodOID={variable.MethodOID}
 										{methods}
-										isExpanded={state.expandedMethods.has(`${variable.OID}-${variable.MethodOID}`)}
-										onToggle={() => toggleMethod(variable.OID, variable.MethodOID)}
+										isExpanded={isExpanded(variable.OID, variable.MethodOID)}
+										onToggle={() => toggleMethodExpansion(variable, datasetName)}
 									/>
 								{/if}
 							</div>
 						</div>
 
 						<!-- Expanded Method Details -->
-						{#if variable.MethodOID && state.expandedMethods.has(`${variable.OID}-${variable.MethodOID}`)}
-							<MethodExpansion
-								methodOID={variable.MethodOID}
-								{methods}
-								{comments}
-								{codeLists}
-								itemDef={variable.itemDef}
-							/>
+						{#if variable.MethodOID && isExpanded(variable.OID, variable.MethodOID)}
+							<div class="mt-4 border-t pt-4" style="border: 2px solid blue;">
+								<div class="bg-red-100 p-2 text-xs">
+									DEBUG: Method {variable.MethodOID} is expanded!
+								</div>
+								<MethodExpansion
+									methodOID={variable.MethodOID}
+									{methods}
+									{comments}
+									{codeLists}
+									itemDef={variable.itemDef}
+								/>
+							</div>
 						{/if}
 					</div>
 				</CardContent>

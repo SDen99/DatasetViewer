@@ -19,6 +19,27 @@
 			onToggle();
 		}
 	}
+
+	function handleClick() {
+		console.log('Method cell clicked', {
+			methodOID,
+			isExpanded,
+			methodInfo: methodInfo?.Name || 'unknown'
+		});
+		onToggle();
+	}
+
+	$effect(() => {
+		console.log('MethodCell props updated:', {
+			methodOID,
+			methodName: methodInfo?.Name || 'unknown',
+			isExpanded
+		});
+	});
+
+	$effect(() => {
+		console.log(`MethodCell for ${methodOID} - isExpanded changed to:`, isExpanded);
+	});
 </script>
 
 {#if !methodOID || !methodInfo}
@@ -28,7 +49,7 @@
 		class="flex cursor-pointer items-center gap-2"
 		role="button"
 		tabindex="0"
-		onclick={onToggle}
+		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
 		{#if isExpanded}
