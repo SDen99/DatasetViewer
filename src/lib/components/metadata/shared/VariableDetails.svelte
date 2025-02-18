@@ -1,14 +1,20 @@
 <script lang="ts">
-	import type { VariableDisplayProps } from '$lib/core/stores/metadata.types';
+	import type { itemDef } from '$lib/core/processors/defineXML/types';
 	import { Badge } from '$lib/components/core/badge';
 
 	let {
 		variable,
 		displayMode = 'full', // 'full' | 'table-row' | 'card'
+		hasVLM = false,
+		orderNumber,
+		keySequence,
 		columnStyles = {}
 	} = $props<{
 		variable: itemDef;
 		displayMode?: string;
+		hasVLM?: boolean;
+		orderNumber?: string;
+		keySequence?: string;
 		columnStyles?: Record<string, string>;
 	}>();
 
@@ -24,12 +30,19 @@
 		if (!originType) return '-';
 		return ORIGIN_ABBREV[originType] || originType;
 	}
+
+	$effect(() => {
+		console.log('VariableDetails props:', {
+			variable,
+			displayMode,
+			orderNumber,
+			hasVLM,
+			keySequence
+		});
+	});
 </script>
 
-Looking at the code again, I see another key issue: inconsistent handling of Variables between Table
-and Card views. Currently: Table view directly renders variable properties Card view uses
-VariableDetails But we're duplicating the variable rendering logic Let's standardize this by: First,
-update VariableDetails.svelte to handle all display cases: svelteCopy{#if displayMode === 'table-row'}
+{#if displayMode === 'table-row'}
 	<div class="flex items-center gap-1">
 		<span class="font-mono">
 			{variable.Name || variable.OID?.split('.')[2] || '-'}

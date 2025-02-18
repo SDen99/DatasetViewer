@@ -1,8 +1,13 @@
 <script lang="ts">
-	import type { method, CodeList, comment, itemDef } from '$lib/core/processors/defineXML/types';
-	import { Badge } from '$lib/components/core/badge';
+	import type { method, comment, CodeList } from '$lib/core/processors/defineXML/types';
 
-	let { methodOID, methods, comments, codeLists, itemDef } = $props<{
+	let {
+		methodOID,
+		methods = [],
+		comments = [],
+		codeLists = [],
+		itemDef
+	} = $props<{
 		methodOID: string;
 		methods: method[];
 		comments: comment[];
@@ -10,12 +15,22 @@
 		itemDef?: itemDef;
 	}>();
 
-	let methodInfo = $derived(methods.find((m) => m.OID === methodOID));
+	let methodInfo = $derived(methods?.find((m) => m.OID === methodOID));
 
 	function getCodeList(itemDef: itemDef | undefined) {
 		if (!itemDef?.CodeListOID) return null;
-		return codeLists.find((cl) => cl.OID === itemDef.CodeListOID) || null;
+		return codeLists?.find((cl) => cl.OID === itemDef.CodeListOID) || null;
 	}
+
+	$effect(() => {
+		console.log('Method expansion props:', {
+			methodOID,
+			methodsAvailable: methods?.length || 0,
+			commentsAvailable: comments?.length || 0,
+			codeListsAvailable: codeLists?.length || 0,
+			itemDefPresent: !!itemDef
+		});
+	});
 </script>
 
 <div class="grid gap-4 {itemDef?.CodeListOID ? 'grid-cols-2' : 'grid-cols-1'}">

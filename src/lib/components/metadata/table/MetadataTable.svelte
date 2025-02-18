@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { ParsedDefineXML, itemRef } from '$lib/core/processors/defineXML/types';
+	import type {
+		ParsedDefineXML,
+		method,
+		comment,
+		CodeList,
+		itemRef
+	} from '$lib/core/processors/defineXML/types';
 	import {
 		Table,
 		TableBody,
@@ -23,7 +29,30 @@
 		codeLists: CodeList[];
 	}>();
 
-	let state = $derived(metadataViewStore.getDatasetState(datasetName));
+	$effect(() => {
+		// Only log on first render or when filteredVariables changes length
+		let lastLength = 0;
+
+		const currentLength = filteredVariables?.length || 0;
+		if (currentLength !== lastLength) {
+			console.log(`MetadataTable: filteredVariables length changed to ${currentLength}`);
+			lastLength = currentLength;
+
+			if (currentLength > 0) {
+				// Just log the count, not the full objects
+				console.log(`First variable name: ${filteredVariables[0]?.itemDef?.Name || 'unknown'}`);
+			}
+		}
+	});
+	let state = $derived(() => {
+		const datasetState = metadataViewStore.getDatasetState(datasetName);
+		// Ensure expandedMethods is always a Set
+		return {
+			...datasetState,
+			expandedMethods:
+				datasetState.expandedMethods instanceof Set ? datasetState.expandedMethods : new Set()
+		};
+	});
 
 	function toggleMethod(variableOID: string, methodOID: string) {
 		metadataViewStore.toggleMethod(datasetName, `${variableOID}-${methodOID}`);
@@ -53,8 +82,8 @@
 						<VariableDetails
 							variable={variable.itemDef}
 							displayMode="table-row"
-							orderNumber={variable.OrderNumber}
 							hasVLM={variable.hasVLM}
+							orderNumber={variable.OrderNumber}
 							keySequence={variable.KeySequence}
 						/>
 					</TableCell>

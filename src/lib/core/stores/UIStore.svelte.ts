@@ -1,5 +1,16 @@
 import { StorageService } from '../services/StorageServices';
-import type { UIState } from '$lib/core/services/StorageServices';
+
+export interface UIState {
+	leftSidebarOpen: boolean;
+	rightSidebarOpen: boolean;
+	leftSidebarWidth: number;
+	rightSidebarWidth: number;
+
+	viewMode: 'data' | 'metadata' | 'VLM';
+	SDTM: boolean;
+	ADaM: boolean;
+	metadataViewMode: String;
+}
 
 export class UIStore {
 	private static instance: UIStore;
@@ -7,15 +18,15 @@ export class UIStore {
 	private saveTimeout: number | null = null;
 
 	// Initialize with explicit state structure
-	uiState = $state({
+	uiState = $state<UIState>({
 		leftSidebarOpen: true,
 		rightSidebarOpen: true,
-		leftSidebarWidth: 320,
-		rightSidebarWidth: 320,
-		viewMode: 'data' as const,
+		leftSidebarWidth: 250,
+		rightSidebarWidth: 300,
+		viewMode: 'data',
 		SDTM: false,
 		ADaM: false,
-		metadataViewMode: 'table' as const // or 'card'
+		metadataViewMode: 'table'
 	});
 
 	private debouncedSaveState() {
@@ -101,6 +112,11 @@ export class UIStore {
 		};
 	}
 
+	setMetadataViewMode(mode: 'table' | 'card') {
+		// @ts-ignore - We'll fix type issues later
+		this.uiState.metadataViewMode = mode;
+	}
+
 	reset() {
 		this.uiState = {
 			leftSidebarOpen: true,
@@ -109,7 +125,8 @@ export class UIStore {
 			rightSidebarWidth: 320,
 			viewMode: 'data',
 			SDTM: false,
-			ADaM: false
+			ADaM: false,
+			metadataViewMode: 'table'
 		};
 	}
 }

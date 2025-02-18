@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { ParsedDefineXML, itemRef } from '$lib/core/processors/defineXML/types';
+	import type {
+		ParsedDefineXML,
+		method,
+		comment,
+		CodeList,
+		itemRef
+	} from '$lib/core/processors/defineXML/types';
 	import { Card, CardContent } from '$lib/components/core/card';
 	import VariableDetails from '../shared/VariableDetails.svelte';
 	import MethodCell from '$lib/components/data/MethodCell.svelte';
@@ -20,6 +26,21 @@
 	function toggleMethod(variableOID: string, methodOID: string) {
 		metadataViewStore.toggleMethod(datasetName, `${variableOID}-${methodOID}`);
 	}
+
+	$effect(() => {
+		console.log('Received props:', {
+			define: define !== undefined,
+			datasetName,
+			filteredVariables: filteredVariables?.length || 0,
+			methods: methods?.length || 0,
+			comments: comments?.length || 0,
+			codeLists: codeLists?.length || 0
+		});
+
+		if (filteredVariables?.length > 0) {
+			console.log('First variable structure:', JSON.stringify(filteredVariables[0], null, 2));
+		}
+	});
 </script>
 
 <div class="h-full overflow-y-auto">

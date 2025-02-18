@@ -1,17 +1,6 @@
 import type { SortConfig } from '../types/types';
 import { StorageQueue } from '$lib/core/services/StorageQueue';
-
-export interface UIState {
-	leftSidebarOpen: boolean;
-	rightSidebarOpen: boolean;
-	leftSidebarWidth: number;
-	rightSidebarWidth: number;
-
-	viewMode: 'data' | 'metadata';
-	SDTM: boolean;
-	ADaM: boolean;
-	metadataViewMode: String;
-}
+import type { UIState } from '$lib/core/stores/UIStore.svelte';
 
 interface DatasetViewState {
 	selectedColumns: string[];
