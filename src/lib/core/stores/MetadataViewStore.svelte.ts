@@ -1,4 +1,4 @@
-// stores/metadataViewStore.ts
+import { StorageService } from '../services/StorageServices';
 export class MetadataViewStore {
 	private static instance: MetadataViewStore;
 	private initialized = false;
