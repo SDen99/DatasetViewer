@@ -15,7 +15,12 @@
 		datasetName: string;
 	}>();
 
-	let state = $derived(metadataViewStore.getDatasetState(datasetName));
+	// Using your original reactive declarations
+	let rawState = $derived(metadataViewStore.getDatasetState(datasetName));
+	let expandedMethods = $derived(() => {
+		const methods = rawState.expandedMethods;
+		return methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : []);
+	});
 	let isTableView = $derived(uiStore.uiState.metadataViewMode === 'table');
 
 	let define = $derived(sdtmDefine || adamDefine);
@@ -23,13 +28,22 @@
 	let comments = $derived(define?.comments || []);
 	let codeLists = $derived(define?.CodeLists || []);
 
-	// Process base variables
-	let baseVariables = $derived(() => {
-		if (!define || !datasetName) return [];
+	// Keep using your original datasetMetadata pattern
+	let datasetMetadata = $derived(() => {
+		if (!define) return null;
+
+		const normalizedName = normalizeDatasetId(datasetName);
+		return define.itemGroups?.find(
+			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
+		);
+	});
+
+	// Use the function pattern for baseVariables to ensure proper reactivity
+	function getBaseVariables() {
+		if (!define || !datasetMetadata()) return [];
 
 		const normalizedDatasetName = normalizeDatasetId(datasetName);
 
-		// Get dataset refs for the current dataset
 		const datasetRefs = define.itemRefs.filter((ref) => {
 			let refDataset;
 			if (sdtmDefine) {
@@ -40,39 +54,39 @@
 			return normalizeDatasetId(refDataset) === normalizedDatasetName;
 		});
 
-		// Create a map of item definitions for quick lookup
 		const itemDefsMap = new Map(define.itemDefs.map((def) => [def.OID, def]));
-
-		// Get VLM variables for the current dataset
 		const vlmVars = new Set(
 			define.valueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
 		);
 
-		// Map refs to their full information
 		return datasetRefs
-			.map((ref) => ({
-				...ref,
-				itemDef: itemDefsMap.get(ref.OID),
-				hasVLM: vlmVars.has(ref.OID?.split('.')[2] || '')
-			}))
+			.map((ref) => {
+				const varName = ref.OID?.split('.')[2] || '';
+				return {
+					...ref,
+					itemDef: itemDefsMap.get(ref.OID),
+					hasVLM: vlmVars.has(varName)
+				};
+			})
 			.sort((a, b) => {
 				return parseInt(a.OrderNumber || '0') - parseInt(b.OrderNumber || '0');
 			});
-	});
+	}
 
-	// Filter variables based on search
-	let filteredVariables = $derived(() => {
-		if (!baseVariables?.length) return [];
+	// Function for filtered variables to ensure proper reactivity with search
+	function getFilteredVariables() {
+		const baseVars = getBaseVariables();
+		if (!baseVars?.length) return [];
 
-		const searchLower = state.searchTerm.toLowerCase();
-		if (!searchLower) return baseVariables;
+		const searchLower = rawState.searchTerm.toLowerCase();
+		if (!searchLower) return baseVars;
 
-		return baseVariables.filter((variable) => {
+		return baseVars.filter((variable) => {
 			const name = variable.itemDef?.Name?.toLowerCase() || '';
 			const description = variable.itemDef?.Description?.toLowerCase() || '';
 			return name.includes(searchLower) || description.includes(searchLower);
 		});
-	});
+	}
 
 	function toggleView() {
 		uiStore.setMetadataViewMode(isTableView ? 'card' : 'table');
@@ -93,8 +107,8 @@
 					type="text"
 					placeholder="Search variables..."
 					class="pl-8"
-					value={state.searchTerm}
-					on:input={(e) => updateSearch(e.target.value)}
+					value={rawState.searchTerm}
+					oninput={(e) => updateSearch(e.target.value)}
 				/>
 			</div>
 
@@ -117,13 +131,20 @@
 				<MetadataTable
 					{define}
 					{datasetName}
-					{filteredVariables}
+					filteredVariables={getFilteredVariables()}
 					{methods}
 					{comments}
 					{codeLists}
 				/>
 			{:else}
-				<MetadataCard {define} {datasetName} {filteredVariables} {methods} {comments} {codeLists} />
+				<MetadataCard
+					{define}
+					{datasetName}
+					filteredVariables={getFilteredVariables()}
+					{methods}
+					{comments}
+					{codeLists}
+				/>
 			{/if}
 		{:else}
 			<div class="flex h-[200px] items-center justify-center text-muted-foreground">

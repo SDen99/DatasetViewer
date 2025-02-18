@@ -45,12 +45,28 @@ export class MetadataViewStore {
 
 	// State management methods
 	getDatasetState(datasetId: string) {
-		return (
-			this.metadataState[datasetId] || {
+		const existingState = this.metadataState[datasetId];
+
+		if (!existingState) {
+			// Return a fresh state object
+			return {
 				expandedMethods: new Set<string>(),
 				searchTerm: ''
-			}
-		);
+			};
+		}
+
+		// If expandedMethods exists but isn't a Set, create a new state object
+		if (existingState.expandedMethods && !(existingState.expandedMethods instanceof Set)) {
+			return {
+				...existingState,
+				expandedMethods: new Set(
+					Array.isArray(existingState.expandedMethods) ? existingState.expandedMethods : []
+				)
+			};
+		}
+
+		// Return the existing state unmodified
+		return existingState;
 	}
 
 	updateSearch(datasetId: string, term: string) {
@@ -86,6 +102,22 @@ export class MetadataViewStore {
 	clearDataset(datasetId: string) {
 		const { [datasetId]: _, ...rest } = this.metadataState;
 		this.metadataState = rest;
+	}
+
+	saveState() {
+		const serializable = Object.fromEntries(
+			Object.entries(this.metadataState).map(([key, value]) => [
+				key,
+				{
+					...value,
+					expandedMethods: Array.from(value.expandedMethods)
+				}
+			])
+		);
+
+		StorageService.getInstance().saveState({
+			metadataViews: serializable
+		});
 	}
 
 	// Reset all state

@@ -18,6 +18,7 @@
 	import VariableDetails from '../shared/VariableDetails.svelte';
 	import MethodCell from '$lib/components/data/MethodCell.svelte';
 	import MethodExpansion from '../shared/MethodExpansion.svelte';
+
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
 
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
@@ -44,19 +45,29 @@
 			}
 		}
 	});
+
 	let state = $derived(() => {
-		const datasetState = metadataViewStore.getDatasetState(datasetName);
-		// Ensure expandedMethods is always a Set
+		const datasetState = metadataViewStore.getDatasetState(datasetName) || {};
+		// Ensure expandedMethods is always a Set with defensive checks
+		const methods = datasetState.expandedMethods;
 		return {
 			...datasetState,
 			expandedMethods:
-				datasetState.expandedMethods instanceof Set ? datasetState.expandedMethods : new Set()
+				methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : [])
 		};
 	});
 
 	function toggleMethod(variableOID: string, methodOID: string) {
 		metadataViewStore.toggleMethod(datasetName, `${variableOID}-${methodOID}`);
 	}
+
+	$effect(() => {
+		console.log('Child component received:', {
+			definePresent: !!define,
+			filteredVariablesCount: filteredVariables?.length || 0,
+			firstItem: filteredVariables?.[0] ? JSON.stringify(filteredVariables[0]) : 'none'
+		});
+	});
 </script>
 
 <div class="flex h-full flex-col rounded-lg border">
@@ -76,9 +87,10 @@
 		</TableHeader>
 
 		<TableBody class="overflow-y-auto">
-			{#each filteredVariables as variable}
+			{#each filteredVariables || [] as variable}
 				<TableRow>
 					<TableCell style="min-width: 160px; width: 160px" class="font-mono text-sm">
+						{console.log('Variable being passed to details:', variable)}
 						<VariableDetails
 							variable={variable.itemDef}
 							displayMode="table-row"
@@ -122,7 +134,9 @@
 							<MethodCell
 								methodOID={variable.MethodOID}
 								{methods}
-								isExpanded={state.expandedMethods.has(`${variable.OID}-${variable.MethodOID}`)}
+								isExpanded={state?.expandedMethods?.has?.(
+									`${variable.OID}-${variable.MethodOID}`
+								) || false}
 								onToggle={() => toggleMethod(variable.OID, variable.MethodOID)}
 							/>
 						{:else if variable.itemDef?.Comment}
@@ -134,7 +148,7 @@
 					</TableCell>
 				</TableRow>
 
-				{#if variable.MethodOID && state.expandedMethods.has(`${variable.OID}-${variable.MethodOID}`)}
+				{#if variable.MethodOID && state?.expandedMethods?.has?.(`${variable.OID}-${variable.MethodOID}`)}
 					<TableRow>
 						<TableCell colspan="9" class="bg-muted/20 px-4 py-2">
 							<MethodExpansion
