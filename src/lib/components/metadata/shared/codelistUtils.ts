@@ -37,13 +37,13 @@ export function hasCodelist(
 	const hasCodeList = Boolean(
 		variable.itemDef?.CodeListOID && getCodeList(variable.itemDef, codeLists) !== null
 	);
-	if (variable.itemDef?.CodeListOID) {
+	/*if (variable.itemDef?.CodeListOID) {
 		console.log('hasCodelist check:', {
 			variableOID: variable.OID,
 			codeListOID: variable.itemDef.CodeListOID,
 			hasCodeList
 		});
-	}
+	}*/
 	return hasCodeList;
 }
 

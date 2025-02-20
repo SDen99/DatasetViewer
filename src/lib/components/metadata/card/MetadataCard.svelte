@@ -7,18 +7,16 @@
 		itemRef
 	} from '$lib/core/processors/defineXML/types';
 	import { Card, CardContent } from '$lib/components/core/card';
-	import VariableDetails from '../shared/VariableDetails.svelte';
-	import MethodCell from '$lib/components/data/MethodCell.svelte';
+	import { Badge } from '$lib/components/core/badge';
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
 	import {
 		toggleMethodExpansion,
 		toggleCodelistExpansion,
 		isMethodExpanded,
 		isCodelistExpanded,
-		isAnyExpansionActive,
-		EXPANSION_TYPE
+		isAnyExpansionActive
 	} from '../shared/methodExpansionUtils';
-	import { Badge } from '$lib/components/core/badge';
+	import { getCodeList, hasCodelist } from '../shared/codelistUtils';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
@@ -30,27 +28,47 @@
 		codeLists: CodeList[];
 	}>();
 
-	// Use the store-provided expansion state directly
-	const getExpandedMethodsSet = $derived(() => {
-		const state = metadataViewStore.getDatasetState(datasetName);
-		const methods = state.expandedMethods;
+	// Use Svelte 5's reactive state for the expanded methods
+	let expandedMethodsSet = $state(new Set<string>());
 
-		if (methods instanceof Set) return methods;
-		if (Array.isArray(methods)) return new Set(methods);
-		return new Set();
+	// Update the set whenever the store changes
+	$effect(() => {
+		const state = metadataViewStore.getDatasetState(datasetName);
+		expandedMethodsSet = new Set(
+			state.expandedMethods instanceof Set
+				? Array.from(state.expandedMethods)
+				: Array.isArray(state.expandedMethods)
+					? state.expandedMethods
+					: []
+		);
 	});
 
-	// Helper function to get codelist for a variable
-	function getCodeList(itemDef) {
-		if (!itemDef?.CodeListOID) return null;
-		return codeLists.find((cl) => cl.OID === itemDef.CodeListOID) || null;
+	// Helper functions that use the local state
+	function isVariableMethodExpanded(variable: itemRef) {
+		return variable.MethodOID && variable.OID
+			? expandedMethodsSet.has(`${variable.OID}-${variable.MethodOID}`)
+			: false;
 	}
 
-	// Check if variable has a codelist
-	function hasCodelist(variable: itemRef & { itemDef?: itemDef }) {
-		if (!variable?.itemDef?.CodeListOID) return false;
-		const codeList = codeLists.find((cl) => cl.OID === variable.itemDef.CodeListOID);
-		return codeList != null;
+	function isVariableCodelistExpanded(variable: itemRef) {
+		return variable.OID ? expandedMethodsSet.has(`${variable.OID}-codelist`) : false;
+	}
+
+	function isVariableExpanded(variable: itemRef): boolean {
+		return isAnyExpansionActive(variable, datasetName, expandedMethodsSet);
+	}
+
+	function handleMethodToggle(variable: itemRef) {
+		if (variable.MethodOID) toggleMethodExpansion(variable, datasetName);
+	}
+
+	function handleCodelistToggle(variable: itemRef) {
+		toggleCodelistExpansion(variable, datasetName);
+	}
+
+	function handleExpandToggle(variable: itemRef) {
+		if (variable.MethodOID) handleMethodToggle(variable);
+		if (hasCodelist(variable, codeLists)) handleCodelistToggle(variable);
 	}
 </script>
 
@@ -75,7 +93,7 @@
 										{#if variable.hasVLM}
 											<Badge variant="secondary" class="px-1 py-0">VLM</Badge>
 										{/if}
-										{#if hasCodelist(variable)}
+										{#if hasCodelist(variable, codeLists)}
 											<Badge variant="secondary" class="px-1 py-0">CL</Badge>
 										{/if}
 									</div>
@@ -115,178 +133,131 @@
 								</div>
 							</div>
 
-							<!-- Right Column: Origin/Method -->
+							<!-- Right Column: Source -->
 							<div class="min-w-[200px] max-w-[300px]">
-								{#if variable.itemDef?.Origin}
-									<div class="space-y-1">
-										<div class="text-sm text-muted-foreground">Origin:</div>
-										<div class="flex items-center gap-2">
-											{#if variable.itemDef?.OriginType}
-												<Badge variant="outline" class="px-2 py-0.5">
-													{variable.itemDef.OriginType}
-												</Badge>
-											{/if}
-											<code class="block text-xs">
-												{variable.itemDef.Origin}
-											</code>
-										</div>
-									</div>
-								{:else if variable.MethodOID}
-									<div class="space-y-1">
-										<div class="text-sm text-muted-foreground">Method:</div>
-										<MethodCell
-											methodOID={variable.MethodOID}
-											{methods}
-											isExpanded={isMethodExpanded(variable, datasetName, getExpandedMethodsSet)}
-											onToggle={() => toggleMethodExpansion(variable, datasetName)}
-										/>
-									</div>
-								{:else if hasCodelist(variable)}
-									<!-- Codelist toggle for variables without methods -->
-									<div class="space-y-1">
-										<div class="text-sm text-muted-foreground">Codelist:</div>
+								<div class="flex items-center gap-2">
+									{#if variable.itemDef?.OriginType}
+										<Badge
+											variant={variable.itemDef.OriginType === 'Derived' ? 'default' : 'outline'}
+											class="shrink-0 px-1.5 py-0"
+										>
+											{variable.itemDef.OriginType}
+										</Badge>
+									{/if}
+
+									{#if variable.MethodOID || hasCodelist(variable, codeLists)}
 										<div
-											class="flex cursor-pointer items-center gap-2"
+											class="flex cursor-pointer items-center gap-2 overflow-hidden"
 											role="button"
 											tabindex="0"
-											onclick={() => toggleCodelistExpansion(variable, datasetName)}
-											onkeydown={(e) =>
-												e.key === 'Enter' && toggleCodelistExpansion(variable, datasetName)}
+											onclick={() => handleExpandToggle(variable)}
+											onkeydown={(e) => e.key === 'Enter' && handleExpandToggle(variable)}
 										>
-											{#if isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)}
-												<ChevronDown class="h-4 w-4 shrink-0" />
-											{:else}
-												<ChevronRight class="h-4 w-4 shrink-0" />
-											{/if}
-											<span class="whitespace-normal font-mono text-xs">
-												{getCodeList(variable.itemDef)?.Name || 'Codelist'}
-											</span>
+											<div class="h-4 w-4 shrink-0">
+												{#if isVariableMethodExpanded(variable) || isVariableCodelistExpanded(variable)}
+													<ChevronDown />
+												{:else}
+													<ChevronRight />
+												{/if}
+											</div>
+											<div
+												class="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-sm"
+											>
+												{#if variable.itemDef?.Origin}
+													{variable.itemDef.Origin}
+												{:else if variable.MethodOID}
+													{methods.find((m) => m.OID === variable.MethodOID)?.Name}
+												{:else if hasCodelist(variable, codeLists)}
+													{getCodeList(variable.itemDef, codeLists)?.Name}
+												{/if}
+											</div>
 										</div>
-									</div>
-								{/if}
+									{:else if variable.itemDef?.Origin}
+										<div class="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-sm">
+											{variable.itemDef.Origin}
+										</div>
+									{/if}
+								</div>
 							</div>
 						</div>
 
-						<!-- Expanded Content Area -->
-						{#if isAnyExpansionActive(variable, datasetName, getExpandedMethodsSet)}
+						<!-- Expansion Content Area -->
+						{#if isVariableExpanded(variable)}
 							<div class="mt-4 border-t pt-4">
 								<div
-									class={hasCodelist(variable) &&
-									variable.MethodOID &&
-									isMethodExpanded(variable, datasetName, getExpandedMethodsSet) &&
-									isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)
-										? 'grid grid-cols-2 gap-8'
-										: 'w-full'}
+									class="grid gap-6"
+									class:grid-cols-2={variable.MethodOID && hasCodelist(variable, codeLists)}
 								>
-									<!-- Method section (if exists and expanded) -->
-									{#if variable.MethodOID && isMethodExpanded(variable, datasetName, getExpandedMethodsSet)}
-										<div
-											class="space-y-3 {!hasCodelist(variable) ||
-											!isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)
-												? 'col-span-2'
-												: ''}"
-										>
-											<h4 class="text-sm font-medium">Method</h4>
-											<div
-												class="whitespace-pre-wrap rounded-md bg-muted/30 p-3 text-sm font-normal text-muted-foreground"
-											>
-												{methods.find((m) => m.OID === variable.MethodOID)?.Description ||
-													'No description available'}
-											</div>
+									<!-- Method section -->
+									{#if variable.MethodOID && isVariableMethodExpanded(variable)}
+										<div class="space-y-2">
+											<pre
+												class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">{methods.find(
+													(m) => m.OID === variable.MethodOID
+												)?.Description || 'No description available'}</pre>
 
 											{#if variable.itemDef?.Comment}
-												<div class="mt-2 space-y-1">
-													<div class="text-sm font-medium">Comment:</div>
-													<div class="rounded-md bg-muted/20 p-2 text-sm text-muted-foreground">
-														{comments.find((c) => c.OID === variable.itemDef?.Comment)
-															?.Description || 'No comment description available'}
-													</div>
+												<div class="mt-2 text-sm text-muted-foreground">
+													{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
+														'No comment description available'}
 												</div>
 											{/if}
 										</div>
 									{/if}
 
-									<!-- Codelist section (if exists and expanded) -->
-									{#if hasCodelist(variable) && isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)}
-										<div
-											class="space-y-3 {!variable.MethodOID ||
-											!isMethodExpanded(variable, datasetName, getExpandedMethodsSet)
-												? 'col-span-2'
-												: ''}"
-										>
-											{#if getCodeList(variable.itemDef)}
-												{@const codeList = getCodeList(variable.itemDef)}
-												<div class="space-y-3">
-													<h4 class="text-sm font-medium">{codeList.Name}</h4>
-
+									<!-- Codelist section -->
+									{#if hasCodelist(variable, codeLists) && isVariableCodelistExpanded(variable)}
+										<div class="space-y-2">
+											{#if getCodeList(variable.itemDef, codeLists)}
+												{@const codeList = getCodeList(variable.itemDef, codeLists)}
+												<div class="space-y-2">
 													{#if codeList.CodeListItems?.length}
-														<div class="space-y-2 rounded-md bg-muted/20 p-3">
-															<div class="text-sm font-medium text-muted-foreground">
-																Coded Values:
-															</div>
-															<div class="space-y-3">
-																{#each codeList.CodeListItems as item}
-																	<div
-																		class="grid grid-cols-[100px,1fr] gap-3 border-b border-muted pb-2 text-sm last:border-0 last:pb-0"
-																	>
-																		<code class="text-xs font-semibold">{item.CodedValue}</code>
-																		<div>
-																			<div class="font-medium">
-																				{item.Decode?.TranslatedText}
-																				{#if item.ExtendedValue}
-																					<Badge class="ml-2 px-1 py-0">Extended</Badge>
-																				{/if}
-																			</div>
-																			{#if item.Aliases?.length}
-																				<div class="mt-1 text-xs text-muted-foreground">
-																					Aliases: {item.Aliases.map(
-																						(a) => `${a.Name} (${a.Context})`
-																					).join(', ')}
-																				</div>
-																			{/if}
-																		</div>
-																	</div>
-																{/each}
-															</div>
-														</div>
-													{/if}
-
-													{#if codeList.EnumeratedItems?.length}
-														<div class="space-y-2 rounded-md bg-muted/20 p-3">
-															<div class="text-sm font-medium text-muted-foreground">
-																Enumerated Items:
-															</div>
-															<div class="space-y-2">
-																{#each codeList.EnumeratedItems as item}
-																	<div
-																		class="flex gap-3 whitespace-nowrap border-b border-muted pb-2 text-sm last:border-0 last:pb-0"
-																	>
-																		<code class="w-[100px] shrink-0 text-xs font-semibold"
-																			>{item.CodedValue}</code
-																		>
+														<div class="space-y-2">
+															{#each codeList.CodeListItems as item}
+																<div class="grid grid-cols-[100px,1fr] gap-2 text-sm">
+																	<code class="text-xs">{item.CodedValue}</code>
+																	<div>
+																		{item.Decode?.TranslatedText}
+																		{#if item.ExtendedValue}
+																			<Badge class="ml-2 px-1 py-0">Extended</Badge>
+																		{/if}
 																		{#if item.Aliases?.length}
-																			<div
-																				class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
-																			>
+																			<div class="mt-1 text-xs text-muted-foreground">
 																				Aliases: {item.Aliases.map(
 																					(a) => `${a.Name} (${a.Context})`
 																				).join(', ')}
 																			</div>
 																		{/if}
 																	</div>
-																{/each}
-															</div>
+																</div>
+															{/each}
+														</div>
+													{/if}
+
+													{#if codeList.EnumeratedItems?.length}
+														<div class="space-y-2">
+															{#each codeList.EnumeratedItems as item}
+																<div class="flex gap-2 whitespace-nowrap text-sm">
+																	<code class="w-[100px] shrink-0 text-xs">{item.CodedValue}</code>
+																	{#if item.Aliases?.length}
+																		<div
+																			class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
+																		>
+																			Aliases: {item.Aliases.map(
+																				(a) => `${a.Name} (${a.Context})`
+																			).join(', ')}
+																		</div>
+																	{/if}
+																</div>
+															{/each}
 														</div>
 													{/if}
 
 													{#if codeList.Aliases?.length}
-														<div class="space-y-1">
-															<div class="text-sm font-medium text-muted-foreground">
-																CodeList Aliases:
-															</div>
-															<div class="rounded-md bg-muted/20 p-2 text-xs text-muted-foreground">
-																{codeList.Aliases.map((a) => `${a.Name} (${a.Context})`).join(', ')}
-															</div>
+														<div class="text-xs text-muted-foreground">
+															Aliases: {codeList.Aliases.map(
+																(a) => `${a.Name} (${a.Context})`
+															).join(', ')}
 														</div>
 													{/if}
 												</div>

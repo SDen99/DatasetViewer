@@ -116,7 +116,7 @@
 				{@const hasMethod = Boolean(variable.MethodOID)}
 				{@const hasList = hasCodelist(variable, codeLists)}
 
-				{#if hasList || hasMethod}
+				<!--		{#if hasList || hasMethod}
 					{@const debugging = console.log('Variable check:', {
 						variableOID: variable.OID,
 						methodOID: variable.MethodOID,
@@ -125,7 +125,7 @@
 						isMethodExpanded: isVariableMethodExpanded(variable),
 						isCodelistExpanded: isVariableCodelistExpanded(variable)
 					})}
-				{/if}
+				{/if} -->
 				<!-- Regular row with variable data -->
 				<TableRow>
 					<TableCell style="min-width: 160px; width: 160px" class="font-mono text-sm">
