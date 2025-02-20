@@ -9,7 +9,7 @@
 		onToggle: () => void;
 	}>();
 
-	let methodInfo = $derived(
+	const methodInfo = $derived(
 		!methodOID || !methods?.length ? null : methods.find((m) => m.OID === methodOID)
 	);
 
@@ -28,18 +28,6 @@
 		});
 		onToggle();
 	}
-
-	$effect(() => {
-		console.log('MethodCell props updated:', {
-			methodOID,
-			methodName: methodInfo?.Name || 'unknown',
-			isExpanded
-		});
-	});
-
-	$effect(() => {
-		console.log(`MethodCell for ${methodOID} - isExpanded changed to:`, isExpanded);
-	});
 </script>
 
 {#if !methodOID || !methodInfo}
@@ -52,11 +40,13 @@
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
-		{#if isExpanded}
-			<ChevronDown class="h-4 w-4 shrink-0" />
-		{:else}
-			<ChevronRight class="h-4 w-4 shrink-0" />
-		{/if}
+		<div class="h-4 w-4 shrink-0">
+			{#if isExpanded}
+				<ChevronDown />
+			{:else}
+				<ChevronRight />
+			{/if}
+		</div>
 		<span class="whitespace-normal font-mono text-xs">{methodInfo.Name}</span>
 	</div>
 {/if}

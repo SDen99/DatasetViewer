@@ -9,9 +9,15 @@
 	import { Card, CardContent } from '$lib/components/core/card';
 	import VariableDetails from '../shared/VariableDetails.svelte';
 	import MethodCell from '$lib/components/data/MethodCell.svelte';
-	import MethodExpansion from '../shared/MethodExpansion.svelte';
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
-	import { toggleMethodExpansion } from '../shared/methodExpansionUtils';
+	import {
+		toggleMethodExpansion,
+		toggleCodelistExpansion,
+		isMethodExpanded,
+		isCodelistExpanded,
+		isAnyExpansionActive,
+		EXPANSION_TYPE
+	} from '../shared/methodExpansionUtils';
 	import { Badge } from '$lib/components/core/badge';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 
@@ -24,23 +30,15 @@
 		codeLists: CodeList[];
 	}>();
 
-	// Access expandedMethods directly from the store, with safety checks
-	function getExpandedMethodsSet() {
+	// Use the store-provided expansion state directly
+	const getExpandedMethodsSet = $derived(() => {
 		const state = metadataViewStore.getDatasetState(datasetName);
 		const methods = state.expandedMethods;
 
 		if (methods instanceof Set) return methods;
 		if (Array.isArray(methods)) return new Set(methods);
 		return new Set();
-	}
-
-	// Create simplified helper to check expansion
-	function isExpanded(variableOID, methodOID) {
-		if (!variableOID) return false;
-		const key = methodOID ? `${variableOID}-${methodOID}` : `${variableOID}-codelist`;
-		const expandedSet = getExpandedMethodsSet();
-		return expandedSet.has(key);
-	}
+	});
 
 	// Helper function to get codelist for a variable
 	function getCodeList(itemDef) {
@@ -48,20 +46,11 @@
 		return codeLists.find((cl) => cl.OID === itemDef.CodeListOID) || null;
 	}
 
-	// Toggle expansion for codelist-only variables
-	function toggleCodelistExpansion(variable) {
-		if (!variable.OID) return;
-
-		const methodKey = `${variable.OID}-codelist`;
-		console.log(`Toggling codelist expansion: ${methodKey}`);
-
-		// Toggle the expansion
-		metadataViewStore.toggleMethod(datasetName, methodKey);
-	}
-
 	// Check if variable has a codelist
-	function hasCodelist(variable) {
-		return variable.itemDef?.CodeListOID && getCodeList(variable.itemDef) !== null;
+	function hasCodelist(variable: itemRef & { itemDef?: itemDef }) {
+		if (!variable?.itemDef?.CodeListOID) return false;
+		const codeList = codeLists.find((cl) => cl.OID === variable.itemDef.CodeListOID);
+		return codeList != null;
 	}
 </script>
 
@@ -148,7 +137,7 @@
 										<MethodCell
 											methodOID={variable.MethodOID}
 											{methods}
-											isExpanded={isExpanded(variable.OID, variable.MethodOID)}
+											isExpanded={isMethodExpanded(variable, datasetName, getExpandedMethodsSet)}
 											onToggle={() => toggleMethodExpansion(variable, datasetName)}
 										/>
 									</div>
@@ -160,10 +149,11 @@
 											class="flex cursor-pointer items-center gap-2"
 											role="button"
 											tabindex="0"
-											onclick={() => toggleCodelistExpansion(variable)}
-											onkeydown={(e) => e.key === 'Enter' && toggleCodelistExpansion(variable)}
+											onclick={() => toggleCodelistExpansion(variable, datasetName)}
+											onkeydown={(e) =>
+												e.key === 'Enter' && toggleCodelistExpansion(variable, datasetName)}
 										>
-											{#if isExpanded(variable.OID, null)}
+											{#if isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)}
 												<ChevronDown class="h-4 w-4 shrink-0" />
 											{:else}
 												<ChevronRight class="h-4 w-4 shrink-0" />
@@ -178,16 +168,24 @@
 						</div>
 
 						<!-- Expanded Content Area -->
-						{#if (variable.MethodOID && isExpanded(variable.OID, variable.MethodOID)) || (!variable.MethodOID && hasCodelist(variable) && isExpanded(variable.OID, null))}
+						{#if isAnyExpansionActive(variable, datasetName, getExpandedMethodsSet)}
 							<div class="mt-4 border-t pt-4">
 								<div
-									class={hasCodelist(variable) && variable.MethodOID
+									class={hasCodelist(variable) &&
+									variable.MethodOID &&
+									isMethodExpanded(variable, datasetName, getExpandedMethodsSet) &&
+									isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)
 										? 'grid grid-cols-2 gap-8'
 										: 'w-full'}
 								>
-									<!-- Method section (if exists) -->
-									{#if variable.MethodOID && isExpanded(variable.OID, variable.MethodOID)}
-										<div class="space-y-3 {!hasCodelist(variable) ? 'col-span-2' : ''}">
+									<!-- Method section (if exists and expanded) -->
+									{#if variable.MethodOID && isMethodExpanded(variable, datasetName, getExpandedMethodsSet)}
+										<div
+											class="space-y-3 {!hasCodelist(variable) ||
+											!isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)
+												? 'col-span-2'
+												: ''}"
+										>
 											<h4 class="text-sm font-medium">Method</h4>
 											<div
 												class="whitespace-pre-wrap rounded-md bg-muted/30 p-3 text-sm font-normal text-muted-foreground"
@@ -208,9 +206,14 @@
 										</div>
 									{/if}
 
-									<!-- Codelist section (if exists) -->
-									{#if hasCodelist(variable)}
-										<div class="space-y-3 {!variable.MethodOID ? 'col-span-2' : ''}">
+									<!-- Codelist section (if exists and expanded) -->
+									{#if hasCodelist(variable) && isCodelistExpanded(variable, datasetName, getExpandedMethodsSet)}
+										<div
+											class="space-y-3 {!variable.MethodOID ||
+											!isMethodExpanded(variable, datasetName, getExpandedMethodsSet)
+												? 'col-span-2'
+												: ''}"
+										>
 											{#if getCodeList(variable.itemDef)}
 												{@const codeList = getCodeList(variable.itemDef)}
 												<div class="space-y-3">

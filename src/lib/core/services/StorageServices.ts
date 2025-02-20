@@ -9,10 +9,16 @@ interface DatasetViewState {
 	sort: SortConfig[];
 }
 
+interface MetadataViewState {
+	expandedMethods: string[]; // Use array instead of Set for serialization
+	searchTerm: string;
+}
+
 interface AppPersistentState {
 	lastSelectedDataset: string | null;
 	datasetViews: Record<string, DatasetViewState>;
 	uiPreferences: UIState;
+	metadataViews: Record<string, MetadataViewState>; // Add this
 }
 
 export class StorageService {
