@@ -1,38 +1,27 @@
 import { StorageService } from '../services/StorageServices';
+
+// Import the types from StorageServices
+import type { MetadataViewState, SerializedMetadataViewState } from '../services/StorageServices';
+
 export class MetadataViewStore {
 	private static instance: MetadataViewStore;
 	private initialized = false;
 
-	// Dataset-specific state
-	metadataState = $state<
-		Record<
-			string,
-			{
-				expandedMethods: Set<string>;
-				searchTerm: string;
-			}
-		>
-	>({});
+	// Dataset-specific state using the MetadataViewState type
+	metadataState = $state<Record<string, MetadataViewState>>({});
 
 	private constructor() {
 		// Setup persistence effect after initialization
 		$effect.root(() => {
 			$effect(() => {
 				if (this.initialized) {
-					StorageService.getInstance().saveState({
-						metadataViews: this.metadataState
-					});
+					this.saveState();
 				}
 			});
 		});
 
 		// Load initial state
-		const storage = StorageService.getInstance();
-		const savedState = storage.loadState();
-		if (savedState.metadataViews) {
-			this.metadataState = savedState.metadataViews;
-		}
-
+		this.loadInitialState();
 		this.initialized = true;
 	}
 
@@ -43,85 +32,32 @@ export class MetadataViewStore {
 		return MetadataViewStore.instance;
 	}
 
-	// State management methods
-	getDatasetState(datasetId: string) {
-		const existingState = this.metadataState[datasetId];
+	private loadInitialState(): void {
+		const storage = StorageService.getInstance();
+		const savedState = storage.loadState();
 
-		if (!existingState) {
-			// Return a fresh state object
-			return {
-				expandedMethods: new Set<string>(),
-				searchTerm: ''
-			};
+		if (savedState.metadataViews) {
+			// Convert serialized arrays to Sets
+			this.metadataState = Object.fromEntries(
+				Object.entries(savedState.metadataViews).map(([key, value]) => [
+					key,
+					{
+						...value,
+						expansions: new Set(value.expansions)
+					}
+				])
+			);
 		}
-
-		// If expandedMethods exists but isn't a Set, create a new state object
-		if (existingState.expandedMethods && !(existingState.expandedMethods instanceof Set)) {
-			return {
-				...existingState,
-				expandedMethods: new Set(
-					Array.isArray(existingState.expandedMethods) ? existingState.expandedMethods : []
-				)
-			};
-		}
-
-		// Return the existing state unmodified
-		return existingState;
 	}
 
-	updateSearch(datasetId: string, term: string) {
-		this.metadataState = {
-			...this.metadataState,
-			[datasetId]: {
-				...this.getDatasetState(datasetId),
-				searchTerm: term
-			}
-		};
-	}
-
-	toggleMethod(datasetId: string, methodKey: string) {
-		console.log(`Store: Toggling method ${methodKey} for dataset ${datasetId}`);
-
-		const currentState = this.getDatasetState(datasetId);
-		// Always create a new Set to ensure reactivity
-		const newExpanded = new Set(currentState.expandedMethods || []);
-
-		if (newExpanded.has(methodKey)) {
-			console.log(`Store: Removing ${methodKey}`);
-			newExpanded.delete(methodKey);
-		} else {
-			console.log(`Store: Adding ${methodKey}`);
-			newExpanded.add(methodKey);
-		}
-
-		// Create a new state object to ensure reactivity
-		this.metadataState = {
-			...this.metadataState,
-			[datasetId]: {
-				...currentState,
-				expandedMethods: newExpanded
-			}
-		};
-
-		console.log(
-			'Store: Updated state:',
-			Array.from(this.metadataState[datasetId].expandedMethods || [])
-		);
-	}
-
-	// Clean up dataset state
-	clearDataset(datasetId: string) {
-		const { [datasetId]: _, ...rest } = this.metadataState;
-		this.metadataState = rest;
-	}
-
-	saveState() {
-		const serializable = Object.fromEntries(
+	private saveState(): void {
+		// Convert Sets to arrays for storage
+		const serializable: Record<string, SerializedMetadataViewState> = Object.fromEntries(
 			Object.entries(this.metadataState).map(([key, value]) => [
 				key,
 				{
 					...value,
-					expandedMethods: Array.from(value.expandedMethods)
+					expansions: Array.from(value.expansions)
 				}
 			])
 		);
@@ -131,33 +67,74 @@ export class MetadataViewStore {
 		});
 	}
 
-	expandAllMethods(datasetId: string, methodKeys: string[]) {
+	getDatasetState(datasetId: string): MetadataViewState {
+		return (
+			this.metadataState[datasetId] || {
+				expansions: new Set<string>(),
+				searchTerm: ''
+			}
+		);
+	}
+
+	updateSearch(datasetId: string, term: string): void {
+		this.metadataState = {
+			...this.metadataState,
+			[datasetId]: {
+				...this.getDatasetState(datasetId),
+				searchTerm: term
+			}
+		};
+	}
+
+	toggleExpansion(datasetId: string, expansionKey: string): void {
 		const currentState = this.getDatasetState(datasetId);
-		const newExpanded = new Set(methodKeys);
+		const newExpanded = new Set(currentState.expansions);
+
+		if (newExpanded.has(expansionKey)) {
+			newExpanded.delete(expansionKey);
+		} else {
+			newExpanded.add(expansionKey);
+		}
 
 		this.metadataState = {
 			...this.metadataState,
 			[datasetId]: {
 				...currentState,
-				expandedMethods: newExpanded
+				expansions: newExpanded
 			}
 		};
 	}
 
-	collapseAllMethods(datasetId: string) {
+	expandAll(datasetId: string, expansionKeys: string[]): void {
 		const currentState = this.getDatasetState(datasetId);
 
 		this.metadataState = {
 			...this.metadataState,
 			[datasetId]: {
 				...currentState,
-				expandedMethods: new Set()
+				expansions: new Set(expansionKeys)
 			}
 		};
 	}
 
-	// Reset all state
-	reset() {
+	collapseAll(datasetId: string): void {
+		const currentState = this.getDatasetState(datasetId);
+
+		this.metadataState = {
+			...this.metadataState,
+			[datasetId]: {
+				...currentState,
+				expansions: new Set()
+			}
+		};
+	}
+
+	clearDataset(datasetId: string): void {
+		const { [datasetId]: _, ...rest } = this.metadataState;
+		this.metadataState = rest;
+	}
+
+	reset(): void {
 		this.metadataState = {};
 	}
 }

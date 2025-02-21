@@ -9,6 +9,12 @@
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
+	import {
+		getAllExpansionKeys,
+		isMethodExpanded,
+		isCodelistExpanded
+	} from './shared/expansionUtils';
+	import { hasCodelist } from './shared/codelistUtils';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
@@ -16,20 +22,13 @@
 		datasetName: string;
 	}>();
 
-	// Using your original reactive declarations
-	let rawState = $derived(metadataViewStore.getDatasetState(datasetName));
-	let expandedMethods = $derived(() => {
-		const methods = rawState.expandedMethods;
-		return methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : []);
-	});
-	let isTableView = $derived(uiStore.uiState.metadataViewMode === 'table');
-
 	let define = $derived(sdtmDefine || adamDefine);
 	let methods = $derived(define?.methods || []);
 	let comments = $derived(define?.comments || []);
 	let codeLists = $derived(define?.CodeLists || []);
+	let rawState = $derived(metadataViewStore.getDatasetState(datasetName));
+	let isTableView = $derived(uiStore.uiState.metadataViewMode === 'table');
 
-	// Keep using your original datasetMetadata pattern
 	let datasetMetadata = $derived(() => {
 		if (!define) return null;
 
@@ -39,7 +38,6 @@
 		);
 	});
 
-	// Use the function pattern for baseVariables to ensure proper reactivity
 	function getBaseVariables() {
 		if (!define || !datasetMetadata()) return [];
 
@@ -74,7 +72,6 @@
 			});
 	}
 
-	// Function for filtered variables to ensure proper reactivity with search
 	function getFilteredVariables() {
 		const baseVars = getBaseVariables();
 		if (!baseVars?.length) return [];
@@ -89,32 +86,29 @@
 		});
 	}
 
-	function areAllMethodsExpanded() {
+	function areAllExpanded() {
 		const filteredVars = getFilteredVariables();
-		const methodVariables = filteredVars.filter((v) => v.MethodOID);
-		if (methodVariables.length === 0) return false;
+		if (filteredVars.length === 0) return false;
 
-		// Get the expandedMethods and ensure it's a Set
-		const methods = rawState.expandedMethods;
-		const expandedMethodsSet =
-			methods instanceof Set ? methods : new Set(Array.isArray(methods) ? methods : []);
-
-		return methodVariables.every((v) => expandedMethodsSet.has(`${v.OID}-${v.MethodOID}`));
+		return filteredVars.every((variable) => {
+			const needsMethodExpansion = variable.MethodOID
+				? isMethodExpanded(variable, datasetName)
+				: true;
+			const needsCodelistExpansion = hasCodelist(variable, codeLists)
+				? isCodelistExpanded(variable, datasetName)
+				: true;
+			return needsMethodExpansion && needsCodelistExpansion;
+		});
 	}
 
-	// Update toggleAllMethods to also ensure expandedMethods is a Set
-	function toggleAllMethods() {
-		const allExpanded = areAllMethodsExpanded();
+	function toggleAll() {
 		const filteredVars = getFilteredVariables();
-		const methodVariables = filteredVars.filter((v) => v.MethodOID);
 
-		if (allExpanded) {
-			// Collapse all
-			metadataViewStore.collapseAllMethods(datasetName);
+		if (areAllExpanded()) {
+			metadataViewStore.collapseAll(datasetName);
 		} else {
-			// Expand all
-			const methodKeys = methodVariables.map((v) => `${v.OID}-${v.MethodOID}`);
-			metadataViewStore.expandAllMethods(datasetName, methodKeys);
+			const expansionKeys = getAllExpansionKeys(filteredVars, datasetName, codeLists);
+			metadataViewStore.expandAll(datasetName, expansionKeys);
 		}
 	}
 
@@ -145,8 +139,8 @@
 
 			<!-- Add expand/collapse all button -->
 			<div class="flex items-center gap-4">
-				<Button variant="outline" size="sm" class="gap-2" onclick={toggleAllMethods}>
-					{#if areAllMethodsExpanded()}
+				<Button variant="outline" size="sm" class="gap-2" onclick={toggleAll}>
+					{#if areAllExpanded()}
 						<ChevronDown class="h-4 w-4" />
 						<span>Collapse All</span>
 					{:else}
@@ -167,6 +161,7 @@
 			</div>
 		</div>
 	</div>
+
 	{#if define}
 		{#if isTableView}
 			<MetadataTable

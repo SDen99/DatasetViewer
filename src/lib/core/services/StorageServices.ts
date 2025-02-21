@@ -2,23 +2,30 @@ import type { SortConfig } from '../types/types';
 import { StorageQueue } from '$lib/core/services/StorageQueue';
 import type { UIState } from '$lib/core/stores/UIStore.svelte';
 
-interface DatasetViewState {
+export interface DatasetViewState {
 	selectedColumns: string[];
 	columnOrder: string[];
 	columnWidths: Record<string, number>;
 	sort: SortConfig[];
 }
 
-interface MetadataViewState {
-	expandedMethods: string[]; // Use array instead of Set for serialization
+// Runtime state with Set
+export interface MetadataViewState {
+	expansions: Set<string>;
 	searchTerm: string;
 }
 
-interface AppPersistentState {
+// Serialized state with array
+export interface SerializedMetadataViewState {
+	expansions: string[];
+	searchTerm: string;
+}
+
+export interface AppPersistentState {
 	lastSelectedDataset: string | null;
 	datasetViews: Record<string, DatasetViewState>;
 	uiPreferences: UIState;
-	metadataViews: Record<string, MetadataViewState>; // Add this
+	metadataViews: Record<string, SerializedMetadataViewState>;
 }
 
 export class StorageService {
@@ -32,6 +39,7 @@ export class StorageService {
 			this.saveState(this.getDefaultState());
 		}
 	}
+
 	static getInstance(): StorageService {
 		if (!StorageService.instance) {
 			StorageService.instance = new StorageService();
@@ -51,7 +59,8 @@ export class StorageService {
 				viewMode: 'data',
 				SDTM: false,
 				ADaM: false
-			}
+			},
+			metadataViews: {}
 		};
 	}
 
