@@ -1,22 +1,14 @@
-import type {
-	ParsedDefineXML,
-	Study,
-	Standard,
-	MetaData,
-	ItemGroup,
-	itemDef,
-	itemRef,
-	method,
-	comment,
-	CodeList,
-	whereClauseDef,
-	valueListDef,
-	Dictionary,
-	Document,
-	AnalysisResult
-} from '$lib/core/processors/defineXML/types';
+import type { Study, MetaData, Standard, DocumentRef, Comment } from '$lib/types/define-xml/base';
 
-export type { ParsedDefineXML } from './types';
+import type { Method } from '$lib/types/define-xml/methods';
+import type { ItemGroup } from '$lib/types/define-xml/groups';
+import type { ItemDef, ItemRef, WhereClauseDef } from '$lib/types/define-xml/variables'; //Check
+import type { CodeList } from '$lib/types/define-xml/codelists';
+import type { Dictionary } from '$lib/types/define-xml/dictionaries';
+import type { ValueListDef } from '$lib/types/define-xml/valuelists'; //Check
+import type { AnalysisResult } from '$lib/types/define-xml/analysis';
+
+import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 
 export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML> => {
 	// Input validation
@@ -74,9 +66,9 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	const studyElement = xmlDoc.querySelector('Study');
 	const study: Study = {
 		OID: getAttribute(studyElement, 'OID'),
-		name: getTextContent(xmlDoc.documentElement, 'StudyName'),
-		description: getTextContent(xmlDoc.documentElement, 'StudyDescription'),
-		protocolName: getTextContent(xmlDoc.documentElement, 'ProtocolName')
+		Name: getTextContent(xmlDoc.documentElement, 'StudyName'),
+		Description: getTextContent(xmlDoc.documentElement, 'StudyDescription'),
+		ProtocolName: getTextContent(xmlDoc.documentElement, 'ProtocolName')
 	};
 
 	// MetaDataVersion extraction with validation
@@ -87,9 +79,9 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 
 	const metaData: MetaData = {
 		OID: getAttribute(metaDataVersion, 'OID'),
-		name: getAttribute(metaDataVersion, 'Name'),
-		description: getAttribute(metaDataVersion, 'Description'),
-		defineVersion: getAttribute(metaDataVersion, 'def:DefineVersion')
+		Name: getAttribute(metaDataVersion, 'Name'),
+		Description: getAttribute(metaDataVersion, 'Description'),
+		DefineVersion: getAttribute(metaDataVersion, 'def:DefineVersion')
 	};
 
 	// Extract standards
@@ -127,7 +119,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	);
 
 	// Extract ItemDefs
-	const itemDefs: itemDef[] = Array.from(metaDataVersion.querySelectorAll('ItemDef')).map(
+	const itemDefs: ItemDef[] = Array.from(metaDataVersion.querySelectorAll('ItemDef')).map(
 		(item) => ({
 			OID: getAttribute(item, 'OID') || null,
 			Dataset: getAttribute(item, 'OID')?.split('.')[1] || null,
@@ -142,17 +134,17 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			CodeListOID: item.querySelector('CodeListRef')?.getAttribute('CodeListOID') || null,
 			SignificantDigits: getAttribute(item, 'SignificantDigits') || null,
 			Format: getAttribute(item, 'def:DisplayFormat') || null,
-			// Mandatory: getAttribute(item, "Mandatory") || null, In ItemRef not Def
+			HasNoData: getAttribute(item, 'HasNoData') || null,
 			AssignedValue: getAttribute(item, 'def:AssignedValue') || null,
 			Common: getAttribute(item, 'def:Common') === 'Yes' || null,
 			Pages: getAttribute(item, 'def:Pages') || null,
-			// Method: getDefContent(item, "Method") || null, In ItemRef not Def
-			Comment: getAttribute(item, 'def:CommentOID') || null,
-			DeveloperNotes: getDefContent(item, 'DeveloperNotes') || null // Not sure if it exists
+			DisplayFormat: getAttribute(item, 'def:DisplayFormat') || null,
+			CommentOID: getAttribute(item, 'def:CommentOID') || null,
+			DeveloperNotes: getDefContent(item, 'DeveloperNotes') || null // Added DeveloperNotes (but I don't think it exists)
 		})
 	);
 
-	const methods: method[] = Array.from(metaDataVersion.querySelectorAll('MethodDef')).map(
+	const methods: Method[] = Array.from(metaDataVersion.querySelectorAll('MethodDef')).map(
 		(method) => ({
 			OID: getAttribute(method, 'OID') || null,
 			Name: getAttribute(method, 'Name') || null,
@@ -164,25 +156,28 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		})
 	);
 
-	const comments: comment[] = Array.from(metaDataVersion.querySelectorAll('CommentDef')).map(
+	const comments: Comment[] = Array.from(metaDataVersion.querySelectorAll('CommentDef')).map(
 		(method) => ({
 			OID: method.getAttribute('OID') || null,
 			Description: method.querySelector('Description TranslatedText')?.textContent || null
 		})
 	);
 
-	const itemRefs: itemRef[] = Array.from(
+	const itemRefs: ItemRef[] = Array.from(
 		metaDataVersion.querySelectorAll('ItemGroupDef > ItemRef')
 	).map((item) => ({
-		OID: getAttribute(item, 'ItemOID') || null,
+		ItemOID: getAttribute(item, 'ItemOID') || null,
+		OID: getAttribute(item, 'ItemOID') || null, // to remove at some point ... ..
 		Mandatory: getAttribute(item, 'Mandatory') || null,
 		OrderNumber: getAttribute(item, 'OrderNumber') || null,
 		MethodOID: getAttribute(item, 'MethodOID') || null,
+		Role: getAttribute(item, 'Role') || null,
 		WhereClauseOID:
 			item
 				.getElementsByTagNameNS(namespaceURI, 'WhereClauseRef')[0]
 				?.getAttribute('WhereClauseOID') || null,
-		KeySequence: getAttribute(item, 'KeySequence') || null
+		KeySequence: getAttribute(item, 'KeySequence') || null,
+		RoleCodeListOID: getAttribute(item, 'RoleCodeListOID') || null
 	}));
 
 	const CodeLists: CodeList[] = Array.from(metaDataVersion.querySelectorAll('CodeList'))
@@ -205,7 +200,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 				Decode: item.querySelector('Decode')
 					? {
 							TranslatedText: item.querySelector('Decode TranslatedText')?.textContent || null,
-							lang: item.querySelector('Decode TranslatedText')?.getAttribute('xml:lang') || null
+							Lang: item.querySelector('Decode TranslatedText')?.getAttribute('xml:lang') || null
 						}
 					: null,
 				Aliases: Array.from(item.querySelectorAll('Alias')).map((alias) => ({
@@ -245,20 +240,28 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			};
 		});
 
-	const whereClauseDefs: whereClauseDef[] = Array.from(
+	const whereClauseDefs: WhereClauseDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'WhereClauseDef')
-	).flatMap((wcd) => {
+	).map((wcd) => {
 		const OID = wcd.getAttribute('OID') || null;
-		return Array.from(wcd.querySelectorAll('RangeCheck')).map((rc) => ({
-			OID,
+		const CommentOID = wcd.getAttribute('def:CommentOID') || null;
+
+		// Get all RangeCheck elements for this WhereClauseDef
+		const RangeChecks = Array.from(wcd.querySelectorAll('RangeCheck')).map((rc) => ({
 			Comparator: rc.getAttribute('Comparator') || null,
 			SoftHard: rc.getAttribute('SoftHard') || null,
 			ItemOID: rc.getAttribute('def:ItemOID') || null,
 			CheckValues: getTextContent(rc, 'CheckValue')
 		}));
+
+		return {
+			OID,
+			CommentOID,
+			RangeChecks
+		};
 	});
 
-	const valueListDefs: valueListDef[] = Array.from(
+	const valueListDefs: ValueListDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'ValueListDef')
 	).map((vld) => {
 		// Get the basic ValueListDef attributes
@@ -292,7 +295,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		return valueListDef;
 	});
 
-	const Documents: Document[] = Array.from(metaDataVersion.children)
+	const Documents: DocumentRef[] = Array.from(metaDataVersion.children)
 		.filter((child) => child.nodeName === 'def:leaf')
 		.map((leaf) => ({
 			ID: leaf.getAttribute('ID') || null,

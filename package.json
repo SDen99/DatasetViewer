@@ -15,7 +15,8 @@
 		"coverage": "vitest run --coverage",
 		"analyze": "depcruise --include-only '^src' --output-type dot src | dot -T svg > dependency-graph.svg",
 		"docs:core": "typedoc src/lib/core/**/*.ts --exclude **/*.svelte",
-		"docs:all": "typedoc"
+		"docs:all": "typedoc",
+		"find-types": "NODE_ENV=development node --loader ts-node/esm src/scripts/find-types.ts"
 	},
 	"devDependencies": {
 		"@melt-ui/svelte": "^0.86.2",
@@ -46,6 +47,7 @@
 		"tailwind-variants": "^0.3.0",
 		"tailwindcss": "^3.4.9",
 		"tailwindcss-animate": "^1.0.7",
+		"ts-node": "^10.9.2",
 		"typedoc": "^0.27.6",
 		"typedoc-plugin-markdown": "^4.4.1",
 		"typescript": "^5.5.0",

@@ -1,5 +1,13 @@
-import type { ParsedDefineXML, method, itemDef, whereClauseDef, valueListDef } from './types';
+// src/lib/core/processors/defineXML/VLMProcessingLogic.ts
+
+import type { WhereClauseDef, ItemDef } from '$lib/types/define-xml/variables';
+import type { Method } from '$lib/types/define-xml/methods';
+import type { ValueListDef } from '$lib/types/define-xml/valuelists';
+import type { DefineXML } from '$lib/types/define-xml/documents';
+
+// Rest of imports remain the same
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
+import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 
 export interface CodeListInfo {
 	ordinal: number;
@@ -109,25 +117,38 @@ function findValueListDefs(define: ParsedDefineXML, datasetName: string): valueL
 		return false;
 	});
 }
-
 function processWhereClause(
 	whereClauseOID: string,
-	whereClauseDefs: whereClauseDef[],
+	whereClauseDefs: WhereClauseDef[],
 	paramcdToParamMap: Map<string, string>,
 	datasetName: string
 ): string[] {
-	//console.log('\nProcessing WhereClause:', whereClauseOID);
-
 	const normalizedDatasetName = normalizeDatasetId(datasetName);
 	const pattern = new RegExp(`WC\\.${normalizedDatasetName}\\.PARAMCD\\.(EQ|IN)\\.(.+)$`);
 	const match = whereClauseOID.match(pattern);
 
-	if (!match) {
-		//	console.log('No match found for WhereClause pattern');
-		return [];
-	}
+	if (!match) return [];
 
 	const [, comparator, paramList] = match;
+
+	// Find the matching WhereClauseDef
+	const whereClause = whereClauseDefs.find((def) => def.OID === whereClauseOID);
+
+	// Add debugging to see what we're getting
+	console.log('WhereClause found:', whereClause);
+
+	// If we don't find a matching clause or it doesn't have the expected properties,
+	// just return the paramList directly
+	if (!whereClause) {
+		console.log('No WhereClause found for OID:', whereClauseOID);
+		return comparator === 'EQ' ? [paramList] : [];
+	}
+
+	// Access the RangeCheck fields directly since they're not in an array anymore
+	if (whereClause.Comparator !== comparator) {
+		console.log('Comparator mismatch:', whereClause.Comparator, 'vs', comparator);
+		return [];
+	}
 
 	if (comparator === 'EQ') {
 		return [paramList];
@@ -151,79 +172,8 @@ function processWhereClause(
 			remaining = remaining.slice(longestMatch.length);
 		}
 
-		//console.log('Extracted PARAMCDs:', params);
 		return params;
 	}
-}
-
-function processValueListDefs(
-	valueListDef: valueListDef,
-	define: ParsedDefineXML,
-	paramcdToParamMap: Map<string, string>,
-	datasetName: string
-): VLMItemRef[] {
-	/*console.log(
-		`\nProcessing ValueListDef ${valueListDef.OID} with ${valueListDef.ItemRefs?.length || 0} ItemRefs`
-	); */
-	const itemRefs: VLMItemRef[] = [];
-
-	if (!valueListDef.ItemRefs) {
-		//	console.log('No ItemRefs found in ValueListDef');
-		return itemRefs;
-	}
-
-	valueListDef.ItemRefs.forEach((itemRef, index) => {
-		/*	console.log(`\nProcessing ItemRef ${index + 1}:`, {
-			ItemOID: itemRef.ItemOID,
-			WhereClauseOID: itemRef.WhereClauseOID,
-			Mandatory: itemRef.Mandatory,
-			MethodOID: itemRef.MethodOID
-		}); */
-
-		if (!itemRef.WhereClauseOID) {
-			console.log('No WhereClauseOID found for ItemRef');
-			return;
-		}
-
-		const paramcds = processWhereClause(
-			itemRef.WhereClauseOID,
-			define.whereClauseDefs,
-			paramcdToParamMap,
-			datasetName
-		);
-
-		//console.log('Found PARAMCDs for ItemRef:', paramcds);
-
-		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
-
-		if (!itemDef) {
-			//	console.log('No ItemDef found for:', itemRef.ItemOID);
-			return;
-		}
-
-		paramcds.forEach((paramcd) => {
-			itemRefs.push({
-				paramcd,
-				paramInfo: {
-					ordinal: parseInt(itemRef.OrderNumber || '0', 10),
-					codedValue: paramcd,
-					decode: paramcdToParamMap.get(paramcd) || '',
-					isExternal: false
-				},
-				method: itemRef.MethodOID ? processMethod(itemRef.MethodOID, define.methods) : undefined,
-				origin: processOriginInfo(itemDef),
-				itemDescription: itemDef.Description,
-				mandatory: itemRef.Mandatory === 'Yes',
-				orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
-				sources: {}
-			});
-		});
-	});
-	/*
-	console.log(
-		`Completed processing ValueListDef ${valueListDef.OID}, created ${itemRefs.length} itemRefs`
-	);
-*/ return itemRefs;
 }
 
 function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
@@ -249,6 +199,60 @@ function processMethod(methodOID: string, methods: method[]): MethodInfo | undef
 	};
 }
 
+function processValueListDefs(
+	valueListDef: valueListDef,
+	define: ParsedDefineXML,
+	paramcdToParamMap: Map<string, string>,
+	datasetName: string
+): VLMItemRef[] {
+	const itemRefs: VLMItemRef[] = [];
+
+	if (!valueListDef.ItemRefs) {
+		return itemRefs;
+	}
+
+	valueListDef.ItemRefs.forEach((itemRef) => {
+		if (!itemRef.WhereClauseOID) {
+			return;
+		}
+
+		const paramcds = processWhereClause(
+			itemRef.WhereClauseOID,
+			define.whereClauseDefs,
+			paramcdToParamMap,
+			datasetName
+		);
+
+		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
+
+		if (!itemDef) {
+			return;
+		}
+
+		paramcds.forEach((paramcd) => {
+			itemRefs.push({
+				paramcd,
+				paramInfo: {
+					ordinal: parseInt(itemRef.OrderNumber || '0', 10),
+					codedValue: paramcd,
+					decode: paramcdToParamMap.get(paramcd) || '',
+					isExternal: false
+				},
+				method: itemRef.MethodOID
+					? methodUtils.processMethod(itemRef.MethodOID, define.methods)
+					: undefined,
+				origin: processOriginInfo(itemDef),
+				itemDescription: itemDef.Description,
+				mandatory: itemRef.Mandatory === 'Yes',
+				orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
+				sources: {}
+			});
+		});
+	});
+
+	return itemRefs;
+}
+
 export function processValueLevelMetadata(
 	define: ParsedDefineXML,
 	datasetName: string
@@ -259,16 +263,7 @@ export function processValueLevelMetadata(
 	};
 
 	const paramcdToParamMap = buildParamcdMapping(define, datasetName);
-	//console.log('PARAMCD to PARAM mappings:', Array.from(paramcdToParamMap.entries()));
-
 	const valueListDefs = findValueListDefs(define, datasetName);
-	/*	console.log(
-		'Found ValueListDefs with ItemRefs:',
-		valueListDefs.map((def) => ({
-			OID: def.OID,
-			ItemRefCount: def.ItemRefs?.length || 0
-		}))
-	);*/
 
 	valueListDefs.forEach((valueListDef) => {
 		if (!valueListDef.OID) return;
@@ -292,15 +287,5 @@ export function processValueLevelMetadata(
 		vlmVariable.valueListDef.itemRefs.push(...itemRefs);
 	});
 
-	/*	console.log('Processing complete:', {
-		variables: Array.from(result.variables.entries()).map(([name, variable]) => ({
-			variable: name,
-			itemRefs: variable.valueListDef.itemRefs.map((ref) => ({
-				paramcd: ref.paramcd,
-				decode: ref.paramInfo?.decode
-			}))
-		}))
-	});
-*/
 	return result;
 }
