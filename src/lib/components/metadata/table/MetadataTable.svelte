@@ -1,11 +1,5 @@
 <script lang="ts">
-	import type {
-		ParsedDefineXML,
-		method,
-		comment,
-		CodeList,
-		itemRef
-	} from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML, Method, Comment, CodeList, ItemRef } from '$lib/types/define-xml';
 	import {
 		Table,
 		TableBody,
@@ -30,14 +24,14 @@
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
 		define: ParsedDefineXML;
 		datasetName: string;
-		filteredVariables: itemRef[];
-		methods: method[];
-		comments: comment[];
+		filteredVariables: ItemRef[];
+		methods: Method[];
+		comments: Comment[];
 		codeLists: CodeList[];
 	}>();
 
 	// Handle variable expansion
-	function handleExpandToggle(variable: itemRef) {
+	function handleExpandToggle(variable: ItemRef) {
 		if (variable.MethodOID) {
 			toggleMethodExpansion(variable, datasetName);
 		}
@@ -47,7 +41,7 @@
 	}
 
 	// Helper for checking expansion state for chevron
-	function isExpanded(variable: itemRef): boolean {
+	function isExpanded(variable: ItemRef): boolean {
 		return isAnyExpansionActive(variable, datasetName);
 	}
 </script>
@@ -142,14 +136,14 @@
 								>
 									<div class="h-4 w-4 shrink-0">
 										{#if isExpanded(variable)}
-											<ChevronDown />
+											<span class="inline-block rotate-90">›</span>
 										{:else}
-											<ChevronRight />
+											<span class="inline-block">›</span>
 										{/if}
 									</div>
 									<div class="truncate font-mono text-xs">
 										{#if variable.MethodOID}
-											{methods.find((m) => m.OID === variable.MethodOID)?.Name ||
+											{methods.find((m: Method) => m.OID === variable.MethodOID)?.Name ||
 												variable.MethodOID}
 										{:else if variable.itemDef?.Origin}
 											{variable.itemDef.Origin}
@@ -190,13 +184,14 @@
 								{#if variable.MethodOID && isMethodExpanded(variable, datasetName)}
 									<div class="space-y-2">
 										<pre class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">
-											{methods.find((m) => m.OID === variable.MethodOID)?.Description || 'No description available'}
+											{methods.find((m: Method) => m.OID === variable.MethodOID)?.Description ||
+												'No description available'}
 										</pre>
 
 										{#if variable.itemDef?.Comment}
 											<div class="mt-2 text-sm text-muted-foreground">
-												{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
-													'No comment description available'}
+												{comments.find((c: Comment) => c.OID === variable.itemDef?.Comment)
+													?.Description || 'No comment description available'}
 											</div>
 										{/if}
 									</div>
@@ -220,7 +215,8 @@
 																{#if item.Aliases?.length}
 																	<div class="mt-1 text-xs text-muted-foreground">
 																		Aliases: {item.Aliases.map(
-																			(a) => `${a.Name} (${a.Context})`
+																			(a: { Name: string; Context: string }) =>
+																				`${a.Name} (${a.Context})`
 																		).join(', ')}
 																	</div>
 																{/if}
@@ -240,7 +236,8 @@
 																	class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
 																>
 																	Aliases: {item.Aliases.map(
-																		(a) => `${a.Name} (${a.Context})`
+																		(a: { Name: string; Context: string }) =>
+																			`${a.Name} (${a.Context})`
 																	).join(', ')}
 																</div>
 															{/if}
@@ -251,9 +248,9 @@
 
 											{#if codeList.Aliases?.length}
 												<div class="text-xs text-muted-foreground">
-													Aliases: {codeList.Aliases.map((a) => `${a.Name} (${a.Context})`).join(
-														', '
-													)}
+													Aliases: {codeList.Aliases.map(
+														(a: { Name: string; Context: string }) => `${a.Name} (${a.Context})`
+													).join(', ')}
 												</div>
 											{/if}
 										</div>

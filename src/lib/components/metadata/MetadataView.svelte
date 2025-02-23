@@ -33,7 +33,7 @@
 		if (!define) return null;
 
 		const normalizedName = normalizeDatasetId(datasetName);
-		return define.itemGroups?.find(
+		return define.ItemGroups?.find(
 			(g: { Name: string }) => normalizeDatasetId(g.Name) === normalizedName
 		);
 	});
@@ -43,7 +43,7 @@
 
 		const normalizedDatasetName = normalizeDatasetId(datasetName);
 
-		const datasetRefs = define.itemRefs.filter((ref) => {
+		const datasetRefs = define.ItemRefs.filter((ref) => {
 			let refDataset;
 			if (sdtmDefine) {
 				refDataset = ref.OID?.split('.')[0] || '';
@@ -53,7 +53,7 @@
 			return normalizeDatasetId(refDataset) === normalizedDatasetName;
 		});
 
-		const itemDefsMap = new Map(define.itemDefs.map((def) => [def.OID, def]));
+		const itemDefsMap = new Map(define.ItemDefs.map((def) => [def.OID, def]));
 		const vlmVars = new Set(
 			define.valueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
 		);
@@ -80,8 +80,8 @@
 		if (!searchLower) return baseVars;
 
 		return baseVars.filter((variable) => {
-			const name = variable.itemDef?.Name?.toLowerCase() || '';
-			const description = variable.itemDef?.Description?.toLowerCase() || '';
+			const name = variable.ItemDef?.Name?.toLowerCase() || '';
+			const description = variable.ItemDef?.Description?.toLowerCase() || '';
 			return name.includes(searchLower) || description.includes(searchLower);
 		});
 	}

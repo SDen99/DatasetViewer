@@ -47,15 +47,15 @@ export class DefineXMLProcessor implements FileProcessor {
 			}
 
 			uiStore.setDefineXMLType(
-				defineData.metaData.OID?.includes('SDTM') || false,
-				defineData.metaData.OID?.includes('ADaM') || false
+				defineData.MetaData.OID?.includes('SDTM') || false,
+				defineData.MetaData.OID?.includes('ADaM') || false
 			);
 
 			return {
 				data: defineData,
 				success: true,
-				ADaM: defineData.metaData.OID?.includes('ADaM') || false,
-				SDTM: defineData.metaData.OID?.includes('SDTM') || false
+				ADaM: defineData.MetaData.OID?.includes('ADaM') || false,
+				SDTM: defineData.MetaData.OID?.includes('SDTM') || false
 			};
 		} catch (error) {
 			if (onProgress) {

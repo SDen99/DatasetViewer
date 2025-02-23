@@ -1,5 +1,5 @@
 // src/lib/core/processors/defineXML/VLMProcessingLogic.ts
-import type { WhereClauseDef, ItemDef, RangeCheck } from '$lib/types/define-xml';
+import type { WhereClauseDef, RangeCheck } from '$lib/types/define-xml';
 import type { MethodInfo } from '$lib/types/define-xml/methods';
 import type { ValueListDef } from '$lib/types/define-xml/valuelists';
 import type { ParsedDefineXML } from '$lib/types/define-xml';
@@ -71,7 +71,7 @@ function buildParamcdMapping(define: ParsedDefineXML, datasetName: string): Map<
 	const paramcdToParamMap = new Map<string, string>();
 	const normalizedDatasetName = normalizeDatasetId(datasetName);
 
-	const paramcdItemDef = define.itemDefs.find((def) => {
+	const paramcdItemDef = define.ItemDefs.find((def) => {
 		const parts = def.OID?.split('.');
 		return (
 			parts?.[0] === 'IT' &&
@@ -94,10 +94,10 @@ function buildParamcdMapping(define: ParsedDefineXML, datasetName: string): Map<
 	return paramcdToParamMap;
 }
 
-function findValueListDefs(define: ParsedDefineXML, datasetName: string): valueListDef[] {
+function findValueListDefs(define: ParsedDefineXML, datasetName: string): ValueListDef[] {
 	const normalizedDatasetName = normalizeDatasetId(datasetName);
 	const uniqueOIDs = new Set();
-	return define.valueListDefs.filter((def) => {
+	return define.ValueListDefs.filter((def) => {
 		const parts = def.OID?.split('.') || [];
 		if (parts[0] === 'VL' && normalizeDatasetId(parts[1] || '') === normalizedDatasetName) {
 			if (!uniqueOIDs.has(def.OID)) {
@@ -217,7 +217,7 @@ function processValueListDefs(
 
 		const whereClauseResult = processWhereClause(
 			itemRef.WhereClauseOID,
-			define.whereClauseDefs,
+			define.WhereClauseDefs,
 			datasetName
 		);
 
@@ -226,7 +226,7 @@ function processValueListDefs(
 			return;
 		}
 
-		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
+		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.ItemOID);
 		if (!itemDef) {
 			console.warn(`ItemDef not found for ItemOID: ${itemRef.ItemOID}`);
 			return;
@@ -252,7 +252,7 @@ function processValueListDefs(
 					}
 				},
 				method: itemRef.MethodOID
-					? methodUtils.processMethod(itemRef.MethodOID, define.methods)
+					? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
 					: undefined,
 				origin: processOriginInfo(itemDef),
 				itemDescription: itemDef.Description,

@@ -185,16 +185,16 @@ export class DatasetStore {
 			if (
 				dataset.data &&
 				typeof dataset.data === 'object' &&
-				'metaData' in dataset.data &&
-				'itemGroups' in dataset.data
+				'MetaData' in dataset.data &&
+				'ItemGroups' in dataset.data
 			) {
 				defineXmlFiles[fileName] = dataset.data as unknown as ParsedDefineXML;
 			}
 		}
 
 		return {
-			SDTM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('SDTM')) ?? null,
-			ADaM: Object.values(defineXmlFiles).find((d) => d.metaData.OID?.includes('ADaM')) ?? null
+			SDTM: Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('SDTM')) ?? null,
+			ADaM: Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('ADaM')) ?? null
 		};
 	});
 
@@ -266,10 +266,10 @@ export class DatasetStore {
 
 		// Check metadata existence
 		const hasMetadata = Boolean(
-			this.defineXmlDatasets.SDTM?.itemGroups?.find(
+			this.defineXmlDatasets.SDTM?.ItemGroups?.find(
 				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
 			) ||
-				this.defineXmlDatasets.ADaM?.itemGroups?.find(
+				this.defineXmlDatasets.ADaM?.ItemGroups?.find(
 					(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
 				)
 		);
@@ -299,7 +299,7 @@ export class DatasetStore {
 		Object.entries(this.datasets).forEach(([name, dataset]) => {
 			// Check if it's not a Define.xml file
 			const isDefineXml =
-				dataset.data && typeof dataset.data === 'object' && 'metaData' in dataset.data;
+				dataset.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data;
 
 			if (!isDefineXml) {
 				datasetSet.add(normalizeDatasetId(name));
@@ -312,12 +312,12 @@ export class DatasetStore {
 		);
 
 		// Add from Define.xml metadata
-		SDTM?.itemGroups?.forEach((group) => {
+		SDTM?.ItemGroups?.forEach((group) => {
 			const name = group.SASDatasetName || group.Name || '';
 			if (name) datasetSet.add(normalizeDatasetId(name));
 		});
 
-		ADaM?.itemGroups?.forEach((group) => {
+		ADaM?.ItemGroups?.forEach((group) => {
 			const name = group.SASDatasetName || group.Name || '';
 			if (name) datasetSet.add(normalizeDatasetId(name));
 		});
