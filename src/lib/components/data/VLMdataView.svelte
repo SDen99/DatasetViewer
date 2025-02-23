@@ -4,20 +4,22 @@
 	import { formatCellContent } from './cellFormatting';
 	import ExpandableCell from './ExpandableCell.svelte';
 	import { Alert, AlertDescription } from '$lib/components/core/alert';
-	import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML } from '$lib/types/define-xml/types';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
-	import { processValueLevelMetadata } from '$lib/core/processors/defineXML/VLMProcessingLogic';
+	import { createVLMProcessor } from './VLMProcessor.svelte';
 	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
-	let { sdtmDefine, adamDefine, datasetName } = $props<{
+	const props = $props<{
 		sdtmDefine: ParsedDefineXML | null;
 		adamDefine: ParsedDefineXML | null;
 		datasetName: string;
 	}>();
 
+	const processor = createVLMProcessor();
+	let processingError = $state<string | null>(null);
+
 	let activeDefine = $state<ParsedDefineXML | null>(null);
 	let cleanDatasetName = $state('');
-	let processingError = $state<string | null>(null);
 	let displayData = $state<{
 		hasData: boolean;
 		columns?: string[];
@@ -26,35 +28,36 @@
 
 	let draggedColumn = $state<string | null>(null);
 	let dragOverColumn = $state<string | null>(null);
+	let columnWidths = $state({});
 
-	let columnWidths = $derived(() => {
-		return cleanDatasetName ? vlmStore.getColumnWidths(cleanDatasetName) : {};
-	});
-	// Effect to set active define
+	// Effect to handle define changes and processing
 	$effect(() => {
-		activeDefine = sdtmDefine || adamDefine;
-		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
-	});
-	$effect(() => {
-		if (displayData.hasData && displayData.columns && cleanDatasetName) {
-			vlmStore.initialize(cleanDatasetName, displayData.columns);
+		activeDefine = props.sdtmDefine || props.adamDefine;
+		cleanDatasetName = props.datasetName ? normalizeDatasetId(props.datasetName) : '';
+
+		if (activeDefine && cleanDatasetName) {
+			processor.process(activeDefine, cleanDatasetName);
 		}
 	});
-	// Effect to process data
+
+	// Process VLM data into display format
 	$effect(() => {
-		if (!activeDefine || !cleanDatasetName) {
+		const vlmData = processor.vlmData();
+		const processingStatus = processor.status(); // Changed from processing to status
+
+		if (processingStatus === 'error') {
+			// Changed from processingStatus.status
+			processingError = processor.error() || 'Unknown error occurred';
+			displayData = { hasData: false };
+			return;
+		}
+
+		if (!vlmData?.variables || vlmData.variables.size === 0) {
 			displayData = { hasData: false };
 			return;
 		}
 
 		try {
-			const vlmData = processValueLevelMetadata(activeDefine, cleanDatasetName);
-
-			if (!vlmData?.variables || vlmData.variables.size === 0) {
-				displayData = { hasData: false };
-				return;
-			}
-
 			const columns = new Set(['PARAMCD', 'PARAM']);
 			const rows = new Map<string, any>();
 
@@ -103,39 +106,18 @@
 				columns: Array.from(columns),
 				rows: sortedRows
 			};
+
+			processingError = null;
 		} catch (error) {
 			console.error('VLM View - Error:', error);
 			processingError = error instanceof Error ? error.message : 'Unknown error';
 			displayData = { hasData: false };
 		}
 	});
-	$effect(() => {
-		console.log('Dataset changed:', cleanDatasetName);
-		console.log('Current column widths:', columnWidths);
-		console.log('DisplayData:', displayData);
-	});
-
-	$effect(() => {
-		console.log('Dataset changed:', cleanDatasetName);
-		console.log('Current column widths:', columnWidths);
-		console.log('DisplayData:', displayData);
-	});
 
 	function handleResize(column: string, width: number) {
-		console.log('Resize:', {
-			column,
-			width,
-			cleanDatasetName,
-			beforeWidths: vlmStore.getColumnWidths(cleanDatasetName)
-		});
-
 		if (cleanDatasetName) {
 			vlmStore.updateColumnWidth(cleanDatasetName, column, width);
-			console.log('After resize:', {
-				column,
-				width,
-				afterWidths: vlmStore.getColumnWidths(cleanDatasetName)
-			});
 		}
 	}
 
@@ -192,7 +174,6 @@
 				Error processing value level metadata: {processingError}
 			</AlertDescription>
 		</Alert>
-		Untitled
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
 		<div class="rounded-lg border bg-card">
 			<div class="h-[calc(100vh-14rem)] w-full">
@@ -203,7 +184,7 @@
 								{#each displayData.columns as column}
 									<th
 										class="group/header relative whitespace-nowrap border bg-card p-2 text-left font-semibold
-								   {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+										   {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
 										style="width: {vlmStore.getColumnWidths(cleanDatasetName)[column] || 150}px"
 										draggable={true}
 										ondragstart={(e) => handleDragStart(e, column)}

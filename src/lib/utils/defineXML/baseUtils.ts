@@ -10,7 +10,7 @@ export const baseUtils = {
 		OID: oid,
 		Name: null,
 		Description: null,
-		protocolName: null
+		ProtocolName: null
 	}),
 
 	/**
@@ -20,6 +20,6 @@ export const baseUtils = {
 		OID: oid,
 		Name: null,
 		Description: null,
-		defineVersion: null
+		DefineVersion: null
 	})
 };

@@ -7,6 +7,7 @@ import type { CodeList } from '$lib/types/define-xml/codelists';
 import type { Dictionary } from '$lib/types/define-xml/dictionaries';
 import type { ValueListDef } from '$lib/types/define-xml/valuelists'; //Check
 import type { AnalysisResult } from '$lib/types/define-xml/analysis';
+import type { WhereClauseDef, RangeCheck, ComparatorType } from '$lib/types/define-xml/whereClause';
 
 import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
 
@@ -56,6 +57,10 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	);
 	if (!namespaceURI) {
 		throw new Error("Required namespace 'def' not found in XML");
+	}
+
+	function isValidComparator(value: string): value is ComparatorType {
+		return ['EQ', 'NE', 'LT', 'LE', 'GT', 'GE', 'IN', 'NOTIN'].includes(value);
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -242,17 +247,54 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 
 	const whereClauseDefs: WhereClauseDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'WhereClauseDef')
-	).map((wcd) => {
-		const OID = wcd.getAttribute('OID') || null;
-		const CommentOID = wcd.getAttribute('def:CommentOID') || null;
+	).map((wcd): WhereClauseDef => {
+		const OID = wcd.getAttribute('OID');
+		if (!OID) {
+			throw new Error('WhereClauseDef must have an OID');
+		}
 
-		// Get all RangeCheck elements for this WhereClauseDef
-		const RangeChecks = Array.from(wcd.querySelectorAll('RangeCheck')).map((rc) => ({
-			Comparator: rc.getAttribute('Comparator') || null,
-			SoftHard: rc.getAttribute('SoftHard') || null,
-			ItemOID: rc.getAttribute('def:ItemOID') || null,
-			CheckValues: getTextContent(rc, 'CheckValue')
-		}));
+		const CommentOID = wcd.getAttribute('def:CommentOID') || null;
+		const rangeChecks = Array.from(wcd.querySelectorAll('RangeCheck'));
+
+		if (rangeChecks.length === 0) {
+			throw new Error(`WhereClauseDef ${OID} must have at least one RangeCheck element`);
+		}
+
+		const RangeChecks = rangeChecks.map((rc): RangeCheck => {
+			const Comparator = rc.getAttribute('Comparator');
+			const SoftHard = rc.getAttribute('SoftHard');
+			const ItemOID = rc.getAttribute('def:ItemOID');
+
+			if (!Comparator || !ItemOID) {
+				throw new Error(`Invalid RangeCheck in WhereClauseDef ${OID}: missing required attributes`);
+			}
+
+			// Validate Comparator is one of the allowed values
+			if (!isValidComparator(Comparator)) {
+				throw new Error(`Invalid Comparator "${Comparator}" in WhereClauseDef ${OID}`);
+			}
+
+			if (!SoftHard || !['Soft', 'Hard'].includes(SoftHard)) {
+				throw new Error(`Invalid or missing SoftHard value in WhereClauseDef ${OID}`);
+			}
+
+			// Get all CheckValue elements and their contents
+			const checkValueElements = Array.from(rc.getElementsByTagNameNS(namespaceURI, 'CheckValue'));
+			if (checkValueElements.length === 0) {
+				throw new Error(`RangeCheck in WhereClauseDef ${OID} must have at least one CheckValue`);
+			}
+
+			const CheckValues = checkValueElements
+				.map((element) => element.textContent?.trim())
+				.filter((value): value is string => value !== null && value !== undefined && value !== '');
+
+			return {
+				Comparator: Comparator as ComparatorType,
+				SoftHard: SoftHard as 'Soft' | 'Hard',
+				ItemOID,
+				CheckValues
+			};
+		});
 
 		return {
 			OID,

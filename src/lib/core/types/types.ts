@@ -71,19 +71,6 @@ export interface PersistedState {
 	sort: SortConfig[];
 }
 
-export interface UIState {
-	selectedDataset: string | null;
-	columnStates: Record<
-		string,
-		{
-			selectedColumns: string[];
-			columnOrder: string[];
-			columnWidths: Record<string, number>;
-			sort: SortConfig[];
-		}
-	>;
-}
-
 import type { WorkerPool } from '../../../workerPool';
 import type { DatasetService } from '../services/datasetService';
 import type { UIStateService } from '../services/UIStateService';

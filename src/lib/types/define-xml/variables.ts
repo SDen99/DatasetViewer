@@ -27,29 +27,11 @@ export interface ItemDef {
 	DeveloperNotes: string | null;
 }
 
-/**
- * Represents where clause criteria
- * Maps to def:WhereClauseDef elements
- */
-/**
- * Represents a range check within a where clause
- */
-export interface RangeCheck {
-	Comparator: string | null;
-	SoftHard: string | null;
-	ItemOID: string | null;
-	CheckValues: string | null;
-}
-
-/**
- * Represents a where clause definition in Define-XML
- * Maps to def:WhereClauseDef elements
- */
-
-export interface WhereClauseDef {
+export interface ItemRef {
 	OID: string | null;
-	Comparator: string | null;
-	SoftHard: string | null;
-	ItemOID: string | null;
-	CheckValues: string | null;
+	Mandatory: string | null;
+	OrderNumber: string | null;
+	MethodOID: string | null;
+	WhereClauseOID: string | null;
+	KeySequence: string | null;
 }

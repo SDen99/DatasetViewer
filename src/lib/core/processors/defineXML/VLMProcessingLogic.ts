@@ -1,11 +1,8 @@
 // src/lib/core/processors/defineXML/VLMProcessingLogic.ts
-
-import type { WhereClauseDef, ItemDef } from '$lib/types/define-xml/variables';
-import type { Method } from '$lib/types/define-xml/methods';
+import type { WhereClauseDef, ItemDef, RangeCheck } from '$lib/types/define-xml/variables';
+import type { MethodInfo } from '$lib/types/define-xml/methods';
 import type { ValueListDef } from '$lib/types/define-xml/valuelists';
-import type { DefineXML } from '$lib/types/define-xml/documents';
-
-// Rest of imports remain the same
+import type { ParsedDefineXML } from '$lib/types/define-xml/types';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 
@@ -27,25 +24,10 @@ export interface OriginInfo {
 	translatedText?: string | null;
 }
 
-export interface MethodInfo {
-	type: string | null;
-	description: string | null;
-	document?: string;
-	translatedText?: string | null;
-}
-
 export interface VLMItemRef {
 	paramcd: string;
 	paramInfo?: CodeListInfo;
-	whereClause?: {
-		comparator: string;
-		checkValues: string[];
-		itemOID?: string;
-		source?: {
-			domain: string;
-			variable: string;
-		};
-	};
+	whereClause?: VLMWhereClause;
 	method?: MethodInfo;
 	origin?: OriginInfo;
 	itemDescription?: string | null;
@@ -74,6 +56,15 @@ export interface VLMVariable {
 export interface ProcessedVLM {
 	dataset: string;
 	variables: Map<string, VLMVariable>;
+}
+
+interface WhereClauseResult {
+	paramcd: string[];
+	conditions: {
+		variable: string;
+		comparator: RangeCheck['Comparator'];
+		values: string[];
+	}[];
 }
 
 function buildParamcdMapping(define: ParsedDefineXML, datasetName: string): Map<string, string> {
@@ -117,63 +108,71 @@ function findValueListDefs(define: ParsedDefineXML, datasetName: string): valueL
 		return false;
 	});
 }
+
 function processWhereClause(
 	whereClauseOID: string,
 	whereClauseDefs: WhereClauseDef[],
-	paramcdToParamMap: Map<string, string>,
 	datasetName: string
-): string[] {
-	const normalizedDatasetName = normalizeDatasetId(datasetName);
-	const pattern = new RegExp(`WC\\.${normalizedDatasetName}\\.PARAMCD\\.(EQ|IN)\\.(.+)$`);
-	const match = whereClauseOID.match(pattern);
-
-	if (!match) return [];
-
-	const [, comparator, paramList] = match;
-
+): WhereClauseResult | null {
 	// Find the matching WhereClauseDef
 	const whereClause = whereClauseDefs.find((def) => def.OID === whereClauseOID);
-
-	// Add debugging to see what we're getting
-	console.log('WhereClause found:', whereClause);
-
-	// If we don't find a matching clause or it doesn't have the expected properties,
-	// just return the paramList directly
 	if (!whereClause) {
-		console.log('No WhereClause found for OID:', whereClauseOID);
-		return comparator === 'EQ' ? [paramList] : [];
+		console.warn(`No WhereClauseDef found for OID: ${whereClauseOID}`);
+		return null;
 	}
 
-	// Access the RangeCheck fields directly since they're not in an array anymore
-	if (whereClause.Comparator !== comparator) {
-		console.log('Comparator mismatch:', whereClause.Comparator, 'vs', comparator);
-		return [];
-	}
+	// Initialize result
+	const result: WhereClauseResult = {
+		paramcd: [],
+		conditions: []
+	};
 
-	if (comparator === 'EQ') {
-		return [paramList];
-	} else {
-		const params: string[] = [];
-		let remaining = paramList;
-		const validParamcds = Array.from(paramcdToParamMap.keys());
-
-		while (remaining.length > 0) {
-			let found = false;
-			let longestMatch = '';
-			for (const paramcd of validParamcds) {
-				if (remaining.startsWith(paramcd) && paramcd.length > longestMatch.length) {
-					longestMatch = paramcd;
-					found = true;
-				}
-			}
-			if (!found) break;
-
-			params.push(longestMatch);
-			remaining = remaining.slice(longestMatch.length);
+	// Process all RangeChecks (these are combined with AND logic per spec)
+	whereClause.RangeChecks.forEach((check) => {
+		// Extract dataset and variable from ItemOID (format: IT.{dataset}.{variable})
+		const itemParts = check.ItemOID.split('.');
+		if (itemParts.length !== 3) {
+			console.warn(`Invalid ItemOID format in WhereClauseDef ${whereClauseOID}: ${check.ItemOID}`);
+			return;
 		}
 
-		return params;
+		const [prefix, checkDataset, variable] = itemParts;
+
+		// Validate this RangeCheck belongs to our dataset
+		if (normalizeDatasetId(checkDataset) !== normalizeDatasetId(datasetName)) {
+			console.warn(
+				`Dataset mismatch in WhereClauseDef ${whereClauseOID}: expected ${datasetName}, got ${checkDataset}`
+			);
+			return;
+		}
+
+		// Build condition
+		const condition = {
+			variable,
+			comparator: check.Comparator,
+			values: check.CheckValues
+		};
+
+		// If this is a PARAMCD condition, add to paramcd array
+		if (variable === 'PARAMCD') {
+			if (check.Comparator === 'EQ') {
+				result.paramcd.push(...check.CheckValues);
+			} else if (check.Comparator === 'IN') {
+				result.paramcd.push(...check.CheckValues);
+			}
+			// Note: We ignore NE and NOTIN for PARAMCD as they're typically not used for direct mapping
+		}
+
+		result.conditions.push(condition);
+	});
+
+	// If we didn't find any valid conditions, return null
+	if (result.conditions.length === 0) {
+		console.warn(`No valid conditions found in WhereClauseDef ${whereClauseOID}`);
+		return null;
 	}
+
+	return result;
 }
 
 function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
@@ -192,15 +191,15 @@ function processMethod(methodOID: string, methods: method[]): MethodInfo | undef
 	if (!method) return undefined;
 
 	return {
-		type: method.Type || null,
-		description: method.Description || null,
-		document: method.Document,
-		translatedText: method.TranslatedText || null
+		Type: method.Type || null,
+		Description: method.Description || null,
+		Document: method.Document,
+		TranslatedText: method.TranslatedText || null
 	};
 }
 
 function processValueListDefs(
-	valueListDef: valueListDef,
+	valueListDef: ValueListDef,
 	define: ParsedDefineXML,
 	paramcdToParamMap: Map<string, string>,
 	datasetName: string
@@ -216,27 +215,41 @@ function processValueListDefs(
 			return;
 		}
 
-		const paramcds = processWhereClause(
+		const whereClauseResult = processWhereClause(
 			itemRef.WhereClauseOID,
 			define.whereClauseDefs,
-			paramcdToParamMap,
 			datasetName
 		);
 
-		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
-
-		if (!itemDef) {
+		if (!whereClauseResult || whereClauseResult.paramcd.length === 0) {
+			console.warn(`No PARAMCD found for WhereClauseOID: ${itemRef.WhereClauseOID}`);
 			return;
 		}
 
-		paramcds.forEach((paramcd) => {
-			itemRefs.push({
+		const itemDef = define.itemDefs.find((def) => def.OID === itemRef.ItemOID);
+		if (!itemDef) {
+			console.warn(`ItemDef not found for ItemOID: ${itemRef.ItemOID}`);
+			return;
+		}
+
+		// Create an ItemRef for each PARAMCD value
+		whereClauseResult.paramcd.forEach((paramcd) => {
+			const vlmItemRef: VLMItemRef = {
 				paramcd,
 				paramInfo: {
 					ordinal: parseInt(itemRef.OrderNumber || '0', 10),
 					codedValue: paramcd,
 					decode: paramcdToParamMap.get(paramcd) || '',
 					isExternal: false
+				},
+				whereClause: {
+					comparator: whereClauseResult.conditions[0].comparator,
+					checkValues: whereClauseResult.conditions[0].values,
+					itemOID: itemRef.ItemOID,
+					source: {
+						domain: datasetName,
+						variable: whereClauseResult.conditions[0].variable
+					}
 				},
 				method: itemRef.MethodOID
 					? methodUtils.processMethod(itemRef.MethodOID, define.methods)
@@ -246,7 +259,9 @@ function processValueListDefs(
 				mandatory: itemRef.Mandatory === 'Yes',
 				orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
 				sources: {}
-			});
+			};
+
+			itemRefs.push(vlmItemRef);
 		});
 	});
 
