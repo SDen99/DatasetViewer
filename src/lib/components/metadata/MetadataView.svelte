@@ -23,8 +23,8 @@
 	}>();
 
 	let define = $derived(sdtmDefine || adamDefine);
-	let methods = $derived(define?.methods || []);
-	let comments = $derived(define?.comments || []);
+	let methods = $derived(define?.Methods || []);
+	let comments = $derived(define?.Comments || []);
 	let codeLists = $derived(define?.CodeLists || []);
 	let rawState = $derived(metadataViewStore.getDatasetState(datasetName));
 	let isTableView = $derived(uiStore.uiState.metadataViewMode === 'table');
@@ -55,7 +55,7 @@
 
 		const itemDefsMap = new Map(define.ItemDefs.map((def) => [def.OID, def]));
 		const vlmVars = new Set(
-			define.valueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
+			define.ValueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
 		);
 
 		return datasetRefs

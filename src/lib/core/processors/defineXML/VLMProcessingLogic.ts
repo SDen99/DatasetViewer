@@ -1,8 +1,11 @@
 // src/lib/core/processors/defineXML/VLMProcessingLogic.ts
-import type { WhereClauseDef, RangeCheck } from '$lib/types/define-xml';
-import type { MethodInfo } from '$lib/types/define-xml/methods';
-import type { ValueListDef } from '$lib/types/define-xml/valuelists';
-import type { ParsedDefineXML } from '$lib/types/define-xml';
+import type {
+	WhereClauseDef,
+	RangeCheck,
+	MethodInfo,
+	ValueListDef,
+	ParsedDefineXML
+} from '$lib/types/define-xml';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 
@@ -47,7 +50,7 @@ export interface VLMVariable {
 	name: string;
 	valueListDef: {
 		OID: string;
-		itemRefs: VLMItemRef[];
+		ItemRefs: VLMItemRef[];
 	};
 	origin?: string;
 	codeList?: string;
@@ -175,7 +178,7 @@ function processWhereClause(
 	return result;
 }
 
-function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
+function processOriginInfo(itemDef: ItemDef): OriginInfo | undefined {
 	if (!itemDef.OriginType && !itemDef.Origin) return undefined;
 
 	return {
@@ -186,7 +189,7 @@ function processOriginInfo(itemDef: itemDef): OriginInfo | undefined {
 	};
 }
 
-function processMethod(methodOID: string, methods: method[]): MethodInfo | undefined {
+function processMethod(methodOID: string, methods: Method[]): MethodInfo | undefined {
 	const method = methods.find((m) => m.OID === methodOID);
 	if (!method) return undefined;
 
@@ -226,9 +229,9 @@ function processValueListDefs(
 			return;
 		}
 
-		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.ItemOID);
+		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.OID);
 		if (!itemDef) {
-			console.warn(`ItemDef not found for ItemOID: ${itemRef.ItemOID}`);
+			console.warn(`ItemDef not found for ItemOID: ${itemRef.OID}`);
 			return;
 		}
 
@@ -245,7 +248,7 @@ function processValueListDefs(
 				whereClause: {
 					comparator: whereClauseResult.conditions[0].comparator,
 					checkValues: whereClauseResult.conditions[0].values,
-					itemOID: itemRef.ItemOID,
+					itemOID: itemRef.OID,
 					source: {
 						domain: datasetName,
 						variable: whereClauseResult.conditions[0].variable
@@ -292,14 +295,14 @@ export function processValueLevelMetadata(
 				name: variable,
 				valueListDef: {
 					OID: valueListDef.OID,
-					itemRefs: []
+					ItemRefs: []
 				}
 			};
 			result.variables.set(variable, vlmVariable);
 		}
 
 		const itemRefs = processValueListDefs(valueListDef, define, paramcdToParamMap, datasetName);
-		vlmVariable.valueListDef.itemRefs.push(...itemRefs);
+		vlmVariable?.valueListDef.itemRefs.push(...itemRefs);
 	});
 
 	return result;

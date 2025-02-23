@@ -21,12 +21,12 @@
 	let hasData = $derived(!!dataset?.data);
 	let normalizedDatasetName = $derived(selectedId ? normalizeDatasetId(selectedId) : '');
 	let hasSDTM = $derived(
-		defineData.SDTM?.itemGroups?.some(
+		defineData.SDTM?.ItemGroups?.some(
 			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
 		)
 	);
 	let hasADAM = $derived(
-		defineData.ADaM?.itemGroups?.some(
+		defineData.ADaM?.ItemGroups?.some(
 			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
 		)
 	);

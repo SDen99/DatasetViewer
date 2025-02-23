@@ -101,34 +101,18 @@
 		const normalizedName = normalizeDatasetId(name);
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
 
-		console.log('Getting metadata for:', {
-			name,
-			normalizedName,
-			hasSDTM: !!SDTM,
-			hasADaM: !!ADaM,
-			sdtmGroups: SDTM?.ItemGroups?.length,
-			adamGroups: ADaM?.ItemGroups?.length
-		});
-
 		const metadata =
-			SDTM?.ItemGroups?.find((g) => {
-				const groupName = normalizeDatasetId(g.SASDatasetName || g.Name || '');
-				console.log('Checking SDTM group:', { groupName, matches: groupName === normalizedName });
-				return groupName === normalizedName;
-			}) ||
-			ADaM?.ItemGroups?.find((g) => {
-				const groupName = normalizeDatasetId(g.SASDatasetName || g.Name || '');
-				console.log('Checking ADaM group:', { groupName, matches: groupName === normalizedName });
-				return groupName === normalizedName;
-			});
+			SDTM?.ItemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			) ||
+			ADaM?.ItemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			);
 
-		const result = {
+		return {
 			description: metadata?.Description || undefined,
 			class: metadata?.Class || undefined
 		};
-
-		console.log('Metadata result:', { name, result });
-		return result;
 	};
 
 	$effect.root(() => {

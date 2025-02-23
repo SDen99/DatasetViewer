@@ -9,11 +9,13 @@
 	import { createVLMProcessor } from './VLMProcessor.svelte';
 	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
-	const props = $props<{
+	let { sdtmDefine, adamDefine, datasetName } = $props<{
 		sdtmDefine: ParsedDefineXML | null;
 		adamDefine: ParsedDefineXML | null;
 		datasetName: string;
 	}>();
+
+	console.log('Inside VLMdataView', { sdtmDefine, adamDefine, datasetName });
 
 	const processor = createVLMProcessor();
 	let processingError = $state<string | null>(null);
@@ -32,8 +34,8 @@
 
 	// Effect to handle define changes and processing
 	$effect(() => {
-		activeDefine = props.sdtmDefine || props.adamDefine;
-		cleanDatasetName = props.datasetName ? normalizeDatasetId(props.datasetName) : '';
+		activeDefine = sdtmDefine || adamDefine; // Use destructured variables directly
+		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
 
 		if (activeDefine && cleanDatasetName) {
 			processor.process(activeDefine, cleanDatasetName);
