@@ -104,6 +104,10 @@ export class DatasetStore {
 		}
 	}
 
+	isDefineXML(data: unknown): data is ParsedDefineXML {
+		return typeof data === 'object' && data !== null && 'MetaData' in data && 'ItemGroups' in data;
+	}
+
 	updateProcessingStats(stats: Partial<ProcessingStats>) {
 		// More defensive update
 		this.processingStats = {
@@ -182,13 +186,8 @@ export class DatasetStore {
 		const defineXmlFiles: Record<string, ParsedDefineXML> = {};
 
 		for (const [fileName, dataset] of Object.entries(allDatasets)) {
-			if (
-				dataset.data &&
-				typeof dataset.data === 'object' &&
-				'MetaData' in dataset.data &&
-				'ItemGroups' in dataset.data
-			) {
-				defineXmlFiles[fileName] = dataset.data as unknown as ParsedDefineXML;
+			if (dataset.data && this.isDefineXML(dataset.data)) {
+				defineXmlFiles[fileName] = dataset.data;
 			}
 		}
 

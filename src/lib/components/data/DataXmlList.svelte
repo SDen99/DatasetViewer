@@ -101,12 +101,12 @@
 		const normalizedName = normalizeDatasetId(name);
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
 
-		// Look for metadata in both SDTM and ADaM
+		// Use correct capitalization
 		const metadata =
-			SDTM?.itemGroups?.find(
+			SDTM?.ItemGroups?.find(
 				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
 			) ||
-			ADaM?.itemGroups?.find(
+			ADaM?.ItemGroups?.find(
 				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
 			);
 

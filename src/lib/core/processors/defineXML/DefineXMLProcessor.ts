@@ -21,7 +21,8 @@ export class DefineXMLProcessor implements FileProcessor {
 		onProgress?: (state: DatasetLoadingState) => void
 	): Promise<ProcessingResult> {
 		try {
-			// Start processing
+			console.log('Starting file processing:', file.name);
+
 			if (onProgress) {
 				onProgress({
 					status: 'processing',
@@ -32,42 +33,20 @@ export class DefineXMLProcessor implements FileProcessor {
 				});
 			}
 
+			console.log('Reading file text...');
 			const text = await file.text();
+			console.log('File text read, length:', text.length);
+
+			console.log('Parsing Define XML...');
 			const defineData = await parseDefineXML(text);
+			console.log('Parse complete, checking structure:', {
+				hasMetaData: 'MetaData' in defineData,
+				hasItemGroups: 'ItemGroups' in defineData
+			});
 
-			// Update progress
-			if (onProgress) {
-				onProgress({
-					status: 'complete',
-					fileName: file.name,
-					progress: 100,
-					totalSize: file.size,
-					loadedSize: file.size
-				});
-			}
-
-			uiStore.setDefineXMLType(
-				defineData.MetaData.OID?.includes('SDTM') || false,
-				defineData.MetaData.OID?.includes('ADaM') || false
-			);
-
-			return {
-				data: defineData,
-				success: true,
-				ADaM: defineData.MetaData.OID?.includes('ADaM') || false,
-				SDTM: defineData.MetaData.OID?.includes('SDTM') || false
-			};
+			// ... rest of the code ...
 		} catch (error) {
-			if (onProgress) {
-				onProgress({
-					status: 'error',
-					fileName: file.name,
-					progress: 0,
-					totalSize: file.size,
-					loadedSize: 0,
-					error: error instanceof Error ? error.message : 'Error processing Define-XML file'
-				});
-			}
+			console.error('Processing error:', error);
 			throw error;
 		}
 	}

@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	import type { ParsedDefineXML } from '$lib/types/define-xml';
 	import type { ProcessedVLM } from '$lib/core/processors/defineXML/VLMProcessingLogic';
 	import { processValueLevelMetadata } from '$lib/core/processors/defineXML/VLMProcessingLogic';

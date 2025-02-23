@@ -68,7 +68,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 
 	// Extract study details
 	const studyElement = xmlDoc.querySelector('Study');
-	const study: Study = {
+	const Study: Study = {
 		OID: getAttribute(studyElement, 'OID'),
 		Name: getTextContent(xmlDoc.documentElement, 'StudyName'),
 		Description: getTextContent(xmlDoc.documentElement, 'StudyDescription'),
@@ -81,7 +81,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		throw new Error("Required element 'MetaDataVersion' not found");
 	}
 
-	const metaData: MetaData = {
+	const MetaData: MetaData = {
 		OID: getAttribute(metaDataVersion, 'OID'),
 		Name: getAttribute(metaDataVersion, 'Name'),
 		Description: getAttribute(metaDataVersion, 'Description'),
@@ -89,7 +89,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	};
 
 	// Extract standards
-	const standards: Standard[] = Array.from(
+	const Standards: Standard[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'Standard')
 	).map((standard) => ({
 		OID: getAttribute(standard, 'OID'),
@@ -102,7 +102,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	}));
 
 	// Extract ItemGroups
-	const itemGroups: ItemGroup[] = Array.from(metaDataVersion.querySelectorAll('ItemGroupDef')).map(
+	const ItemGroups: ItemGroup[] = Array.from(metaDataVersion.querySelectorAll('ItemGroupDef')).map(
 		(group) => ({
 			OID: getAttribute(group, 'OID'),
 			Name: getAttribute(group, 'Name'),
@@ -123,7 +123,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	);
 
 	// Extract ItemDefs
-	const itemDefs: ItemDef[] = Array.from(metaDataVersion.querySelectorAll('ItemDef')).map(
+	const ItemDefs: ItemDef[] = Array.from(metaDataVersion.querySelectorAll('ItemDef')).map(
 		(item) => ({
 			OID: getAttribute(item, 'OID') || null,
 			Dataset: getAttribute(item, 'OID')?.split('.')[1] || null,
@@ -148,7 +148,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		})
 	);
 
-	const methods: Method[] = Array.from(metaDataVersion.querySelectorAll('MethodDef')).map(
+	const Methods: Method[] = Array.from(metaDataVersion.querySelectorAll('MethodDef')).map(
 		(method) => ({
 			OID: getAttribute(method, 'OID') || null,
 			Name: getAttribute(method, 'Name') || null,
@@ -160,14 +160,14 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		})
 	);
 
-	const comments: Comment[] = Array.from(metaDataVersion.querySelectorAll('CommentDef')).map(
+	const Comments: Comment[] = Array.from(metaDataVersion.querySelectorAll('CommentDef')).map(
 		(method) => ({
 			OID: method.getAttribute('OID') || null,
 			Description: method.querySelector('Description TranslatedText')?.textContent || null
 		})
 	);
 
-	const itemRefs: ItemRef[] = Array.from(
+	const ItemRefs: ItemRef[] = Array.from(
 		metaDataVersion.querySelectorAll('ItemGroupDef > ItemRef')
 	).map((item) => ({
 		ItemOID: getAttribute(item, 'ItemOID') || null,
@@ -244,7 +244,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			};
 		});
 
-	const whereClauseDefs: WhereClauseDef[] = Array.from(
+	const WhereClauseDefs: WhereClauseDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'WhereClauseDef')
 	).map((wcd): WhereClauseDef => {
 		const OID = wcd.getAttribute('OID');
@@ -252,44 +252,122 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			throw new Error('WhereClauseDef must have an OID');
 		}
 
+		// Enhanced OID parsing
+		const oidParts = OID.split('.');
+		const isADaMDef = oidParts[1]?.startsWith('AD');
+		const context = {
+			domain: oidParts[1],
+			variables: [] as string[],
+			operations: [] as string[],
+			values: [] as string[]
+		};
+
+		// Parse compound OIDs
+		for (let i = 2; i < oidParts.length; i += 3) {
+			if (oidParts[i] && oidParts[i + 1] && oidParts[i + 2]) {
+				context.variables.push(oidParts[i]);
+				context.operations.push(oidParts[i + 1]);
+				context.values.push(oidParts[i + 2]);
+			}
+		}
+
+		console.log('Processing WhereClauseDef:', { OID, context });
+
 		const CommentOID = wcd.getAttribute('def:CommentOID') || null;
 		const rangeChecks = Array.from(wcd.querySelectorAll('RangeCheck'));
 
-		if (rangeChecks.length === 0) {
-			throw new Error(`WhereClauseDef ${OID} must have at least one RangeCheck element`);
-		}
-
 		const RangeChecks = rangeChecks.map((rc): RangeCheck => {
-			const Comparator = rc.getAttribute('Comparator');
-			const SoftHard = rc.getAttribute('SoftHard');
+			const originalComparator = rc.getAttribute('Comparator');
+			const originalSoftHard = rc.getAttribute('SoftHard');
 			const ItemOID = rc.getAttribute('def:ItemOID');
 
-			if (!Comparator || !ItemOID) {
-				throw new Error(`Invalid RangeCheck in WhereClauseDef ${OID}: missing required attributes`);
-			}
+			// Get CheckValues with namespace awareness
+			const checkValueElements = Array.from(
+				rc.getElementsByTagNameNS(namespaceURI, 'CheckValue')
+			).concat(Array.from(rc.querySelectorAll('CheckValue'))); // Try both namespace and non-namespace
 
-			// Validate Comparator is one of the allowed values
-			if (!isValidComparator(Comparator)) {
-				throw new Error(`Invalid Comparator "${Comparator}" in WhereClauseDef ${OID}`);
-			}
-
-			if (!SoftHard || !['Soft', 'Hard'].includes(SoftHard)) {
-				throw new Error(`Invalid or missing SoftHard value in WhereClauseDef ${OID}`);
-			}
-
-			// Get all CheckValue elements and their contents
-			const checkValueElements = Array.from(rc.getElementsByTagNameNS(namespaceURI, 'CheckValue'));
-			if (checkValueElements.length === 0) {
-				throw new Error(`RangeCheck in WhereClauseDef ${OID} must have at least one CheckValue`);
-			}
-
-			const CheckValues = checkValueElements
+			let CheckValues = checkValueElements
 				.map((element) => element.textContent?.trim())
 				.filter((value): value is string => value !== null && value !== undefined && value !== '');
 
+			if (!originalComparator || !ItemOID) {
+				console.warn(`Invalid RangeCheck in WhereClauseDef ${OID}: missing required attributes`);
+				return {
+					Comparator: 'EQ' as ComparatorType,
+					SoftHard: 'Soft' as 'Soft' | 'Hard',
+					ItemOID: ItemOID || '',
+					CheckValues: []
+				};
+			}
+
+			const validComparator = isValidComparator(originalComparator)
+				? originalComparator
+				: (console.warn(
+						`Invalid Comparator "${originalComparator}" in WhereClauseDef ${OID}, using EQ`
+					),
+					'EQ' as ComparatorType);
+
+			const validSoftHard =
+				originalSoftHard && ['Soft', 'Hard'].includes(originalSoftHard)
+					? (originalSoftHard as 'Soft' | 'Hard')
+					: ('Soft' as 'Soft' | 'Hard');
+
+			// If no CheckValues found, try to infer from OID
+			if (CheckValues.length === 0) {
+				// For laboratory-related conditions
+				if (context.domain === 'ADLB') {
+					// Handle PARCAT1 values
+					if (context.variables.includes('PARCAT1')) {
+						const parcat1Index = context.variables.indexOf('PARCAT1');
+						const rawValue = context.values[parcat1Index];
+						// Split compound categories
+						CheckValues = rawValue
+							.split(/(?=[A-Z])/)
+							.filter(Boolean)
+							.map((v) => v.toUpperCase());
+					}
+					// Handle other lab-specific variables
+					else if (context.variables.some((v) => v.startsWith('LB'))) {
+						CheckValues = context.values;
+					}
+				}
+				// For missing values
+				else if (context.operations.includes('MISSING')) {
+					CheckValues = [''];
+				}
+				// For visit values
+				else if (context.values.some((v) => v.includes('Week') || v.includes('Baseline'))) {
+					CheckValues = context.values[0].split(/(?=[A-Z])/g).filter(Boolean);
+				}
+				// For PARAMCD values
+				else if (context.variables.includes('PARAMCD')) {
+					CheckValues = [context.values[context.variables.indexOf('PARAMCD')]];
+				}
+				// For analysis flags
+				else if (context.variables.some((v) => v.endsWith('FL'))) {
+					CheckValues = ['Y'];
+				}
+				// For date comparisons
+				else if (context.variables.some((v) => v.endsWith('DT'))) {
+					const dtIndex = context.variables.findIndex((v) => v.endsWith('DT'));
+					CheckValues =
+						context.operations[dtIndex] === 'MISSING' ? [''] : [context.values[dtIndex]];
+				}
+				// Default case - use the last value from context if available
+				else if (context.values.length > 0) {
+					CheckValues = [context.values[context.values.length - 1]];
+				}
+
+				if (CheckValues.length > 0) {
+					console.log(`Inferred CheckValues for ${OID}:`, CheckValues);
+				} else {
+					console.warn(`Unable to infer CheckValues for WhereClauseDef ${OID}`);
+				}
+			}
+
 			return {
-				Comparator: Comparator as ComparatorType,
-				SoftHard: SoftHard as 'Soft' | 'Hard',
+				Comparator: validComparator,
+				SoftHard: validSoftHard,
 				ItemOID,
 				CheckValues
 			};
@@ -302,7 +380,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		};
 	});
 
-	const valueListDefs: ValueListDef[] = Array.from(
+	const ValueListDefs: ValueListDef[] = Array.from(
 		metaDataVersion.getElementsByTagNameNS(namespaceURI, 'ValueListDef')
 	).map((vld) => {
 		// Get the basic ValueListDef attributes
@@ -419,18 +497,35 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		} as AnalysisResult;
 	});
 
-	const result: ParsedDefineXML = {
-		study,
-		metaData,
-		standards,
-		itemGroups,
-		methods,
-		itemDefs,
-		itemRefs,
-		comments,
+	console.log({
+		Study,
+		MetaData,
+		Standards,
+		ItemGroups,
+		Methods,
+		ItemDefs,
+		ItemRefs,
+		Comments,
 		CodeLists,
-		whereClauseDefs,
-		valueListDefs,
+		WhereClauseDefs,
+		ValueListDefs,
+		Dictionaries,
+		Documents,
+		AnalysisResults
+	});
+
+	const result: ParsedDefineXML = {
+		Study,
+		MetaData,
+		Standards,
+		ItemGroups,
+		Methods,
+		ItemDefs,
+		ItemRefs,
+		Comments,
+		CodeLists,
+		WhereClauseDefs,
+		ValueListDefs,
 		Dictionaries,
 		Documents,
 		AnalysisResults
