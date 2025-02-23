@@ -4,7 +4,7 @@
 	import { formatCellContent } from './cellFormatting';
 	import ExpandableCell from './ExpandableCell.svelte';
 	import { Alert, AlertDescription } from '$lib/components/core/alert';
-	import type { ParsedDefineXML } from '$lib/types/define-xml/types';
+	import type { ParsedDefineXML } from '$lib/types/define-xml';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { createVLMProcessor } from './VLMProcessor.svelte';
 	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';

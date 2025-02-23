@@ -4,7 +4,7 @@ import { tableUIStore } from '$lib/core/stores//tableUIStore.svelte';
 import { sortStore } from '$lib/core/stores/sortStore.svelte';
 import { StorageService } from '$lib/core/services/StorageServices';
 import { storeCoordinator } from './storeCoordinator.svelte';
-import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+import type { ParsedDefineXML } from '$lib/types/define-xml';
 import { normalizeDatasetId } from '../utils/datasetUtils';
 export class DatasetStore {
 	private static instance: DatasetStore | null = null;

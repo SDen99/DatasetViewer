@@ -1,15 +1,14 @@
-import type { Study, MetaData, Standard, DocumentRef, Comment } from '$lib/types/define-xml/base';
-
-import type { Method } from '$lib/types/define-xml/methods';
-import type { ItemGroup } from '$lib/types/define-xml/groups';
-import type { ItemDef, ItemRef, WhereClauseDef } from '$lib/types/define-xml/variables'; //Check
-import type { CodeList } from '$lib/types/define-xml/codelists';
-import type { Dictionary } from '$lib/types/define-xml/dictionaries';
-import type { ValueListDef } from '$lib/types/define-xml/valuelists'; //Check
-import type { AnalysisResult } from '$lib/types/define-xml/analysis';
-import type { WhereClauseDef, RangeCheck, ComparatorType } from '$lib/types/define-xml/whereClause';
-
-import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+import type { Study, MetaData, Standard, DocumentRef, Comment } from '$lib/types/define-xml';
+import type { Method, ItemGroup, ItemDef, ItemRef, CodeList } from '$lib/types/define-xml';
+import type {
+	Dictionary,
+	ValueListDef,
+	AnalysisResult,
+	WhereClauseDef,
+	RangeCheck,
+	ComparatorType
+} from '$lib/types/define-xml';
+import type { ParsedDefineXML } from '$lib/types/define-xml';
 
 export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML> => {
 	// Input validation
