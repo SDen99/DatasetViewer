@@ -58,6 +58,15 @@ export interface VLMItemRef {
 			value?: string;
 		};
 	};
+	codelist?: {
+		OID: string;
+		name?: string;
+		items?: Array<{
+			codedValue: string;
+			decode: string;
+			isExtended?: boolean;
+		}>;
+	};
 }
 
 export interface VLMVariable {
@@ -273,6 +282,22 @@ function processValueListDefs(
 			return;
 		}
 
+		let codelistInfo;
+		if (itemDef.CodeListOID) {
+			const codeList = define.CodeLists.find((cl) => cl.OID === itemDef.CodeListOID);
+			if (codeList) {
+				codelistInfo = {
+					OID: codeList.OID,
+					name: codeList.Name,
+					items: codeList.CodeListItems?.map((item) => ({
+						codedValue: item.CodedValue,
+						decode: item.Decode?.TranslatedText || '',
+						isExtended: item.ExtendedValue === 'Yes'
+					}))
+				};
+			}
+		}
+
 		// Create an ItemRef for each PARAMCD value
 		whereClauseResult.paramcd.forEach((paramcd) => {
 			const vlmItemRef: VLMItemRef = {
@@ -299,6 +324,7 @@ function processValueListDefs(
 				methodOID: itemRef.MethodOID,
 				valueListOID: valueListDef.OID,
 				itemDefOID: itemDef.OID,
+				codelist: codelistInfo,
 				origin: processOriginInfo(itemDef),
 				itemDescription: itemDef.Description,
 				mandatory: itemRef.Mandatory === 'Yes',

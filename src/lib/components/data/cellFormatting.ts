@@ -92,6 +92,35 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 		}
 	}
 
+	// Add Codelist formatting
+	if (itemRef.codelist) {
+		const codelistParts: string[] = [];
+
+		if (itemRef.codelist.name) {
+			codelistParts.push(
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Name:</span> ${itemRef.codelist.name}`
+			);
+		}
+
+		if (itemRef.codelist.items?.length) {
+			codelistParts.push(
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Values:</span>`
+			);
+			itemRef.codelist.items.forEach((item) => {
+				codelistParts.push(
+					`  <span class="font-mono">${item.codedValue}</span>: ${item.decode}${
+						item.isExtended ? ' <span class="text-xs">(Extended)</span>' : ''
+					}`
+				);
+			});
+		}
+
+		if (codelistParts.length > 0) {
+			parts.push(
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Codelist:</span>\n  ${codelistParts.join('\n  ')}\n`
+			);
+		}
+	}
 	//Debug
 	const debugParts: string[] = [];
 	if (itemRef.valueListOID) {
