@@ -87,6 +87,12 @@ export class FileImportManager {
 	}
 
 	private async handleProcessingSuccess(file: File, result: any) {
+		console.log('[FileImportManager] Processing success for:', file.name, {
+			resultType: typeof result,
+			hasData: !!result.data,
+			isDefineXML: result.data?.MetaData?.OID != null
+		});
+
 		const datasetService = this.serviceContainer.getDatasetService();
 
 		const processingStats = {
@@ -103,6 +109,13 @@ export class FileImportManager {
 		});
 
 		const updatedDatasets = await datasetService.getAllDatasets();
+		console.log('[FileImportManager] Updated datasets:', {
+			count: Object.keys(updatedDatasets).length,
+			datasets: Object.keys(updatedDatasets),
+			defineXMLCount: Object.values(updatedDatasets).filter((d) => d.data?.MetaData?.OID != null)
+				.length
+		});
+
 		datasetStore.setDatasets(updatedDatasets);
 		datasetStore.updateLoadingDatasets(file.name);
 		datasetStore.updateProcessingStats(processingStats);

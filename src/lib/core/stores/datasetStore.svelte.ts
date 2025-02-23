@@ -124,7 +124,17 @@ export class DatasetStore {
 	}
 
 	setDatasets(newDatasets: Record<string, Dataset>) {
-		console.log('[DatasetStore] Setting datasets:', Object.keys(newDatasets));
+		console.log('[DatasetStore] Setting datasets:', {
+			datasetKeys: Object.keys(newDatasets),
+			sampleData: Object.entries(newDatasets).map(([key, dataset]) => ({
+				key,
+				type: typeof dataset.data,
+				hasMetaData: dataset.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data,
+				hasItemGroups:
+					dataset.data && typeof dataset.data === 'object' && 'ItemGroups' in dataset.data
+			}))
+		});
+
 		this.datasets = newDatasets;
 
 		// Update filename mappings
@@ -185,15 +195,45 @@ export class DatasetStore {
 		const allDatasets = this.datasets;
 		const defineXmlFiles: Record<string, ParsedDefineXML> = {};
 
+		console.log('Checking datasets for Define XML:', Object.keys(allDatasets));
+
 		for (const [fileName, dataset] of Object.entries(allDatasets)) {
-			if (dataset.data && this.isDefineXML(dataset.data)) {
-				defineXmlFiles[fileName] = dataset.data;
+			console.log('Checking dataset:', fileName, {
+				hasData: !!dataset.data,
+				isObject: typeof dataset.data === 'object',
+				hasMetaData: dataset.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data,
+				hasItemGroups:
+					dataset.data && typeof dataset.data === 'object' && 'ItemGroups' in dataset.data
+			});
+
+			if (
+				dataset.data &&
+				typeof dataset.data === 'object' &&
+				'MetaData' in dataset.data &&
+				'ItemGroups' in dataset.data
+			) {
+				defineXmlFiles[fileName] = dataset.data as unknown as ParsedDefineXML;
+				console.log('Found Define XML file:', fileName, {
+					metaDataOID: dataset.data.MetaData?.OID,
+					itemGroupsCount: dataset.data.ItemGroups?.length
+				});
 			}
 		}
 
+		const sdtm = Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('SDTM'));
+		const adam = Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('ADaM'));
+
+		console.log('Define XML Processing Results:', {
+			totalFiles: Object.keys(defineXmlFiles).length,
+			hasSDTM: !!sdtm,
+			hasADaM: !!adam,
+			sdtmGroups: sdtm?.ItemGroups?.length,
+			adamGroups: adam?.ItemGroups?.length
+		});
+
 		return {
-			SDTM: Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('SDTM')) ?? null,
-			ADaM: Object.values(defineXmlFiles).find((d) => d.MetaData.OID?.includes('ADaM')) ?? null
+			SDTM: sdtm ?? null,
+			ADaM: adam ?? null
 		};
 	});
 
