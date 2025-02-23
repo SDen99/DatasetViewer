@@ -4,7 +4,9 @@ import type {
 	RangeCheck,
 	MethodInfo,
 	ValueListDef,
-	ParsedDefineXML
+	ParsedDefineXML,
+	ItemDef,
+	Method
 } from '$lib/types/define-xml';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
@@ -209,12 +211,26 @@ function processValueListDefs(
 ): VLMItemRef[] {
 	const itemRefs: VLMItemRef[] = [];
 
+	console.log('Processing ValueListDef:', {
+		OID: valueListDef.OID,
+		itemRefsCount: valueListDef.ItemRefs?.length,
+		sampleItemRef: valueListDef.ItemRefs?.[0],
+		whereClauseDefs: define.WhereClauseDefs?.length
+	});
+
 	if (!valueListDef.ItemRefs) {
+		console.log('No ItemRefs found in ValueListDef');
 		return itemRefs;
 	}
 
 	valueListDef.ItemRefs.forEach((itemRef) => {
+		console.log('Processing ItemRef:', {
+			itemRef,
+			hasWhereClause: !!itemRef.WhereClauseOID
+		});
+
 		if (!itemRef.WhereClauseOID) {
+			console.log('No WhereClauseOID found');
 			return;
 		}
 
@@ -224,14 +240,24 @@ function processValueListDefs(
 			datasetName
 		);
 
+		console.log('WhereClause processing result:', {
+			whereClauseOID: itemRef.WhereClauseOID,
+			result: whereClauseResult
+		});
+
 		if (!whereClauseResult || whereClauseResult.paramcd.length === 0) {
-			console.warn(`No PARAMCD found for WhereClauseOID: ${itemRef.WhereClauseOID}`);
+			console.log(`No PARAMCD found for WhereClauseOID: ${itemRef.WhereClauseOID}`);
 			return;
 		}
 
-		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.OID);
+		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.ItemOID);
+		console.log('Looking up ItemDef:', {
+			itemOID: itemRef.ItemOID,
+			found: !!itemDef,
+			matchingDef: itemDef
+		});
 		if (!itemDef) {
-			console.warn(`ItemDef not found for ItemOID: ${itemRef.OID}`);
+			console.warn(`ItemDef not found for ItemOID: ${itemRef.ItemOID}`);
 			return;
 		}
 
@@ -275,14 +301,21 @@ export function processValueLevelMetadata(
 	define: ParsedDefineXML,
 	datasetName: string
 ): ProcessedVLM {
+	console.log('Starting VLM processing:', {
+		datasetName,
+		defineKeys: Object.keys(define)
+	});
+
 	const result: ProcessedVLM = {
 		dataset: datasetName,
 		variables: new Map()
 	};
 
 	const paramcdToParamMap = buildParamcdMapping(define, datasetName);
-	const valueListDefs = findValueListDefs(define, datasetName);
+	console.log('PARAMCD mapping:', Array.from(paramcdToParamMap.entries()));
 
+	const valueListDefs = findValueListDefs(define, datasetName);
+	console.log('Found ValueListDefs:', valueListDefs);
 	valueListDefs.forEach((valueListDef) => {
 		if (!valueListDef.OID) return;
 
@@ -290,6 +323,12 @@ export function processValueLevelMetadata(
 		if (!variable) return;
 
 		let vlmVariable = result.variables.get(variable);
+		console.log('Processing VLM Variable:', {
+			variable,
+			existing: !!vlmVariable,
+			itemRefs: valueListDef.ItemRefs?.length || 0
+		});
+
 		if (!vlmVariable) {
 			vlmVariable = {
 				name: variable,
@@ -302,7 +341,13 @@ export function processValueLevelMetadata(
 		}
 
 		const itemRefs = processValueListDefs(valueListDef, define, paramcdToParamMap, datasetName);
-		vlmVariable?.valueListDef.itemRefs.push(...itemRefs);
+		console.log('Processed ItemRefs:', {
+			variable,
+			count: itemRefs.length,
+			sample: itemRefs[0]
+		});
+
+		vlmVariable.valueListDef.ItemRefs.push(...itemRefs);
 	});
 
 	return result;

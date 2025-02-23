@@ -45,16 +45,21 @@
 	// Process VLM data into display format
 	$effect(() => {
 		const vlmData = processor.vlmData();
-		const processingStatus = processor.status(); // Changed from processing to status
+		const processingStatus = processor.status();
+
+		console.log('Processing VLM Data:', {
+			status: processingStatus,
+			data: vlmData
+		});
 
 		if (processingStatus === 'error') {
-			// Changed from processingStatus.status
 			processingError = processor.error() || 'Unknown error occurred';
 			displayData = { hasData: false };
 			return;
 		}
 
 		if (!vlmData?.variables || vlmData.variables.size === 0) {
+			console.log('No VLM data available');
 			displayData = { hasData: false };
 			return;
 		}
@@ -63,26 +68,59 @@
 			const columns = new Set(['PARAMCD', 'PARAM']);
 			const rows = new Map<string, any>();
 
-			// First pass: Collect all PARAMCDs and their PARAM values
+			console.log('Starting data transformation', {
+				variableCount: vlmData.variables.size,
+				variables: Array.from(vlmData.variables.keys())
+			});
+
+			// First pass: Collect all variables and PARAMCDs
 			vlmData.variables.forEach((variable, variableName) => {
+				console.log('Processing variable:', {
+					name: variableName,
+					valueListDef: variable.valueListDef,
+					hasItemRefs: !!variable.valueListDef.ItemRefs,
+					itemRefsLength: variable.valueListDef.ItemRefs?.length || 0,
+					// Add a sample ItemRef if available
+					sampleItemRef: variable.valueListDef.ItemRefs?.[0]
+				});
+
 				if (!['PARAMCD', 'PARAM'].includes(variableName)) {
 					columns.add(variableName);
 				}
 
-				variable.valueListDef.itemRefs.forEach((itemRef) => {
-					if (!rows.has(itemRef.paramcd)) {
-						rows.set(itemRef.paramcd, {
-							PARAMCD: itemRef.paramcd,
-							PARAM: itemRef.paramInfo?.decode || ''
-						});
-					}
+				// Add debugging before ItemRefs check
+				console.log(`Checking ItemRefs for ${variableName}:`, {
+					hasItemRefs: !!variable.valueListDef.ItemRefs,
+					condition: variable.valueListDef.ItemRefs ? 'will process' : 'will skip'
 				});
+
+				// Process each ItemRef to create rows
+				if (variable.valueListDef.ItemRefs) {
+					console.log(`Processing ItemRefs for ${variableName}`, {
+						count: variable.valueListDef.ItemRefs.length
+					});
+
+					variable.valueListDef.ItemRefs.forEach((itemRef) => {
+						console.log(`Processing ItemRef:`, {
+							paramcd: itemRef.paramcd,
+							decode: itemRef.paramInfo?.decode
+						});
+
+						const paramcd = itemRef.paramcd;
+						if (!rows.has(paramcd)) {
+							rows.set(paramcd, {
+								PARAMCD: paramcd,
+								PARAM: itemRef.paramInfo?.decode || ''
+							});
+						}
+					});
+				}
 			});
 
-			// Second pass: Add other variable information
+			// Second pass: Add variable information to rows
 			vlmData.variables.forEach((variable, variableName) => {
 				if (variableName !== 'PARAMCD' && variableName !== 'PARAM') {
-					variable.valueListDef.itemRefs.forEach((itemRef) => {
+					variable.valueListDef.ItemRefs.forEach((itemRef) => {
 						const row = rows.get(itemRef.paramcd);
 						if (row) {
 							row[variableName] = itemRef;
@@ -91,16 +129,13 @@
 				}
 			});
 
-			// Convert rows Map to array and sort
-			const sortedRows = Array.from(rows.values()).sort((a, b) => {
-				const aRef = vlmData.variables
-					.get('PARAMCD')
-					?.valueListDef.itemRefs.find((ref) => ref.paramcd === a.PARAMCD);
-				const bRef = vlmData.variables
-					.get('PARAMCD')
-					?.valueListDef.itemRefs.find((ref) => ref.paramcd === b.PARAMCD);
+			const sortedRows = Array.from(rows.values());
 
-				return (aRef?.paramInfo?.ordinal || 0) - (bRef?.paramInfo?.ordinal || 0);
+			console.log('Final transformed data:', {
+				columnCount: columns.size,
+				columns: Array.from(columns),
+				rowCount: sortedRows.length,
+				sampleRow: sortedRows[0]
 			});
 
 			displayData = {
@@ -161,6 +196,15 @@
 		dragOverColumn = column;
 		e.dataTransfer!.dropEffect = 'move';
 	}
+
+	$effect(() => {
+		console.log('Display Data Structure:', {
+			columns: displayData.columns,
+			rowCount: displayData.rows?.length,
+			sampleRow: displayData.rows?.[0],
+			allRows: displayData.rows
+		});
+	});
 </script>
 
 <!-- Debug info -->
@@ -207,7 +251,7 @@
 								<tr class="hover:bg-muted/50">
 									{#each displayData.columns as column}
 										<td
-											class="overflow-hidden text-ellipsis border p-2"
+											class="overflow-hidden text-ellipsis border p-2 align-top"
 											style="width: {columnWidths[column] || 150}px"
 										>
 											{#if column === 'PARAMCD' || column === 'PARAM'}

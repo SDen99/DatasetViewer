@@ -22,7 +22,20 @@
 			try {
 				status = 'processing';
 				error = null;
-				vlmData = processValueLevelMetadata(define, datasetName);
+				console.log('Processing VLM for:', {
+					datasetName,
+					valueListDefs: define.ValueListDefs?.length,
+					whereClauses: define.WhereClauseDefs?.length
+				});
+
+				const result = processValueLevelMetadata(define, datasetName);
+				console.log('VLM Processing Result:', {
+					dataset: result.dataset,
+					variableCount: result.variables.size,
+					variables: Array.from(result.variables.entries())
+				});
+
+				vlmData = result;
 				status = 'complete';
 			} catch (err) {
 				console.error('VLM Processing Error:', err);
