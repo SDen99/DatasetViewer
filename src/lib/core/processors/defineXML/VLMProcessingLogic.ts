@@ -1,8 +1,8 @@
 // src/lib/core/processors/defineXML/VLMProcessingLogic.ts
-import type { WhereClauseDef, ItemDef, RangeCheck } from '$lib/types/define-xml/variables';
+import type { WhereClauseDef, ItemDef, RangeCheck } from '$lib/types/define-xml';
 import type { MethodInfo } from '$lib/types/define-xml/methods';
 import type { ValueListDef } from '$lib/types/define-xml/valuelists';
-import type { ParsedDefineXML } from '$lib/types/define-xml/types';
+import type { ParsedDefineXML } from '$lib/types/define-xml';
 import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 

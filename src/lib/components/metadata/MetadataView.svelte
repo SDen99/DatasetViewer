@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ParsedDefineXML } from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML } from '$lib/types/define-xml';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { Search, Table as TableIcon, LayoutList } from 'lucide-svelte';
 	import { Input } from '$lib/components/core/input';
