@@ -1,4 +1,13 @@
 export function formatCellContent(itemRef: VLMItemRef, columnName: string): string {
+	console.log('Raw ItemRef data:', {
+		column: columnName,
+		data: itemRef,
+		whereClause: itemRef.whereClause,
+		method: itemRef.method,
+		valueListDef: itemRef.valueListDef,
+		// Dump all keys at root level
+		keys: Object.keys(itemRef)
+	});
 	if (!itemRef) return '';
 
 	if (columnName === 'PARAMCD') return itemRef.paramcd || '';
@@ -81,6 +90,30 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 				`<span class="text-xs font-semibold uppercase text-muted-foreground">Method:</span>\n  ${methodParts.join('\n  ')}\n`
 			);
 		}
+	}
+
+	//Debug
+	const debugParts: string[] = [];
+	if (itemRef.valueListOID) {
+		debugParts.push(`ValueList OID: ${itemRef.valueListOID}`);
+	}
+	if (itemRef.whereClause?.whereClauseOID) {
+		debugParts.push(`WhereClause OID: ${itemRef.whereClause.whereClauseOID}`);
+	}
+	if (itemRef.whereClause?.itemOID) {
+		debugParts.push(`Item OID: ${itemRef.whereClause.itemOID}`);
+	}
+	if (itemRef.methodOID) {
+		debugParts.push(`Method OID: ${itemRef.methodOID}`);
+	}
+	if (itemRef.itemDefOID) {
+		debugParts.push(`ItemDef OID: ${itemRef.itemDefOID}`);
+	}
+
+	if (debugParts.length > 0) {
+		parts.push(
+			`\n<span class="mt-2 block border-t border-dashed pt-2 text-xs text-gray-500">Debug OIDs:\n  ${debugParts.join('\n  ')}</span>`
+		);
 	}
 
 	return parts.join('\n') || '';

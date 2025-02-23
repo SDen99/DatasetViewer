@@ -32,7 +32,19 @@ export interface OriginInfo {
 export interface VLMItemRef {
 	paramcd: string;
 	paramInfo?: CodeListInfo;
-	whereClause?: VLMWhereClause;
+	whereClause?: {
+		comparator: RangeCheck['Comparator'];
+		checkValues: string[];
+		whereClauseOID: string;
+		itemOID: string;
+		source: {
+			domain: string;
+			variable: string;
+		};
+	};
+	methodOID?: string;
+	valueListOID?: string;
+	itemDefOID?: string;
 	method?: MethodInfo;
 	origin?: OriginInfo;
 	itemDescription?: string | null;
@@ -274,7 +286,8 @@ function processValueListDefs(
 				whereClause: {
 					comparator: whereClauseResult.conditions[0].comparator,
 					checkValues: whereClauseResult.conditions[0].values,
-					itemOID: itemRef.OID,
+					whereClauseOID: itemRef.WhereClauseOID,
+					itemOID: itemRef.ItemOID,
 					source: {
 						domain: datasetName,
 						variable: whereClauseResult.conditions[0].variable
@@ -283,6 +296,9 @@ function processValueListDefs(
 				method: itemRef.MethodOID
 					? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
 					: undefined,
+				methodOID: itemRef.MethodOID,
+				valueListOID: valueListDef.OID,
+				itemDefOID: itemDef.OID,
 				origin: processOriginInfo(itemDef),
 				itemDescription: itemDef.Description,
 				mandatory: itemRef.Mandatory === 'Yes',
