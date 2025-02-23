@@ -1,82 +1,10 @@
 # Type Definition Report
 
 ## Summary
-- Total type definitions found: 90
-- Duplicate types found: 14
+- Total type definitions found: 73
+- Duplicate types found: 0
 
 ## Duplicate Types
-
-### AnalysisDisplay
-Found in:
-- src/lib/core/processors/defineXML/types.ts:205
-- src/lib/types/define-xml/analysis.ts:7
-
-### AnalysisResult
-Found in:
-- src/lib/core/processors/defineXML/types.ts:170
-- src/lib/types/define-xml/analysis.ts:18
-
-### CodeList
-Found in:
-- src/lib/core/processors/defineXML/types.ts:102
-- src/lib/core/processors/defineXML/types.ts:234
-- src/lib/types/define-xml/codelists.ts:48
-
-### Comment
-Found in:
-- src/lib/core/processors/defineXML/types.ts:242
-- src/lib/types/define-xml/base.ts:57
-
-### Dictionary
-Found in:
-- src/lib/core/processors/defineXML/types.ts:157
-- src/lib/types/define-xml/dictionaries.ts:7
-
-### Document
-Found in:
-- src/lib/core/processors/defineXML/types.ts:164
-- src/lib/types/define-xml/documents.ts:16
-
-### ItemGroup
-Found in:
-- src/lib/core/processors/defineXML/types.ts:63
-- src/lib/core/processors/defineXML/types.ts:213
-- src/lib/types/define-xml/groups.ts:7
-
-### MetaData
-Found in:
-- src/lib/core/processors/defineXML/types.ts:46
-- src/lib/types/define-xml/base.ts:18
-
-### MethodInfo
-Found in:
-- src/lib/core/processors/defineXML/VLMProcessingLogic.ts:30
-- src/lib/types/define-xml/methods.ts:20
-
-### ParsedDefineXML
-Found in:
-- src/lib/core/processors/defineXML/types.ts:1
-- src/lib/core/processors/defineXML/types.ts:249
-
-### Standard
-Found in:
-- src/lib/core/processors/defineXML/types.ts:53
-- src/lib/types/define-xml/base.ts:29
-
-### Study
-Found in:
-- src/lib/core/processors/defineXML/types.ts:39
-- src/lib/types/define-xml/base.ts:7
-
-### UIState
-Found in:
-- src/lib/core/stores/UIStore.svelte.ts:3
-- src/lib/core/types/types.ts:74
-
-### ValueListDef
-Found in:
-- src/lib/core/processors/defineXML/types.ts:221
-- src/lib/types/define-xml/valuelists.ts:7
 
 ## All Type Definitions
 
@@ -142,91 +70,8 @@ export interface Sas7bdatProcessingResult extends BaseProcessingResult {
 
 ### src/lib/core/processors/defineXML
 
-#### AnalysisDisplay (interface)
-File: src/lib/core/processors/defineXML/types.ts:205
-```typescript
-export interface AnalysisDisplay {
-    ID: string | null;
-    Title: string | null;
-    Document: string | null;
-    Pages: string | null;
-}
-```
-
-#### AnalysisResult (interface)
-File: src/lib/core/processors/defineXML/types.ts:170
-```typescript
-export interface AnalysisResult {
-	Display: string | null;
-	ID: string | null;
-	Description: string | null;
-	Variables: string | null;
-	Reason: string | null;
-	Purpose: string | null;
-	SelectionCriteria: string | null;
-	JoinComment: string | null;
-	Documentation: string | null;
-	DocumentationRefs: string | null;
-	ProgrammingContext: string | null;
-	ProgrammingCode: string | null;
-	ProgrammingDocument: string | null;
-	Pages: string | null;
-}
-```
-
-#### CodeList (interface)
-File: src/lib/core/processors/defineXML/types.ts:102
-```typescript
-export interface CodeList {
-	OID: string | null;
-	Name: string | null;
-	DataType: string | null;
-	SASFormatName: string | null;
-	StandardOID: string | null;
-	IsNonStandard: string | null;
-	ExtendedValue: boolean | null; // Changed from def:ExtendedValue
-	CodeListItems: {
-		CodedValue: string | null;
-		OrderNumber: string | null;
-		Rank?: string | null;
-		ExtendedValue?: boolean;
-		Decode?: {
-			TranslatedText: string | null;
-			lang?: string | null;
-		};
-		Aliases?: {
-			Name: string | null;
-			Context: string | null;
-		}[];
-	}[];
-	EnumeratedItems: {
-		CodedValue: string | null;
-		OrderNumber: string | null;
-		Aliases?: {
-			Name: string | null;
-			Context: string | null;
-		}[];
-	}[];
-	Aliases?: {
-		Name: string | null;
-		Context: string | null;
-	}[];
-}
-```
-
-#### CodeList (interface)
-File: src/lib/core/processors/defineXML/types.ts:234
-```typescript
-export interface CodeList {
-    // ... existing fields ...
-    NCICodelist: string | null;
-    Code: string | null;
-    Terms: Term[];
-}
-```
-
 #### CodeListInfo (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:12
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:9
 ```typescript
 export interface CodeListInfo {
 	ordinal: number;
@@ -240,161 +85,14 @@ export interface CodeListInfo {
 }
 ```
 
-#### comment (interface)
-File: src/lib/core/processors/defineXML/types.ts:88
-```typescript
-export interface comment {
-	OID: string | null;
-	Description: string | null;
-}
-```
-
-#### Comment (interface)
-File: src/lib/core/processors/defineXML/types.ts:242
-```typescript
-export interface Comment {
-    // ... existing fields ...
-    Document: string | null;
-    Pages: string | null;
-}
-```
-
 #### DataType (type)
-File: src/lib/core/processors/defineXML/types.ts:187
+File: src/lib/core/processors/defineXML/types.ts:1
 ```typescript
 export type DataType = | 'BASIC DATA STRUCTURE' | 'SUBJECT LEVEL ANALYSIS DATASET' | 'OCCURRENCE DATA STRUCTURE' | null;
 ```
 
-#### Dictionary (interface)
-File: src/lib/core/processors/defineXML/types.ts:157
-```typescript
-export interface Dictionary {
-	OID: string | null;
-	Name: string | null;
-	DataType: string | null;
-	Dictionary: string | null;
-	Version: string | null;
-}
-```
-
-#### Document (interface)
-File: src/lib/core/processors/defineXML/types.ts:164
-```typescript
-export interface Document {
-	ID: string | null;
-	Title: string | null;
-	Href: string | null;
-}
-```
-
-#### itemDef (interface)
-File: src/lib/core/processors/defineXML/types.ts:18
-```typescript
-export interface itemDef {
-	OID: string | null;
-	Dataset: string | null;
-	Name: string | null;
-	SASFieldName: string | null;
-	DataType: string | null;
-	Length: string | null;
-	Description: string | null;
-	OriginType: string | null;
-	Origin: string | null;
-	OriginSource: string | null;
-	CodeListOID: string | null;
-	SignificantDigits: string | null;
-	Format: string | null;
-	AssignedValue: string | null;
-	Common: boolean | null;
-	Pages: string | null;
-	//    Role: string | null;
-	Comment: string | null;
-	DeveloperNotes: string | null;
-}
-```
-
-#### ItemGroup (interface)
-File: src/lib/core/processors/defineXML/types.ts:63
-```typescript
-export interface ItemGroup {
-	OID: string | null;
-	Name: string | null;
-	SASDatasetName: string | null;
-	Repeating: string | null;
-	Purpose: string | null;
-	IsReferenceData: string | null;
-	StandardOID: string | null;
-	Structure: string | null;
-	ArchiveLocationID: string | null;
-	CommentOID: string | null;
-	Description: string | null;
-	Class: string | null;
-	ItemRefs?: itemRef[];
-}
-```
-
-#### ItemGroup (interface)
-File: src/lib/core/processors/defineXML/types.ts:213
-```typescript
-export interface ItemGroup {
-    // ... existing fields ...
-    KeyVariables: string | null;
-    DeveloperNotes: string | null;
-    Pages: string | null;
-    Label: string | null;
-}
-```
-
-#### itemRef (interface)
-File: src/lib/core/processors/defineXML/types.ts:93
-```typescript
-export interface itemRef {
-	OID: string | null;
-	Mandatory: string | null;
-	OrderNumber: string | null;
-	MethodOID: string | null;
-	WhereClauseOID: string | null;
-	KeySequence: string | null;
-}
-```
-
-#### MetaData (interface)
-File: src/lib/core/processors/defineXML/types.ts:46
-```typescript
-export interface MetaData {
-	OID: string | null;
-	name: string | null;
-	description: string | null;
-	defineVersion: string | null;
-}
-```
-
-#### method (interface)
-File: src/lib/core/processors/defineXML/types.ts:79
-```typescript
-export interface method {
-	OID: string | null;
-	Name: string | null;
-	Type: string | null;
-	Description: string | null;
-	Document: string | undefined;
-	Pages: string | null;
-}
-```
-
-#### MethodInfo (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:30
-```typescript
-export interface MethodInfo {
-	type: string | null;
-	description: string | null;
-	document?: string;
-	translatedText?: string | null;
-}
-```
-
 #### OriginInfo (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:23
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:20
 ```typescript
 export interface OriginInfo {
 	type: string;
@@ -404,42 +102,8 @@ export interface OriginInfo {
 }
 ```
 
-#### ParsedDefineXML (interface)
-File: src/lib/core/processors/defineXML/types.ts:1
-```typescript
-export interface ParsedDefineXML {
-	study: Study;
-	metaData: MetaData;
-	standards: Standard[];
-	itemGroups: ItemGroup[];
-	methods: method[];
-	itemDefs: itemDef[];
-	itemRefs: itemRef[];
-	comments: comment[];
-	CodeLists: CodeList[];
-	whereClauseDefs: whereClauseDef[];
-	valueListDefs: valueListDef[];
-	Dictionaries: Dictionary[];
-	Documents: Document[];
-	AnalysisResults: AnalysisResult[];
-}
-```
-
-#### ParsedDefineXML (interface)
-File: src/lib/core/processors/defineXML/types.ts:249
-```typescript
-export interface ParsedDefineXML {
-    // ... existing fields ...
-    terms: Term[];
-    dictionaries: Dictionary[];
-    documents: Document[];
-    analysisDisplays: AnalysisDisplay[];
-    analysisResults: AnalysisResult[];
-}
-```
-
 #### ProcessedVLM (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:74
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:56
 ```typescript
 export interface ProcessedVLM {
 	dataset: string;
@@ -447,90 +111,13 @@ export interface ProcessedVLM {
 }
 ```
 
-#### Standard (interface)
-File: src/lib/core/processors/defineXML/types.ts:53
-```typescript
-export interface Standard {
-	OID: string | null;
-	Name: string | null;
-	Type: string | null;
-	Status: string | null;
-	Version: string | null;
-	PublishingSet: string | null;
-	CommentOID: string | null;
-}
-```
-
-#### Study (interface)
-File: src/lib/core/processors/defineXML/types.ts:39
-```typescript
-export interface Study {
-	OID: string | null;
-	name: string | null;
-	description: string | null;
-	protocolName: string | null;
-}
-```
-
-#### Term (interface)
-File: src/lib/core/processors/defineXML/types.ts:195
-```typescript
-export interface Term {
-    Order: string | null;
-    Term: string | null;
-    NCITerm: string | null;
-    Code: string | null;
-    DecodedValue: string | null;
-}
-```
-
-#### valueListDef (interface)
-File: src/lib/core/processors/defineXML/types.ts:146
-```typescript
-export interface valueListDef {
-	OID: string | null;
-	ItemRefs: {
-		ItemOID: string | null;
-		Mandatory: string | null;
-		OrderNumber: string | null;
-		MethodOID: string | null;
-		WhereClauseOID: string | null;
-	}[];
-}
-```
-
-#### ValueListDef (interface)
-File: src/lib/core/processors/defineXML/types.ts:221
-```typescript
-export interface ValueListDef {
-    // ... existing fields ...
-    Label: string | null;
-    DataType: string | null;
-    Length: string | null;
-    SignificantDigits: string | null;
-    Format: string | null;
-    AssignedValue: string | null;
-    Pages: string | null;
-    Predecessor: string | null;
-    DeveloperNotes: string | null;
-}
-```
-
 #### VLMItemRef (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:37
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:27
 ```typescript
 export interface VLMItemRef {
 	paramcd: string;
 	paramInfo?: CodeListInfo;
-	whereClause?: {
-		comparator: string;
-		checkValues: string[];
-		itemOID?: string;
-		source?: {
-			domain: string;
-			variable: string;
-		};
-	};
+	whereClause?: VLMWhereClause;
 	method?: MethodInfo;
 	origin?: OriginInfo;
 	itemDescription?: string | null;
@@ -548,7 +135,7 @@ export interface VLMItemRef {
 ```
 
 #### VLMVariable (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:64
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:46
 ```typescript
 export interface VLMVariable {
 	name: string;
@@ -561,15 +148,16 @@ export interface VLMVariable {
 }
 ```
 
-#### whereClauseDef (interface)
-File: src/lib/core/processors/defineXML/types.ts:138
+#### WhereClauseResult (interface)
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:61
 ```typescript
-export interface whereClauseDef {
-	OID: string | null;
-	Comparator: string | null;
-	SoftHard: string | null;
-	ItemOID: string | null;
-	CheckValues: string | null;
+interface WhereClauseResult {
+	paramcd: string[];
+	conditions: {
+		variable: string;
+		comparator: RangeCheck['Comparator'];
+		values: string[];
+	}[];
 }
 ```
 
@@ -752,7 +340,7 @@ export enum FileType {
 ```
 
 #### InitState (type)
-File: src/lib/core/types/types.ts:98
+File: src/lib/core/types/types.ts:85
 ```typescript
 export type InitState = {
 	status: 'idle' | 'initializing' | 'ready' | 'error';
@@ -811,7 +399,7 @@ export interface PyodideInterface {
 ```
 
 #### ServiceContainer (interface)
-File: src/lib/core/types/types.ts:91
+File: src/lib/core/types/types.ts:78
 ```typescript
 export interface ServiceContainer {
 	getWorkerPool(): WorkerPool;
@@ -828,23 +416,6 @@ export type SortConfig = {
 	column: string;
 	direction: 'asc' | 'desc';
 };
-```
-
-#### UIState (interface)
-File: src/lib/core/types/types.ts:74
-```typescript
-export interface UIState {
-	selectedDataset: string | null;
-	columnStates: Record<
-		string,
-		{
-			selectedColumns: string[];
-			columnOrder: string[];
-			columnWidths: Record<string, number>;
-			sort: SortConfig[];
-		}
-	>;
-}
 ```
 
 #### ValidationResult (interface)
@@ -1018,6 +589,12 @@ export interface Commentable {
 }
 ```
 
+#### ComparatorType (type)
+File: src/lib/types/define-xml/whereClause.ts:1
+```typescript
+export type ComparatorType = 'EQ' | 'NE' | 'LT' | 'LE' | 'GT' | 'GE' | 'IN' | 'NOTIN';  /** * Represents a where clause definition in Define-XML * Maps to def:WhereClauseDef elements */ export interface RangeCheck { Comparator: ComparatorType;
+```
+
 #### DefineXML (interface)
 File: src/lib/types/define-xml/documents.ts:26
 ```typescript
@@ -1150,6 +727,19 @@ export interface ItemGroup {
 }
 ```
 
+#### ItemRef (interface)
+File: src/lib/types/define-xml/variables.ts:30
+```typescript
+export interface ItemRef {
+	OID: string | null;
+	Mandatory: string | null;
+	OrderNumber: string | null;
+	MethodOID: string | null;
+	WhereClauseOID: string | null;
+	KeySequence: string | null;
+}
+```
+
 #### MetaData (interface)
 File: src/lib/types/define-xml/base.ts:18
 ```typescript
@@ -1185,14 +775,44 @@ export interface MethodInfo {
 }
 ```
 
+#### ParsedDefineXML (interface)
+File: src/lib/types/define-xml/core.ts:12
+```typescript
+export interface ParsedDefineXML {
+	Study: Study;
+	MetaData: MetaData;
+	Standards: Standard[];
+	ItemGroups: ItemGroup[];
+	Methods: Method[];
+	ItemDefs: ItemDef[];
+	ItemRefs: ItemRef[];
+	Comments: Comment[];
+	CodeLists: CodeList[];
+	WhereClauseDefs: WhereClauseDef[];
+	ValueListDefs: ValueListDef[];
+	Dictionaries: Dictionary[];
+	Documents: Document[];
+	AnalysisResults: AnalysisResult[];
+}
+```
+
+#### ProcessedWhereClause (interface)
+File: src/lib/types/define-xml/whereClause.ts:34
+```typescript
+export interface ProcessedWhereClause {
+	paramcd: string; // When the condition is about PARAMCD
+	conditions: WhereClauseCondition[];
+}
+```
+
 #### RangeCheck (interface)
-File: src/lib/types/define-xml/variables.ts:37
+File: src/lib/types/define-xml/whereClause.ts:7
 ```typescript
 export interface RangeCheck {
-	Comparator: string | null;
-	SoftHard: string | null;
-	ItemOID: string | null;
-	CheckValues: string | null;
+	Comparator: ComparatorType;
+	SoftHard: 'Soft' | 'Hard';
+	ItemOID: string;
+	CheckValues: string[];
 }
 ```
 
@@ -1251,15 +871,37 @@ export interface ValueListDef {
 }
 ```
 
+#### VLMWhereClause (interface)
+File: src/lib/types/define-xml/whereClause.ts:40
+```typescript
+export interface VLMWhereClause {
+	comparator: ComparatorType;
+	checkValues: string[];
+	itemOID?: string;
+	source?: {
+		domain: string;
+		variable: string;
+	};
+}
+```
+
+#### WhereClauseCondition (interface)
+File: src/lib/types/define-xml/whereClause.ts:28
+```typescript
+export interface WhereClauseCondition {
+	variable: string; // Extracted from ItemOID
+	comparator: ComparatorType;
+	values: string[];
+}
+```
+
 #### WhereClauseDef (interface)
-File: src/lib/types/define-xml/variables.ts:49
+File: src/lib/types/define-xml/whereClause.ts:21
 ```typescript
 export interface WhereClauseDef {
-	OID: string | null;
-	Comparator: string | null;
-	SoftHard: string | null;
-	ItemOID: string | null;
-	CheckValues: string | null;
+	OID: string;
+	CommentOID?: string | null;
+	RangeChecks: RangeCheck[];
 }
 ```
 
