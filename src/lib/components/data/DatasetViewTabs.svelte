@@ -6,29 +6,39 @@
 	import VLMView from '$lib/components/data/VLMdataView.svelte';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
-	import type { ItemGroup } from '$lib/types';
+	import type { ParsedDefineXML, ItemGroup } from '$lib/types/define-xml';
 
 	type ViewType = 'data' | 'metadata' | 'VLM';
 
 	// State declarations
 	let selectedId = $state('');
 	let dataset = $state<any>(null);
-	let defineData = $state({ SDTM: null, ADaM: null });
+	let defineData = $state<DefineXmlDatasets>({ SDTM: null, ADaM: null });
 	let isLoading = $state(false);
 	let activeTab = $state<ViewType>('data');
 	let viewArray = $state<ViewType[]>([]);
+
+	interface DefineXmlDatasets {
+		SDTM: ParsedDefineXML | null;
+		ADaM: ParsedDefineXML | null;
+	}
 
 	// Derived values for metadata checks
 	let hasData = $derived(!!dataset?.data);
 	let normalizedDatasetName = $derived(selectedId ? normalizeDatasetId(selectedId) : '');
 	let hasSDTM = $derived(
-		defineData?.SDTM?.ItemGroups?.some(
-			(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
+		Boolean(
+			(defineData as DefineXmlDatasets)?.SDTM?.ItemGroups?.some(
+				(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
+			)
 		)
 	);
+
 	let hasADAM = $derived(
-		defineData?.ADaM?.ItemGroups?.some(
-			(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
+		Boolean(
+			(defineData as DefineXmlDatasets)?.ADaM?.ItemGroups?.some(
+				(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
+			)
 		)
 	);
 	let hasMetadata = $derived(hasSDTM || hasADAM);

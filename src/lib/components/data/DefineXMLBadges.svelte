@@ -22,11 +22,17 @@
 			// Find the actual file entry in datasetStore
 			const actualFileName = Object.entries(datasetStore.datasets).find(([_, dataset]) => {
 				if (
-					'metaData' in dataset.data &&
-					dataset.data.metaData &&
-					'OID' in dataset.data.metaData &&
+					typeof dataset.data === 'object' &&
+					dataset.data !== null &&
+					'MetaData' in dataset.data &&
+					dataset.data.MetaData &&
+					typeof dataset.data.MetaData === 'object' &&
+					dataset.data.MetaData !== null &&
+					'OID' in dataset.data.MetaData &&
 					defineTypeToDelete &&
-					defineFiles[defineTypeToDelete]?.metaData?.OID === dataset.data.metaData.OID
+					defineFiles[defineTypeToDelete] &&
+					typeof defineFiles[defineTypeToDelete] === 'object' &&
+					defineFiles[defineTypeToDelete] !== null
 				) {
 					return true;
 				}

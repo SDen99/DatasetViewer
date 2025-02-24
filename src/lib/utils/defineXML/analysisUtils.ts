@@ -20,8 +20,7 @@ export const analysisUtils = {
 		ProgrammingContext: null,
 		ProgrammingCode: null,
 		ProgrammingDocument: null,
-		Pages: null,
-		Document: null
+		Pages: null
 	}),
 
 	/**

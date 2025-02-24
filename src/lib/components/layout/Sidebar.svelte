@@ -127,7 +127,7 @@
 			class={resizeHandleClasses}
 			onmousedown={startResize}
 			onkeydown={handleKeyDown}
-			tabindex="0"
+			tabindex={0}
 		/>
 	{/if}
 </div>
