@@ -5,6 +5,7 @@ import { StorageService } from '$lib/core/services/StorageServices';
 import { datasetStore } from './datasetStore.svelte';
 import { UIStore } from './UIStore.svelte';
 import { untrack } from 'svelte';
+import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;

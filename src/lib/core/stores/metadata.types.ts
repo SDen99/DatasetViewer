@@ -1,7 +1,7 @@
-import type { itemDef, method, comment, CodeList } from '../processors/defineXML/types';
+import type { ItemDef, Method, Comment, CodeList } from '$lib/types/define-xml';
 
 export interface VariableDisplayProps {
-	variable: itemDef;
+	variable: ItemDef;
 	methodOID?: string | null;
 	hasVLM?: boolean;
 	orderNumber?: string;
@@ -11,10 +11,10 @@ export interface VariableDisplayProps {
 
 export interface MethodDisplayProps {
 	methodOID: string;
-	methods: method[];
-	comments: comment[];
+	methods: Method[];
+	comments: Comment[];
 	codeLists: CodeList[];
-	itemDef?: itemDef;
+	itemDef?: ItemDef;
 	isExpanded: boolean;
 	onToggle: () => void;
 }

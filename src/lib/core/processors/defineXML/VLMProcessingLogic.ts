@@ -219,7 +219,7 @@ function processMethod(methodOID: string, methods: Method[]): MethodInfo | undef
 	return {
 		Type: method.Type || null,
 		Description: method.Description || null,
-		Document: method.Document || null,
+		Document: method.Document || undefined,
 		TranslatedText: method.TranslatedText || null
 	};
 }
@@ -232,12 +232,12 @@ function processValueListDefs(
 ): VLMItemRef[] {
 	const itemRefs: VLMItemRef[] = [];
 
-	console.log('Processing ValueListDef:', {
+	/*console.log('Processing ValueListDef:', {
 		OID: valueListDef.OID,
 		itemRefsCount: valueListDef.ItemRefs?.length,
 		sampleItemRef: valueListDef.ItemRefs?.[0],
 		whereClauseDefs: define.WhereClauseDefs?.length
-	});
+	});*/
 
 	if (!valueListDef.ItemRefs) {
 		console.log('No ItemRefs found in ValueListDef');
@@ -245,10 +245,10 @@ function processValueListDefs(
 	}
 
 	valueListDef.ItemRefs.forEach((itemRef) => {
-		console.log('Processing ItemRef:', {
+		/*console.log('Processing ItemRef:', {
 			itemRef,
 			hasWhereClause: !!itemRef.WhereClauseOID
-		});
+		});*/
 
 		if (!itemRef.WhereClauseOID) {
 			console.log('No WhereClauseOID found');
@@ -261,10 +261,10 @@ function processValueListDefs(
 			datasetName
 		);
 
-		console.log('WhereClause processing result:', {
+		/*console.log('WhereClause processing result:', {
 			whereClauseOID: itemRef.WhereClauseOID,
 			result: whereClauseResult
-		});
+		});*/
 
 		if (!whereClauseResult || whereClauseResult.paramcd.length === 0) {
 			console.log(`No PARAMCD found for WhereClauseOID: ${itemRef.WhereClauseOID}`);
@@ -272,11 +272,11 @@ function processValueListDefs(
 		}
 
 		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.OID);
-		console.log('Looking up ItemDef:', {
+		/*	console.log('Looking up ItemDef:', {
 			OID: itemRef.OID,
 			found: !!itemDef,
 			matchingDef: itemDef
-		});
+		});*/
 		if (!itemDef) {
 			console.warn(`ItemDef not found for OID: ${itemRef.OID}`);
 			return;
@@ -311,8 +311,8 @@ function processValueListDefs(
 				whereClause: {
 					comparator: whereClauseResult.conditions[0].comparator,
 					checkValues: whereClauseResult.conditions[0].values,
-					whereClauseOID: itemRef.WhereClauseOID,
-					OID: itemRef.OID,
+					whereClauseOID: itemRef.WhereClauseOID || '',
+					OID: itemRef.OID || '',
 					source: {
 						domain: datasetName,
 						variable: whereClauseResult.conditions[0].variable
@@ -322,8 +322,8 @@ function processValueListDefs(
 					? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
 					: undefined,
 				methodOID: itemRef.MethodOID || undefined,
-				valueListOID: valueListDef.OID,
-				OID: itemDef.OID,
+				valueListOID: valueListDef.OID || undefined,
+				OID: itemDef.OID || undefined,
 				codelist: codelistInfo,
 				origin: processOriginInfo(itemDef),
 				itemDescription: itemDef.Description,
@@ -337,6 +337,15 @@ function processValueListDefs(
 	});
 
 	return itemRefs;
+}
+
+function getOriginInfo(itemDef: ItemDef): OriginInfo {
+	return {
+		type: itemDef.OriginType || '',
+		source: itemDef.OriginSource || null,
+		description: itemDef.Description || null,
+		translatedText: (itemDef as any).OriginTranslatedText || null // Type assertion if property doesn't exist in interface
+	};
 }
 
 export function processValueLevelMetadata(

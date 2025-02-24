@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ParsedDefineXML } from '$lib/types/define-xml';
+	import type { ParsedDefineXML, ItemRef, ItemDef, ValueListDef } from '$lib/types/define-xml';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { Search, Table as TableIcon, LayoutList } from 'lucide-svelte';
 	import { Input } from '$lib/components/core/input';
@@ -43,7 +43,7 @@
 
 		const normalizedDatasetName = normalizeDatasetId(datasetName);
 
-		const datasetRefs = define.ItemRefs.filter((ref) => {
+		const datasetRefs = define.ItemRefs.filter((ref: ItemRef) => {
 			let refDataset;
 			if (sdtmDefine) {
 				refDataset = ref.OID?.split('.')[0] || '';
@@ -53,13 +53,15 @@
 			return normalizeDatasetId(refDataset) === normalizedDatasetName;
 		});
 
-		const itemDefsMap = new Map(define.ItemDefs.map((def) => [def.OID, def]));
+		const itemDefsMap = new Map(define.ItemDefs.map((def: ItemDef) => [def.OID, def]));
 		const vlmVars = new Set(
-			define.ValueListDefs.map((vld) => vld.OID?.split(`VL.${datasetName}.`)[1]).filter(Boolean)
+			define.ValueListDefs.map(
+				(vld: ValueListDef) => vld.OID?.split(`VL.${datasetName}.`)[1]
+			).filter(Boolean)
 		);
 
 		return datasetRefs
-			.map((ref) => {
+			.map((ref: ItemRef) => {
 				const varName = ref.OID?.split('.')[2] || '';
 				return {
 					...ref,
@@ -67,7 +69,7 @@
 					hasVLM: vlmVars.has(varName)
 				};
 			})
-			.sort((a, b) => {
+			.sort((a: { OrderNumber?: string }, b: { OrderNumber?: string }) => {
 				return parseInt(a.OrderNumber || '0') - parseInt(b.OrderNumber || '0');
 			});
 	}
@@ -79,7 +81,7 @@
 		const searchLower = rawState.searchTerm.toLowerCase();
 		if (!searchLower) return baseVars;
 
-		return baseVars.filter((variable) => {
+		return baseVars.filter((variable: { ItemDef?: ItemDef }) => {
 			const name = variable.ItemDef?.Name?.toLowerCase() || '';
 			const description = variable.ItemDef?.Description?.toLowerCase() || '';
 			return name.includes(searchLower) || description.includes(searchLower);
@@ -90,7 +92,7 @@
 		const filteredVars = getFilteredVariables();
 		if (filteredVars.length === 0) return false;
 
-		return filteredVars.every((variable) => {
+		return filteredVars.every((variable: { MethodOID?: string }) => {
 			const needsMethodExpansion = variable.MethodOID
 				? isMethodExpanded(variable, datasetName)
 				: true;
@@ -133,7 +135,10 @@
 					placeholder="Search variables..."
 					class="pl-8"
 					value={rawState.searchTerm}
-					oninput={(e) => updateSearch(e.target.value)}
+					oninput={(e: Event) => {
+						const target = e.target as HTMLInputElement;
+						updateSearch(target.value);
+					}}
 				/>
 			</div>
 
