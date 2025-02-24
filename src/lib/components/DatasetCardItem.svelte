@@ -121,7 +121,7 @@
 			<div class="flex flex-1 items-center gap-2">
 				<Tooltip.Provider>
 					<Tooltip.Root>
-						<Tooltip.Trigger asChild>
+						<Tooltip.Trigger>
 							<span class="inline-block">
 								<Icon class="h-4 w-4 {stateInfo.iconClass}" />
 							</span>
@@ -139,7 +139,7 @@
 				{#if props.class}
 					<Tooltip.Provider>
 						<Tooltip.Root>
-							<Tooltip.Trigger asChild>
+							<Tooltip.Trigger>
 								<div>
 									<Badge variant="outline" class="text-xs font-medium">
 										{getClassAbbreviation(props.class)}

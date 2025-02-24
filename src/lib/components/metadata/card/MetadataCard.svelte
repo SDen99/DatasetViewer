@@ -132,7 +132,7 @@
 												{#if variable.itemDef?.Origin}
 													{variable.itemDef.Origin}
 												{:else if variable.MethodOID}
-													{methods.find((m) => m.OID === variable.MethodOID)?.Name}
+													{methods.find((m: Method) => m.OID === variable.MethodOID)?.Name}
 												{:else if hasCodelist(variable, codeLists)}
 													{getCodeList(variable.itemDef, codeLists)?.Name}
 												{/if}
@@ -154,7 +154,7 @@
 									{#if variable.MethodOID && isMethodExpanded(variable, datasetName)}
 										<div class="space-y-2">
 											<pre class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">
-                        {methods.find((m) => m.OID === variable.MethodOID)?.Description ||
+                        {methods.find((m: Method) => m.OID === variable.MethodOID)?.Description ||
 													'No description available'}
                     </pre>
 
@@ -172,7 +172,7 @@
 										{#if getCodeList(variable.itemDef, codeLists)}
 											{@const codeList = getCodeList(variable.itemDef, codeLists)}
 											<div class="space-y-2">
-												{#if codeList.CodeListItems?.length}
+												{#if codeList?.CodeListItems?.length}
 													<div class="space-y-2">
 														{#each codeList.CodeListItems as item}
 															<div class="grid grid-cols-[100px,1fr] gap-2 text-sm">
@@ -195,7 +195,7 @@
 													</div>
 												{/if}
 
-												{#if codeList.EnumeratedItems?.length}
+												{#if codeList?.EnumeratedItems?.length}
 													<div class="space-y-2">
 														{#each codeList.EnumeratedItems as item}
 															<div class="flex gap-2 whitespace-nowrap text-sm">
@@ -214,7 +214,7 @@
 													</div>
 												{/if}
 
-												{#if codeList.Aliases?.length}
+												{#if codeList?.Aliases?.length}
 													<div class="text-xs text-muted-foreground">
 														Aliases: {codeList.Aliases.map((a) => `${a.Name} (${a.Context})`).join(
 															', '

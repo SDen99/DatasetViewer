@@ -202,7 +202,7 @@
 									{#if getCodeList(variable.itemDef, codeLists)}
 										{@const codeList = getCodeList(variable.itemDef, codeLists)}
 										<div class="space-y-2">
-											{#if codeList.CodeListItems?.length}
+											{#if codeList?.CodeListItems?.length}
 												<div class="space-y-2">
 													{#each codeList.CodeListItems as item}
 														<div class="grid grid-cols-[100px,1fr] gap-2 text-sm">
@@ -226,7 +226,7 @@
 												</div>
 											{/if}
 
-											{#if codeList.EnumeratedItems?.length}
+											{#if codeList?.EnumeratedItems?.length}
 												<div class="space-y-2">
 													{#each codeList.EnumeratedItems as item}
 														<div class="flex gap-2 whitespace-nowrap text-sm">
@@ -246,10 +246,11 @@
 												</div>
 											{/if}
 
-											{#if codeList.Aliases?.length}
+											{#if codeList?.Aliases?.length}
 												<div class="text-xs text-muted-foreground">
 													Aliases: {codeList.Aliases.map(
-														(a: { Name: string; Context: string }) => `${a.Name} (${a.Context})`
+														(a) => `${a.Name ?? ''}${a.Context ? ` (${a.Context})` : ''}`
+													)}
 													).join(', ')}
 												</div>
 											{/if}

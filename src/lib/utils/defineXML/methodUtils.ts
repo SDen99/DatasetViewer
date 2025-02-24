@@ -20,8 +20,8 @@ export const methodUtils = {
 		return {
 			Type: method.Type || null,
 			Description: method.Description,
-			Document: method.Document,
-			TranslatedText: method.TranslatedText || null
+			Document: method.Document || undefined,
+			TranslatedText: method.TranslatedText || undefined
 		};
 	},
 

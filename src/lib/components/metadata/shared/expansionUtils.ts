@@ -38,7 +38,7 @@ export function isExpanded(
 	const key = getExpansionKey(
 		variable.OID,
 		expansionType,
-		expansionType === EXPANSION_TYPE.METHOD ? variable.MethodOID : undefined
+		expansionType === EXPANSION_TYPE.METHOD ? (variable.MethodOID ?? undefined) : undefined
 	);
 
 	return expansions.has(key);
@@ -48,7 +48,7 @@ export function isExpanded(
  * Toggle a specific expansion
  */
 export function toggleExpansion(
-	variable: itemRef,
+	variable: ItemRef,
 	datasetName: string,
 	expansionType: ExpansionType
 ): void {
@@ -60,7 +60,7 @@ export function toggleExpansion(
 	const key = getExpansionKey(
 		variable.OID,
 		expansionType,
-		expansionType === EXPANSION_TYPE.METHOD ? variable.MethodOID : undefined
+		expansionType === EXPANSION_TYPE.METHOD ? (variable.MethodOID ?? undefined) : undefined
 	);
 
 	metadataViewStore.toggleExpansion(datasetName, key);

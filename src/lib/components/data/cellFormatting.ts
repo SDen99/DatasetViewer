@@ -6,7 +6,7 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 		data: itemRef,
 		whereClause: itemRef.whereClause,
 		method: itemRef.method,
-		valueListDef: itemRef.valueListDef,
+		valueListDef: itemRef.valueListOID,
 		// Dump all keys at root level
 		keys: Object.keys(itemRef)
 	});

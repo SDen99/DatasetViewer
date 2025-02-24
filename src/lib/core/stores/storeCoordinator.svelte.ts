@@ -111,7 +111,7 @@ export class StoreCoordinator {
 			// Restore saved state
 			if (vlmState.columnWidths) {
 				Object.entries(vlmState.columnWidths).forEach(([col, width]) => {
-					vlmStore.updateColumnWidth(actualId, col, width);
+					vlmStore.updateColumnWidth(actualId, col, Number(width));
 				});
 			}
 			if (vlmState.columnOrder) {
