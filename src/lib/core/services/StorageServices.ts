@@ -26,6 +26,7 @@ export interface AppPersistentState {
 	datasetViews: Record<string, DatasetViewState>;
 	uiPreferences: UIState;
 	metadataViews: Record<string, SerializedMetadataViewState>;
+	vlmViews: Record<string, any>;
 }
 
 export class StorageService {

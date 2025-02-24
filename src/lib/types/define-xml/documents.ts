@@ -3,11 +3,12 @@
 import type { Study, MetaData, Standard, Comment } from './base';
 import type { ItemGroup } from './groups';
 import type { Method } from './methods';
-import type { ItemDef, ItemRef, WhereClauseDef } from './variables';
+import type { ItemDef, ItemRef } from './variables';
 import type { CodeList } from './codelists';
 import type { Dictionary } from './dictionaries';
 import type { ValueListDef } from './valuelists';
 import type { AnalysisResult } from './analysis';
+import type { WhereClauseDef } from './whereClause';
 
 /**
  * Represents a document (leaf) in Define-XML

@@ -1,3 +1,5 @@
+import type { VLMItemRef } from '$lib/core/processors/defineXML/VLMProcessingLogic';
+
 export function formatCellContent(itemRef: VLMItemRef, columnName: string): string {
 	console.log('Raw ItemRef data:', {
 		column: columnName,
@@ -61,27 +63,31 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 	if (itemRef.method) {
 		const methodParts: string[] = [];
 
-		if (itemRef.method.type) {
+		if (itemRef.method.Type) {
+			// Changed from type to Type
 			methodParts.push(
-				`<span class="text-xs font-semibold uppercase text-muted-foreground">Type:</span> ${itemRef.method.type}`
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Type:</span> ${itemRef.method.Type}`
 			);
 		}
 
-		if (itemRef.method.description) {
+		if (itemRef.method.Description) {
+			// Changed from description to Description
 			methodParts.push(
-				`<span class="text-xs font-semibold uppercase text-muted-foreground">Description:</span> ${itemRef.method.description}`
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Description:</span> ${itemRef.method.Description}`
 			);
 		}
 
-		if (itemRef.method.translatedText) {
+		if (itemRef.method.TranslatedText) {
+			// Changed from translatedText to TranslatedText
 			methodParts.push(
-				`<span class="text-xs font-semibold uppercase text-muted-foreground">Details:</span> ${itemRef.method.translatedText}`
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Details:</span> ${itemRef.method.TranslatedText}`
 			);
 		}
 
-		if (itemRef.method.document) {
+		if (itemRef.method.Document) {
+			// Changed from document to Document
 			methodParts.push(
-				`<span class="text-xs font-semibold uppercase text-muted-foreground">Document:</span> ${itemRef.method.document}`
+				`<span class="text-xs font-semibold uppercase text-muted-foreground">Document:</span> ${itemRef.method.Document}`
 			);
 		}
 
@@ -121,6 +127,7 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 			);
 		}
 	}
+
 	//Debug
 	const debugParts: string[] = [];
 	if (itemRef.valueListOID) {
@@ -129,14 +136,15 @@ export function formatCellContent(itemRef: VLMItemRef, columnName: string): stri
 	if (itemRef.whereClause?.whereClauseOID) {
 		debugParts.push(`WhereClause OID: ${itemRef.whereClause.whereClauseOID}`);
 	}
-	if (itemRef.whereClause?.itemOID) {
-		debugParts.push(`Item OID: ${itemRef.whereClause.itemOID}`);
+	if (itemRef.whereClause?.OID) {
+		debugParts.push(`Item OID: ${itemRef.whereClause.OID}`);
 	}
 	if (itemRef.methodOID) {
 		debugParts.push(`Method OID: ${itemRef.methodOID}`);
 	}
-	if (itemRef.itemDefOID) {
-		debugParts.push(`ItemDef OID: ${itemRef.itemDefOID}`);
+	if (itemRef.OID) {
+		// Changed from itemDefOID to OID
+		debugParts.push(`ItemDef OID: ${itemRef.OID}`);
 	}
 
 	if (debugParts.length > 0) {

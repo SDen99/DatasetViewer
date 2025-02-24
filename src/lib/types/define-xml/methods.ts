@@ -11,6 +11,7 @@ export interface Method {
 	Description: string | null;
 	Document: string | null;
 	Pages: string | null;
+	TranslatedText?: string | null;
 }
 
 /**

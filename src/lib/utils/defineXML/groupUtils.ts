@@ -1,6 +1,6 @@
 // src/lib/utils/defineXML/groupUtils.ts
 
-import type { ItemGroup, ItemRef } from '$lib/types/define-xml/groups';
+import type { ItemGroup, ItemRef } from '$lib/types/define-xml';
 
 export const groupUtils = {
 	/**

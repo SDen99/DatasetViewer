@@ -1,6 +1,6 @@
 // src/lib/utils/methodUtils.ts
 
-import type { Method, MethodInfo } from '$lib/types/define-xml/methods';
+import type { Method, MethodInfo } from '$lib/types/define-xml';
 
 export const methodUtils = {
 	/**

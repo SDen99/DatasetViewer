@@ -48,7 +48,7 @@ export interface AnalysisDataset {
  * Maps to arm:AnalysisVariable elements
  */
 export interface AnalysisVariable {
-	ItemOID: string;
+	OID: string;
 	WhereClauseRefs?: Array<{
 		WhereClauseOID: string;
 	}>;

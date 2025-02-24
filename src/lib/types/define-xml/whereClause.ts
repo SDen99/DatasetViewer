@@ -40,7 +40,7 @@ export interface ProcessedWhereClause {
 export interface VLMWhereClause {
 	comparator: ComparatorType;
 	checkValues: string[];
-	itemOID?: string;
+	OID?: string;
 	source?: {
 		domain: string;
 		variable: string;

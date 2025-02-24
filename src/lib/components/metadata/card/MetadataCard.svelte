@@ -1,11 +1,5 @@
 <script lang="ts">
-	import type {
-		ParsedDefineXML,
-		method,
-		comment,
-		CodeList,
-		itemRef
-	} from '$lib/core/processors/defineXML/types';
+	import type { ParsedDefineXML, Method, Comment, CodeList, ItemRef } from '$lib/types/define-xml';
 	import { Card, CardContent } from '$lib/components/core/card';
 	import { Badge } from '$lib/components/core/badge';
 	import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
@@ -22,14 +16,14 @@
 	let { define, datasetName, filteredVariables, methods, comments, codeLists } = $props<{
 		define: ParsedDefineXML;
 		datasetName: string;
-		filteredVariables: itemRef[];
-		methods: method[];
-		comments: comment[];
+		filteredVariables: ItemRef[];
+		methods: Method[];
+		comments: Comment[];
 		codeLists: CodeList[];
 	}>();
 
 	// Handle variable expansion
-	function handleExpandToggle(variable: itemRef) {
+	function handleExpandToggle(variable: ItemRef) {
 		if (variable.MethodOID) {
 			toggleExpansion(variable, datasetName, EXPANSION_TYPE.METHOD);
 		}
@@ -39,7 +33,7 @@
 	}
 
 	// Helper for checking expansion state for chevron
-	function isExpanded(variable: itemRef): boolean {
+	function isExpanded(variable: ItemRef): boolean {
 		return isAnyExpansionActive(variable, datasetName);
 	}
 </script>

@@ -1,6 +1,6 @@
 // src/lib/utils/defineXML/variableUtils.ts
 
-import type { ItemDef, ItemRef, WhereClauseDef } from '$lib/types/define-xml/variables';
+import type { ItemDef, ItemRef } from '$lib/types/define-xml';
 import { baseUtils } from './baseUtils';
 
 export const variableUtils = {

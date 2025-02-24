@@ -36,7 +36,7 @@ export interface VLMItemRef {
 		comparator: RangeCheck['Comparator'];
 		checkValues: string[];
 		whereClauseOID: string;
-		itemOID: string;
+		OID: string;
 		source: {
 			domain: string;
 			variable: string;
@@ -44,7 +44,7 @@ export interface VLMItemRef {
 	};
 	methodOID?: string;
 	valueListOID?: string;
-	itemDefOID?: string;
+	OID?: string;
 	method?: MethodInfo;
 	origin?: OriginInfo;
 	itemDescription?: string | null;
@@ -271,18 +271,18 @@ function processValueListDefs(
 			return;
 		}
 
-		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.ItemOID);
+		const itemDef = define.ItemDefs.find((def) => def.OID === itemRef.OID);
 		console.log('Looking up ItemDef:', {
-			itemOID: itemRef.ItemOID,
+			OID: itemRef.OID,
 			found: !!itemDef,
 			matchingDef: itemDef
 		});
 		if (!itemDef) {
-			console.warn(`ItemDef not found for ItemOID: ${itemRef.ItemOID}`);
+			console.warn(`ItemDef not found for OID: ${itemRef.OID}`);
 			return;
 		}
 
-		let codelistInfo;
+		let codelistInfo: any | undefined;
 		if (itemDef.CodeListOID) {
 			const codeList = define.CodeLists.find((cl) => cl.OID === itemDef.CodeListOID);
 			if (codeList) {
@@ -312,7 +312,7 @@ function processValueListDefs(
 					comparator: whereClauseResult.conditions[0].comparator,
 					checkValues: whereClauseResult.conditions[0].values,
 					whereClauseOID: itemRef.WhereClauseOID,
-					itemOID: itemRef.ItemOID,
+					OID: itemRef.OID,
 					source: {
 						domain: datasetName,
 						variable: whereClauseResult.conditions[0].variable
@@ -323,7 +323,7 @@ function processValueListDefs(
 					: undefined,
 				methodOID: itemRef.MethodOID,
 				valueListOID: valueListDef.OID,
-				itemDefOID: itemDef.OID,
+				OID: itemDef.OID,
 				codelist: codelistInfo,
 				origin: processOriginInfo(itemDef),
 				itemDescription: itemDef.Description,

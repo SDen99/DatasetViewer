@@ -42,8 +42,10 @@ export interface Dataset {
 		dtypes: Record<string, string>;
 		num_columns: number;
 		num_rows: number;
+		summary: Record<string, any>;
 	};
 	processingStats: ProcessingStats;
+	processingTime: number;
 	defineAssociation?: {
 		type: 'SDTM' | 'ADaM';
 		defineId: string;

@@ -1,6 +1,6 @@
 // src/lib/utils/defineXML/baseUtils.ts
 
-import type { Study, MetaData } from '$lib/types/define-xml/base';
+import type { Study, MetaData } from '$lib/types/define-xml';
 
 export const baseUtils = {
 	/**

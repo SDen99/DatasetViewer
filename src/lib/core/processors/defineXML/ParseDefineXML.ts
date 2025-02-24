@@ -170,7 +170,6 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 	const ItemRefs: ItemRef[] = Array.from(
 		metaDataVersion.querySelectorAll('ItemGroupDef > ItemRef')
 	).map((item) => ({
-		ItemOID: getAttribute(item, 'ItemOID') || null,
 		OID: getAttribute(item, 'ItemOID') || null, // to remove at some point ... ..
 		Mandatory: getAttribute(item, 'Mandatory') || null,
 		OrderNumber: getAttribute(item, 'OrderNumber') || null,
@@ -390,7 +389,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 			ItemRefs: Array.from(vld.children)
 				.filter((child) => child.localName === 'ItemRef')
 				.map((ir) => ({
-					ItemOID: ir.getAttribute('ItemOID') || null,
+					OID: ir.getAttribute('ItemOID') || null,
 					Mandatory: ir.getAttribute('Mandatory') || null,
 					OrderNumber: ir.getAttribute('OrderNumber') || null,
 					MethodOID: ir.getAttribute('MethodOID') || null,
@@ -401,7 +400,8 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 								(child) =>
 									child.localName === 'WhereClauseRef' && child.namespaceURI === namespaceURI
 							)
-							?.getAttribute('WhereClauseOID') || null
+							?.getAttribute('WhereClauseOID') || null,
+					KeySequence: null
 				}))
 		};
 
@@ -414,7 +414,7 @@ export const parseDefineXML = async (xmlString: string): Promise<ParsedDefineXML
 		return valueListDef;
 	});
 
-	const Documents: DocumentRef[] = Array.from(metaDataVersion.children)
+	const Documents: Document[] = Array.from(metaDataVersion.children)
 		.filter((child) => child.nodeName === 'def:leaf')
 		.map((leaf) => ({
 			ID: leaf.getAttribute('ID') || null,

@@ -1,6 +1,6 @@
 // src/lib/utils/codeListUtils.ts
 
-import type { CodeList } from '$lib/types/define-xml/codelists';
+import type { CodeList } from '$lib/types/define-xml';
 
 /**
  * General utility functions for working with CodeLists
