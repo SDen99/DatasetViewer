@@ -206,9 +206,9 @@ function processOriginInfo(itemDef: ItemDef): OriginInfo | undefined {
 
 	return {
 		type: itemDef.OriginType || '',
-		source: itemDef.Origin,
+		source: itemDef.Origin || null,
 		description: itemDef.Description || null,
-		translatedText: itemDef.OriginTranslatedText || null
+		translatedText: (itemDef as any).OriginTranslatedText || null
 	};
 }
 
@@ -219,7 +219,7 @@ function processMethod(methodOID: string, methods: Method[]): MethodInfo | undef
 	return {
 		Type: method.Type || null,
 		Description: method.Description || null,
-		Document: method.Document,
+		Document: method.Document || null,
 		TranslatedText: method.TranslatedText || null
 	};
 }
@@ -292,7 +292,7 @@ function processValueListDefs(
 					items: codeList.CodeListItems?.map((item) => ({
 						codedValue: item.CodedValue,
 						decode: item.Decode?.TranslatedText || '',
-						isExtended: item.ExtendedValue === 'Yes'
+						isExtended: item.ExtendedValue === true
 					}))
 				};
 			}
@@ -321,7 +321,7 @@ function processValueListDefs(
 				method: itemRef.MethodOID
 					? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
 					: undefined,
-				methodOID: itemRef.MethodOID,
+				methodOID: itemRef.MethodOID || undefined,
 				valueListOID: valueListDef.OID,
 				OID: itemDef.OID,
 				codelist: codelistInfo,

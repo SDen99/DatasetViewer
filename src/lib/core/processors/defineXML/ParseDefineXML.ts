@@ -1,5 +1,16 @@
-import type { Study, MetaData, Standard, DocumentRef, Comment } from '$lib/types/define-xml';
-import type { Method, ItemGroup, ItemDef, ItemRef, CodeList } from '$lib/types/define-xml';
+import type {
+	Study,
+	MetaData,
+	Standard,
+	Document,
+	Comment,
+	Method,
+	ItemGroup,
+	ItemDef,
+	ItemRef,
+	CodeList
+} from '$lib/types/define-xml';
+
 import type {
 	Dictionary,
 	ValueListDef,

@@ -59,9 +59,11 @@ export class StorageService {
 				rightSidebarWidth: 320,
 				viewMode: 'data',
 				SDTM: false,
-				ADaM: false
+				ADaM: false,
+				metadataViewMode: 'default'
 			},
-			metadataViews: {}
+			metadataViews: {},
+			vlmViews: {}
 		};
 	}
 

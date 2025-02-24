@@ -25,6 +25,7 @@ export interface ItemDef {
 	Common: boolean | null;
 	Pages: string | null;
 	DeveloperNotes: string | null;
+	OriginTranslatedText?: string | null;
 }
 
 export interface ItemRef {

@@ -18,10 +18,10 @@ export const methodUtils = {
 		if (!method) return undefined;
 
 		return {
-			type: method.Type,
-			description: method.Description,
-			document: method.Document,
-			translatedText: method.TranslatedText || null
+			Type: method.Type || null,
+			Description: method.Description,
+			Document: method.Document,
+			TranslatedText: method.TranslatedText || null
 		};
 	},
 
@@ -34,7 +34,7 @@ export const methodUtils = {
 			Name: null,
 			Description: null,
 			Type: null,
-			Document: undefined,
+			Document: null,
 			Pages: null,
 			TranslatedText: null
 		};
