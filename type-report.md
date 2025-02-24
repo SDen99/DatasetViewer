@@ -71,7 +71,7 @@ export interface Sas7bdatProcessingResult extends BaseProcessingResult {
 ### src/lib/core/processors/defineXML
 
 #### CodeListInfo (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:9
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:14
 ```typescript
 export interface CodeListInfo {
 	ordinal: number;
@@ -92,7 +92,7 @@ export type DataType = | 'BASIC DATA STRUCTURE' | 'SUBJECT LEVEL ANALYSIS DATASE
 ```
 
 #### OriginInfo (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:20
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:25
 ```typescript
 export interface OriginInfo {
 	type: string;
@@ -103,7 +103,7 @@ export interface OriginInfo {
 ```
 
 #### ProcessedVLM (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:56
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:82
 ```typescript
 export interface ProcessedVLM {
 	dataset: string;
@@ -112,12 +112,24 @@ export interface ProcessedVLM {
 ```
 
 #### VLMItemRef (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:27
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:32
 ```typescript
 export interface VLMItemRef {
 	paramcd: string;
 	paramInfo?: CodeListInfo;
-	whereClause?: VLMWhereClause;
+	whereClause?: {
+		comparator: RangeCheck['Comparator'];
+		checkValues: string[];
+		whereClauseOID: string;
+		OID: string;
+		source: {
+			domain: string;
+			variable: string;
+		};
+	};
+	methodOID?: string;
+	valueListOID?: string;
+	OID?: string;
 	method?: MethodInfo;
 	origin?: OriginInfo;
 	itemDescription?: string | null;
@@ -131,17 +143,26 @@ export interface VLMItemRef {
 			value?: string;
 		};
 	};
+	codelist?: {
+		OID: string;
+		name?: string;
+		items?: Array<{
+			codedValue: string;
+			decode: string;
+			isExtended?: boolean;
+		}>;
+	};
 }
 ```
 
 #### VLMVariable (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:46
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:72
 ```typescript
 export interface VLMVariable {
 	name: string;
 	valueListDef: {
 		OID: string;
-		itemRefs: VLMItemRef[];
+		ItemRefs: VLMItemRef[];
 	};
 	origin?: string;
 	codeList?: string;
@@ -149,7 +170,7 @@ export interface VLMVariable {
 ```
 
 #### WhereClauseResult (interface)
-File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:61
+File: src/lib/core/processors/defineXML/VLMProcessingLogic.ts:87
 ```typescript
 interface WhereClauseResult {
 	paramcd: string[];
@@ -171,6 +192,7 @@ export interface AppPersistentState {
 	datasetViews: Record<string, DatasetViewState>;
 	uiPreferences: UIState;
 	metadataViews: Record<string, SerializedMetadataViewState>;
+	vlmViews: Record<string, any>;
 }
 ```
 
@@ -294,8 +316,10 @@ export interface Dataset {
 		dtypes: Record<string, string>;
 		num_columns: number;
 		num_rows: number;
+		summary: Record<string, any>;
 	};
 	processingStats: ProcessingStats;
+	processingTime: number;
 	defineAssociation?: {
 		type: 'SDTM' | 'ADaM';
 		defineId: string;
@@ -306,7 +330,7 @@ export interface Dataset {
 ```
 
 #### DatasetLoadingState (interface)
-File: src/lib/core/types/types.ts:54
+File: src/lib/core/types/types.ts:56
 ```typescript
 export interface DatasetLoadingState {
 	progress: number; // 0 to 100
@@ -340,7 +364,7 @@ export enum FileType {
 ```
 
 #### InitState (type)
-File: src/lib/core/types/types.ts:85
+File: src/lib/core/types/types.ts:87
 ```typescript
 export type InitState = {
 	status: 'idle' | 'initializing' | 'ready' | 'error';
@@ -365,7 +389,7 @@ export interface ManagedWorker {
 ```
 
 #### PersistedState (interface)
-File: src/lib/core/types/types.ts:67
+File: src/lib/core/types/types.ts:69
 ```typescript
 export interface PersistedState {
 	selectedColumns: string[];
@@ -399,7 +423,7 @@ export interface PyodideInterface {
 ```
 
 #### ServiceContainer (interface)
-File: src/lib/core/types/types.ts:78
+File: src/lib/core/types/types.ts:80
 ```typescript
 export interface ServiceContainer {
 	getWorkerPool(): WorkerPool;
@@ -410,7 +434,7 @@ export interface ServiceContainer {
 ```
 
 #### SortConfig (type)
-File: src/lib/core/types/types.ts:62
+File: src/lib/core/types/types.ts:64
 ```typescript
 export type SortConfig = {
 	column: string;
@@ -498,7 +522,7 @@ export interface AnalysisResult {
 File: src/lib/types/define-xml/analysis.ts:50
 ```typescript
 export interface AnalysisVariable {
-	ItemOID: string;
+	OID: string;
 	WhereClauseRefs?: Array<{
 		WhereClauseOID: string;
 	}>;
@@ -596,7 +620,7 @@ export type ComparatorType = 'EQ' | 'NE' | 'LT' | 'LE' | 'GT' | 'GE' | 'IN' | 'N
 ```
 
 #### DefineXML (interface)
-File: src/lib/types/define-xml/documents.ts:26
+File: src/lib/types/define-xml/documents.ts:27
 ```typescript
 export interface DefineXML {
 	Study: Study;
@@ -629,7 +653,7 @@ export interface Dictionary {
 ```
 
 #### Document (interface)
-File: src/lib/types/define-xml/documents.ts:16
+File: src/lib/types/define-xml/documents.ts:17
 ```typescript
 export interface Document {
 	ID: string | null;
@@ -761,11 +785,12 @@ export interface Method {
 	Description: string | null;
 	Document: string | null;
 	Pages: string | null;
+	TranslatedText?: string | null;
 }
 ```
 
 #### MethodInfo (interface)
-File: src/lib/types/define-xml/methods.ts:20
+File: src/lib/types/define-xml/methods.ts:21
 ```typescript
 export interface MethodInfo {
 	Type: string | null;
@@ -877,7 +902,7 @@ File: src/lib/types/define-xml/whereClause.ts:40
 export interface VLMWhereClause {
 	comparator: ComparatorType;
 	checkValues: string[];
-	itemOID?: string;
+	OID?: string;
 	source?: {
 		domain: string;
 		variable: string;

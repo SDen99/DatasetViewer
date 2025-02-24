@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { method } from '$lib/core/processors/defineXML/types';
+	import type { Method } from '$lib/types/define-xml';
 	import { ChevronDown, ChevronRight } from 'lucide-svelte';
 
 	let { methodOID, methods, isExpanded, onToggle } = $props<{
 		methodOID: string | null;
-		methods: method[];
+		methods: Method[];
 		isExpanded: boolean;
 		onToggle: () => void;
 	}>();

@@ -1,4 +1,4 @@
-import type { ItemGroup } from '$lib/core/processors/defineXML/types';
+import type { ItemGroup } from '$lib/types/define-xml';
 import type { Dataset } from '../types/types';
 
 export function isDatasetLoaded(datasetName: string, loadedDatasets: Set<string>): boolean {

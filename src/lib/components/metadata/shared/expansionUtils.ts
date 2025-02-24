@@ -1,4 +1,4 @@
-import type { itemRef, itemDef, CodeList } from '$lib/core/processors/defineXML/types';
+import type { ItemRef, ItemDef, CodeList } from '$lib/types/define-xml';
 import { metadataViewStore } from '$lib/core/stores/MetadataViewStore.svelte';
 import { hasCodelist } from './codelistUtils';
 
@@ -27,7 +27,7 @@ export function getExpansionKey(
  * Check if a specific expansion is active
  */
 export function isExpanded(
-	variable: itemRef,
+	variable: ItemRef,
 	datasetName: string,
 	expansionType: ExpansionType
 ): boolean {
@@ -69,7 +69,7 @@ export function toggleExpansion(
 /**
  * Check if any expansion is active for a variable
  */
-export function isAnyExpansionActive(variable: itemRef, datasetName: string): boolean {
+export function isAnyExpansionActive(variable: ItemRef, datasetName: string): boolean {
 	const methodExpanded = variable.MethodOID
 		? isExpanded(variable, datasetName, EXPANSION_TYPE.METHOD)
 		: false;
@@ -83,7 +83,7 @@ export function isAnyExpansionActive(variable: itemRef, datasetName: string): bo
  * Get all possible expansion keys for a dataset
  */
 export function getAllExpansionKeys(
-	variables: itemRef[],
+	variables: ItemRef[],
 	datasetName: string,
 	codeLists: CodeList[]
 ): string[] {
@@ -105,18 +105,18 @@ export function getAllExpansionKeys(
 }
 
 // Convenience wrappers to maintain existing API
-export function isMethodExpanded(variable: itemRef, datasetName: string): boolean {
+export function isMethodExpanded(variable: ItemRef, datasetName: string): boolean {
 	return isExpanded(variable, datasetName, EXPANSION_TYPE.METHOD);
 }
 
-export function isCodelistExpanded(variable: itemRef, datasetName: string): boolean {
+export function isCodelistExpanded(variable: ItemRef, datasetName: string): boolean {
 	return isExpanded(variable, datasetName, EXPANSION_TYPE.CODELIST);
 }
 
-export function toggleMethodExpansion(variable: itemRef, datasetName: string): void {
+export function toggleMethodExpansion(variable: ItemRef, datasetName: string): void {
 	toggleExpansion(variable, datasetName, EXPANSION_TYPE.METHOD);
 }
 
-export function toggleCodelistExpansion(variable: itemRef, datasetName: string): void {
+export function toggleCodelistExpansion(variable: ItemRef, datasetName: string): void {
 	toggleExpansion(variable, datasetName, EXPANSION_TYPE.CODELIST);
 }

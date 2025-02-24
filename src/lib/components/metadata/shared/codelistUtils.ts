@@ -1,4 +1,4 @@
-import type { CodeList, itemDef, itemRef } from '$lib/core/processors/defineXML/types';
+import type { CodeList, ItemDef, ItemRef } from '$lib/types/define-xml';
 
 // Cache for codelist lookups
 const codeListCache = new Map<string, CodeList | null>();
@@ -7,7 +7,7 @@ const codeListCache = new Map<string, CodeList | null>();
  * Get codelist for a variable's itemDef
  */
 export function getCodeList(
-	itemDef: itemDef | undefined | null,
+	itemDef: ItemDef | undefined | null,
 	codeLists: CodeList[]
 ): CodeList | null {
 	if (!itemDef?.CodeListOID) return null;
@@ -31,7 +31,7 @@ export function getCodeList(
  * Check if a variable has an associated codelist
  */
 export function hasCodelist(
-	variable: itemRef & { itemDef?: itemDef | null },
+	variable: ItemRef & { itemDef?: ItemDef | null },
 	codeLists: CodeList[]
 ): boolean {
 	const hasCodeList = Boolean(
