@@ -6,6 +6,7 @@
 	import VLMView from '$lib/components/data/VLMdataView.svelte';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
+	import type { ItemGroup } from '$lib/types';
 
 	type ViewType = 'data' | 'metadata' | 'VLM';
 
@@ -22,12 +23,12 @@
 	let normalizedDatasetName = $derived(selectedId ? normalizeDatasetId(selectedId) : '');
 	let hasSDTM = $derived(
 		defineData.SDTM?.ItemGroups?.some(
-			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+			(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
 		)
 	);
 	let hasADAM = $derived(
 		defineData.ADaM?.ItemGroups?.some(
-			(g) => g.Name && normalizeDatasetId(g.Name) === normalizedDatasetName
+			(g: ItemGroup) => g.Name && normalizeDatasetId(g.Name || '') === normalizedDatasetName
 		)
 	);
 	let hasMetadata = $derived(hasSDTM || hasADAM);

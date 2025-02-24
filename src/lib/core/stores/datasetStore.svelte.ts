@@ -213,10 +213,6 @@ export class DatasetStore {
 				'ItemGroups' in dataset.data
 			) {
 				defineXmlFiles[fileName] = dataset.data as unknown as ParsedDefineXML;
-				console.log('Found Define XML file:', fileName, {
-					metaDataOID: dataset.data.MetaData?.OID,
-					itemGroupsCount: dataset.data.ItemGroups?.length
-				});
 			}
 		}
 

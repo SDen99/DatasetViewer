@@ -1,6 +1,6 @@
 // src/lib/utils/defineXML/baseUtils.ts
 
-import type { Study, MetaData } from '$lib/types/define-xml';
+import type { Study, MetaData, BaseDefineEntity } from '$lib/types/define-xml';
 
 export const baseUtils = {
 	/**
@@ -21,5 +21,9 @@ export const baseUtils = {
 		Name: null,
 		Description: null,
 		DefineVersion: null
-	})
+	}),
+
+	isBaseDefineEntity(obj: any): obj is BaseDefineEntity {
+		return obj && typeof obj === 'object' && 'OID' in obj && 'Name' in obj;
+	}
 };
