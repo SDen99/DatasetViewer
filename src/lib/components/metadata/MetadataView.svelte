@@ -38,6 +38,10 @@
 		);
 	});
 
+	function isItemRef(obj: any): obj is ItemRef {
+		return obj && 'OID' in obj && 'Mandatory' in obj && 'OrderNumber' in obj;
+	}
+
 	function getBaseVariables() {
 		if (!define || !datasetMetadata()) return [];
 
@@ -93,12 +97,20 @@
 		if (filteredVars.length === 0) return false;
 
 		return filteredVars.every((variable: { MethodOID?: string }) => {
+			// Use the isItemRef type guard to check if variable is an ItemRef
+			if (!isItemRef(variable)) {
+				console.warn('Variable is not a valid ItemRef:', variable);
+				return false; // If it's not a valid ItemRef, return false
+			}
+
 			const needsMethodExpansion = variable.MethodOID
 				? isMethodExpanded(variable, datasetName)
 				: true;
+
 			const needsCodelistExpansion = hasCodelist(variable, codeLists)
 				? isCodelistExpanded(variable, datasetName)
 				: true;
+
 			return needsMethodExpansion && needsCodelistExpansion;
 		});
 	}

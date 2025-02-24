@@ -22,10 +22,11 @@
 			// Find the actual file entry in datasetStore
 			const actualFileName = Object.entries(datasetStore.datasets).find(([_, dataset]) => {
 				if (
-					dataset.data &&
-					typeof dataset.data === 'object' &&
 					'metaData' in dataset.data &&
-					dataset.data.metaData?.OID === defineFiles[defineTypeToDelete]?.metaData?.OID
+					dataset.data.metaData &&
+					'OID' in dataset.data.metaData &&
+					defineTypeToDelete &&
+					defineFiles[defineTypeToDelete]?.metaData?.OID === dataset.data.metaData.OID
 				) {
 					return true;
 				}
@@ -77,7 +78,7 @@
 	{#if hasSDTM}
 		<Tooltip.Provider>
 			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
+				<Tooltip.Trigger>
 					<div class="flex items-center gap-1">
 						<Badge variant="secondary" class="cursor-default">
 							SDTM
@@ -100,7 +101,7 @@
 	{#if hasADaM}
 		<Tooltip.Provider>
 			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
+				<Tooltip.Trigger>
 					<div class="flex items-center gap-1">
 						<Badge variant="secondary" class="cursor-default">
 							ADaM

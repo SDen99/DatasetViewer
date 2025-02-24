@@ -150,7 +150,7 @@
 							class={metadata.class}
 							state={datasetStore.getDatasetState(name)}
 							isSelected={normalizeDatasetId(name) === normalizeDatasetId(selectedDatasetId)}
-							loadingProgress={datasetStore.getDatasetState(name).loadingState}
+							loadingProgress={datasetStore.getDatasetState(name).loadingProgress}
 							onDelete={() => handleDeleteClick(name)}
 							onClick={() => handleDatasetClick(name)}
 						/>

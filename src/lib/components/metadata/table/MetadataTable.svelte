@@ -214,9 +214,8 @@
 																{/if}
 																{#if item.Aliases?.length}
 																	<div class="mt-1 text-xs text-muted-foreground">
-																		Aliases: {item.Aliases.map(
-																			(a: { Name: string; Context: string }) =>
-																				`${a.Name} (${a.Context})`
+																		Aliases:{item.Aliases.map(
+																			(a) => `${a.Name ?? ''} ${a.Context ? `(${a.Context})` : ''}`
 																		).join(', ')}
 																	</div>
 																{/if}
@@ -236,8 +235,7 @@
 																	class="overflow-hidden text-ellipsis text-xs text-muted-foreground"
 																>
 																	Aliases: {item.Aliases.map(
-																		(a: { Name: string; Context: string }) =>
-																			`${a.Name} (${a.Context})`
+																		(a) => `${a.Name ?? ''} ${a.Context ? `(${a.Context})` : ''}`
 																	).join(', ')}
 																</div>
 															{/if}

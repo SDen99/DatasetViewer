@@ -160,8 +160,8 @@
 
 											{#if variable.itemDef?.Comment}
 												<div class="mt-2 text-sm text-muted-foreground">
-													{comments.find((c) => c.OID === variable.itemDef?.Comment)?.Description ||
-														'No comment description available'}
+													{comments.find((c: Comment) => c.OID === variable.itemDef?.Comment)
+														?.Description || 'No comment description available'}
 												</div>
 											{/if}
 										</div>

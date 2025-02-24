@@ -7,11 +7,9 @@ export const analysisUtils = {
 	 * Create a new AnalysisResult with default values
 	 */
 	createAnalysisResult: (oid: string): AnalysisResult => ({
-		OID: oid,
-		Name: null,
 		Description: null,
 		Display: null,
-		ID: null,
+		ID: oid,
 		Variables: null,
 		Reason: null,
 		Purpose: null,
@@ -23,7 +21,7 @@ export const analysisUtils = {
 		ProgrammingCode: null,
 		ProgrammingDocument: null,
 		Pages: null,
-		Document: undefined
+		Document: null
 	}),
 
 	/**

@@ -166,11 +166,11 @@
 			return;
 		}
 
-		const fromIndex = displayData.columns.indexOf(draggedColumn);
-		const toIndex = displayData.columns.indexOf(targetColumn);
+		const columns = displayData.columns || [];
+		const fromIndex = columns.indexOf(draggedColumn);
+		const toIndex = columns.indexOf(targetColumn);
+		const newColumns = [...columns];
 
-		// Create new columns array
-		const newColumns = [...displayData.columns];
 		newColumns.splice(fromIndex, 1);
 		newColumns.splice(toIndex, 0, draggedColumn);
 
@@ -252,7 +252,7 @@
 									{#each displayData.columns as column}
 										<td
 											class="overflow-hidden text-ellipsis border p-2 align-top"
-											style="width: {columnWidths[column] || 150}px"
+											style="width: {(columnWidths as Record<string, number>)[column] || 150}px"
 										>
 											{#if column === 'PARAMCD' || column === 'PARAM'}
 												{row[column]}

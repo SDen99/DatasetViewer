@@ -10,7 +10,7 @@
 	}>();
 
 	const methodInfo = $derived(
-		!methodOID || !methods?.length ? null : methods.find((m) => m.OID === methodOID)
+		!methodOID || !methods?.length ? null : methods.find((m: Method) => m.OID === methodOID)
 	);
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -36,7 +36,7 @@
 	<div
 		class="flex cursor-pointer items-center gap-2"
 		role="button"
-		tabindex="0"
+		tabindex={0}
 		onclick={handleClick}
 		onkeydown={handleKeydown}
 	>
