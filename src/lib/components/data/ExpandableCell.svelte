@@ -1,24 +1,44 @@
 <script lang="ts">
-	let { content = '' } = $props<{ content: string }>();
+	import { Button } from '$lib/components/core/button';
+
+	let { content, maxHeight = '200px' } = $props<{
+		content: string;
+		maxHeight?: string;
+	}>();
 
 	let isExpanded = $state(false);
-	let shouldTruncate = $derived(content.length > 1000);
-	let displayContent = $derived(
-		isExpanded ? content : content.slice(0, 1000) + (shouldTruncate ? '...' : '')
-	);
+	let cellRef: HTMLDivElement;
+	let hasOverflow = $state(false);
+
+	function toggleExpanded() {
+		isExpanded = !isExpanded;
+	}
+
+	$effect(() => {
+		if (cellRef) {
+			// Check if content overflows the container
+			hasOverflow = cellRef.scrollHeight > cellRef.clientHeight;
+		}
+	});
 </script>
 
 <div class="relative">
-	<div class="whitespace-pre-wrap">
-		{@html displayContent}
+	<div
+		bind:this={cellRef}
+		class="overflow-hidden transition-all duration-200"
+		style:max-height={isExpanded ? 'none' : maxHeight}
+	>
+		{@html content}
 	</div>
 
-	{#if shouldTruncate}
-		<button
-			class="mt-1 text-xs text-blue-500 hover:text-blue-700"
-			onclick={() => (isExpanded = !isExpanded)}
+	{#if hasOverflow}
+		<Button
+			variant="ghost"
+			size="sm"
+			class="absolute bottom-0 right-0 h-6 bg-background/80 p-0 text-xs"
+			onclick={toggleExpanded}
 		>
-			{isExpanded ? 'Show Less' : 'Show More'}
-		</button>
+			{isExpanded ? 'Show less' : 'Show more'}
+		</Button>
 	{/if}
 </div>
