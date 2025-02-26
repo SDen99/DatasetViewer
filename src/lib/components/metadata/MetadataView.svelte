@@ -85,9 +85,9 @@
 		const searchLower = rawState.searchTerm.toLowerCase();
 		if (!searchLower) return baseVars;
 
-		return baseVars.filter((variable: { ItemDef?: ItemDef }) => {
-			const name = variable.ItemDef?.Name?.toLowerCase() || '';
-			const description = variable.ItemDef?.Description?.toLowerCase() || '';
+		return baseVars.filter((variable) => {
+			const name = variable.itemDef?.Name?.toLowerCase() || '';
+			const description = variable.itemDef?.Description?.toLowerCase() || '';
 			return name.includes(searchLower) || description.includes(searchLower);
 		});
 	}
