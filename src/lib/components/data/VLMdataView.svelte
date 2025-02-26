@@ -35,8 +35,43 @@
 	let tableRef = $state<HTMLElement | null>(null);
 	let isTableRendered = $state(false);
 
+	// Column visibility state
+	let visibleColumnState = $state<Record<string, boolean>>({});
+
 	// Section collapsed state tracking
 	let collapsedSections = $state<Record<string, boolean>>({});
+
+	// Calculate if all columns are hidden using derived state
+	function calculateAllColumnsHidden() {
+		if (!displayData?.columns) return false;
+
+		const nonFixedColumns = displayData.columns.filter(
+			(col) => !['PARAMCD', 'PARAM'].includes(col)
+		);
+
+		return (
+			nonFixedColumns.length > 0 &&
+			nonFixedColumns.every((col) => {
+				return visibleColumnState[col] === false;
+			})
+		);
+	}
+
+	// Derive allColumnsHidden from the state
+	let allColumnsHidden = $derived(calculateAllColumnsHidden());
+
+	// Get visible columns as a derived value
+	function getVisibleColumns() {
+		if (!displayData.columns) return [];
+
+		// Always show PARAMCD and PARAM, filter other columns by visibility state
+		return displayData.columns.filter((column) => {
+			return (
+				['PARAMCD', 'PARAM'].includes(column) ||
+				(visibleColumnState[column] !== undefined ? visibleColumnState[column] : true)
+			);
+		});
+	}
 
 	// Effect to handle define changes and processing
 	$effect(() => {
@@ -232,6 +267,21 @@
 		}
 	});
 
+	// Initialize column visibility when displayData changes
+	$effect(() => {
+		if (displayData?.hasData && displayData?.columns) {
+			// Only initialize columns that don't already have a visibility state
+			displayData.columns.forEach((column) => {
+				if (visibleColumnState[column] === undefined) {
+					// This approach avoids infinite loops by only setting values once
+					const newState = { ...visibleColumnState };
+					newState[column] = true;
+					visibleColumnState = newState;
+				}
+			});
+		}
+	});
+
 	// Initialize column widths after data is processed
 	$effect(() => {
 		if (displayData.hasData && displayData.columns && cleanDatasetName) {
@@ -272,19 +322,28 @@
 
 	function handleDragOver(e: DragEvent, column: string) {
 		e.preventDefault();
-		dragOverColumn = column;
+		if (getVisibleColumns().includes(column)) {
+			dragOverColumn = column;
+		}
 	}
 
 	function handleDrop(e: DragEvent, column: string) {
 		e.preventDefault();
 		if (draggedColumn && displayData.columns) {
-			const draggedIndex = displayData.columns.indexOf(draggedColumn);
-			const dropIndex = displayData.columns.indexOf(column);
+			const visibleCols = getVisibleColumns();
+			const draggedIndex = visibleCols.indexOf(draggedColumn);
+			const dropIndex = visibleCols.indexOf(column);
 
 			if (draggedIndex !== -1 && dropIndex !== -1) {
+				// Get the full columns array
 				const newColumns = [...displayData.columns];
-				newColumns.splice(draggedIndex, 1);
-				newColumns.splice(dropIndex, 0, draggedColumn);
+
+				// Remove draggedColumn from its current position
+				const draggedItem = newColumns.splice(newColumns.indexOf(draggedColumn), 1)[0];
+
+				// Insert at new position relative to the drop target
+				const targetIndex = newColumns.indexOf(column);
+				newColumns.splice(targetIndex, 0, draggedItem);
 
 				displayData = {
 					...displayData,
@@ -295,6 +354,22 @@
 
 		draggedColumn = null;
 		dragOverColumn = null;
+	}
+
+	// Toggle column visibility
+	function toggleColumnVisibility(column: string) {
+		const newState = { ...visibleColumnState };
+		newState[column] = !newState[column];
+		visibleColumnState = newState;
+	}
+
+	// Show all columns
+	function showAllColumns() {
+		const newState = { ...visibleColumnState };
+		Object.keys(newState).forEach((key) => {
+			newState[key] = true;
+		});
+		visibleColumnState = newState;
 	}
 
 	// Updated handleResize function
@@ -454,13 +529,43 @@
 			</AlertDescription>
 		</Alert>
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
+		<!-- Column Visibility Controls -->
+		<div class="mb-4">
+			<div class="flex items-center justify-between">
+				<h3 class="font-medium">Columns</h3>
+				<button
+					type="button"
+					class="text-sm text-primary hover:underline disabled:opacity-50"
+					disabled={!allColumnsHidden}
+					onclick={() => showAllColumns()}
+				>
+					Show All
+				</button>
+			</div>
+
+			<div class="mt-2 flex flex-wrap gap-2">
+				{#each displayData.columns.filter((col) => !['PARAMCD', 'PARAM'].includes(col)) || [] as column}
+					<label
+						class="flex items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-sm shadow-sm"
+					>
+						<input
+							type="checkbox"
+							checked={visibleColumnState[column] !== false}
+							onclick={() => toggleColumnVisibility(column)}
+						/>
+						{column}
+					</label>
+				{/each}
+			</div>
+		</div>
+
 		<div class="rounded-lg border bg-card shadow-sm">
 			<div class="h-[calc(100vh-14rem)] w-full">
 				<div class="h-full overflow-auto">
-					<table class="w-full border-collapse">
+					<table class="w-full border-collapse" bind:this={tableRef}>
 						<thead class="sticky top-0 z-10">
 							<tr>
-								{#each displayData.columns as column}
+								{#each getVisibleColumns() as column}
 									<th
 										class="group/header relative whitespace-nowrap border bg-muted p-2 text-left font-semibold text-muted-foreground
 										{dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
@@ -483,7 +588,7 @@
 						<tbody>
 							{#each displayData.rows as row, i}
 								<tr class="{i % 2 === 0 ? 'bg-white' : 'bg-muted/10'} hover:bg-primary/5">
-									{#each displayData.columns as column}
+									{#each getVisibleColumns() as column}
 										<td
 											class="overflow-hidden border p-2 align-top"
 											style="width: {getColumnWidth(cleanDatasetName, column)}px"
