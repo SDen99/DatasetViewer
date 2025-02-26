@@ -34,7 +34,7 @@
 
 	// Effect to handle define changes and processing
 	$effect(() => {
-		activeDefine = sdtmDefine || adamDefine; // Use destructured variables directly
+		activeDefine = sdtmDefine || adamDefine;
 		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
 
 		if (activeDefine && cleanDatasetName) {
@@ -42,6 +42,7 @@
 		}
 	});
 
+	// Process VLM data into display format
 	// Process VLM data into display format
 	$effect(() => {
 		const vlmData = processor.vlmData();
@@ -68,74 +69,148 @@
 			const columns = new Set(['PARAMCD', 'PARAM']);
 			const rows = new Map<string, any>();
 
+			// Create a single special row for non-parameterized variables
+			const nonParameterizedRowId = 'NON_PARAMETERIZED_SPECIAL_ROW';
+			rows.set(nonParameterizedRowId, {
+				PARAMCD: '*',
+				PARAM: 'Non-Parameter Specific Variables',
+				isNonParameterized: true,
+				methodDescriptions: new Map<string, string>() // Store method descriptions by variable
+			});
+
+			let hasNonParameterizedData = false;
+
 			console.log('Starting data transformation', {
 				variableCount: vlmData.variables.size,
 				variables: Array.from(vlmData.variables.keys())
 			});
 
-			// First pass: Collect all variables and PARAMCDs
+			// First pass: Add all variables to columns
+			vlmData.variables.forEach((variable, variableName) => {
+				if (!['PARAMCD', 'PARAM'].includes(variableName)) {
+					columns.add(variableName);
+				}
+			});
+
+			// Second pass: Collect method descriptions for PARAMCD codes
+			vlmData.variables.forEach((variable, variableName) => {
+				if (variableName === 'PARAMCD' && variable.valueListDef.ItemRefs) {
+					variable.valueListDef.ItemRefs.forEach((itemRef) => {
+						if (itemRef.method?.Description && itemRef.paramcd) {
+							const paramcd = itemRef.paramcd;
+							if (!rows.has(paramcd)) {
+								rows.set(paramcd, {
+									PARAMCD: paramcd,
+									PARAM: itemRef.paramInfo?.decode || '',
+									isNonParameterized: false,
+									methodDescriptions: new Map<string, string>(),
+									// Store method description for PARAMCD itself
+									paramcdMethodDescription: itemRef.method.Description
+								});
+							} else if (itemRef.method.Description) {
+								rows.get(paramcd).paramcdMethodDescription = itemRef.method.Description;
+							}
+						}
+					});
+				}
+			});
+
+			// Third pass: Process all items and create rows
 			vlmData.variables.forEach((variable, variableName) => {
 				console.log('Processing variable:', {
 					name: variableName,
 					valueListDef: variable.valueListDef,
 					hasItemRefs: !!variable.valueListDef.ItemRefs,
-					itemRefsLength: variable.valueListDef.ItemRefs?.length || 0,
-					// Add a sample ItemRef if available
-					sampleItemRef: variable.valueListDef.ItemRefs?.[0]
+					itemRefsLength: variable.valueListDef.ItemRefs?.length || 0
 				});
 
-				if (!['PARAMCD', 'PARAM'].includes(variableName)) {
-					columns.add(variableName);
+				// Skip if no ItemRefs or if processing PARAMCD/PARAM
+				if (!variable.valueListDef.ItemRefs || ['PARAMCD', 'PARAM'].includes(variableName)) {
+					return;
 				}
 
-				// Add debugging before ItemRefs check
-				console.log(`Checking ItemRefs for ${variableName}:`, {
-					hasItemRefs: !!variable.valueListDef.ItemRefs,
-					condition: variable.valueListDef.ItemRefs ? 'will process' : 'will skip'
+				console.log(`Processing ItemRefs for ${variableName}`, {
+					count: variable.valueListDef.ItemRefs.length
 				});
 
-				// Process each ItemRef to create rows
-				if (variable.valueListDef.ItemRefs) {
-					console.log(`Processing ItemRefs for ${variableName}`, {
-						count: variable.valueListDef.ItemRefs.length
-					});
+				// Process each ItemRef
+				variable.valueListDef.ItemRefs.forEach((itemRef) => {
+					try {
+						// Handle non-parameterized items
+						if (itemRef.isNonParameterized) {
+							console.log(`Adding non-parameterized ${variableName} to consolidated row`);
+							rows.get(nonParameterizedRowId)[variableName] = itemRef;
 
-					variable.valueListDef.ItemRefs.forEach((itemRef) => {
-						console.log(`Processing ItemRef:`, {
-							paramcd: itemRef.paramcd,
-							decode: itemRef.paramInfo?.decode
-						});
+							// Store method description for this variable
+							if (itemRef.method?.Description) {
+								rows
+									.get(nonParameterizedRowId)
+									.methodDescriptions.set(variableName, itemRef.method.Description);
+							}
 
+							hasNonParameterizedData = true;
+							return;
+						}
+
+						// Handle regular parameterized items
 						const paramcd = itemRef.paramcd;
+						if (!paramcd) {
+							console.warn(`Skipping item with missing PARAMCD for ${variableName}`);
+							return;
+						}
+
+						// Create row if it doesn't exist
 						if (!rows.has(paramcd)) {
 							rows.set(paramcd, {
 								PARAMCD: paramcd,
-								PARAM: itemRef.paramInfo?.decode || ''
+								PARAM: itemRef.paramInfo?.decode || '',
+								isNonParameterized: false,
+								methodDescriptions: new Map<string, string>()
 							});
 						}
-					});
-				}
-			});
 
-			// Second pass: Add variable information to rows
-			vlmData.variables.forEach((variable, variableName) => {
-				if (variableName !== 'PARAMCD' && variableName !== 'PARAM') {
-					variable.valueListDef.ItemRefs.forEach((itemRef) => {
-						const row = rows.get(itemRef.paramcd);
-						if (row) {
-							row[variableName] = itemRef;
+						// Add this variable to the row
+						const row = rows.get(paramcd);
+						row[variableName] = itemRef;
+
+						// Store method description for this variable
+						if (itemRef.method?.Description) {
+							row.methodDescriptions.set(variableName, itemRef.method.Description);
 						}
-					});
-				}
+					} catch (err) {
+						console.error(`Error processing ItemRef for ${variableName}:`, err);
+					}
+				});
 			});
 
-			const sortedRows = Array.from(rows.values());
+			// Remove the non-parameterized row if there's no data
+			if (!hasNonParameterizedData) {
+				console.log('No non-parameterized data found, removing special row');
+				rows.delete(nonParameterizedRowId);
+			}
+
+			// Safely convert to array and sort
+			const rowsArray = Array.from(rows.values());
+			console.log('Rows before sorting:', rowsArray);
+
+			// Sort the rows with safe string comparison
+			const sortedRows = rowsArray.sort((a, b) => {
+				// Non-parameterized row first
+				if (a.isNonParameterized === true && b.isNonParameterized !== true) return -1;
+				if (a.isNonParameterized !== true && b.isNonParameterized === true) return 1;
+
+				// For regular rows, sort by PARAMCD
+				const paramcdA = String(a.PARAMCD || '');
+				const paramcdB = String(b.PARAMCD || '');
+				return paramcdA.localeCompare(paramcdB);
+			});
 
 			console.log('Final transformed data:', {
 				columnCount: columns.size,
 				columns: Array.from(columns),
 				rowCount: sortedRows.length,
-				sampleRow: sortedRows[0]
+				sampleRow: sortedRows.length > 0 ? sortedRows[0] : null,
+				hasNonParameterizedRow: hasNonParameterizedData
 			});
 
 			displayData = {
@@ -147,63 +222,9 @@
 			processingError = null;
 		} catch (error) {
 			console.error('VLM View - Error:', error);
-			processingError = error instanceof Error ? error.message : 'Unknown error';
+			processingError = error instanceof Error ? error.message : String(error);
 			displayData = { hasData: false };
 		}
-	});
-
-	function handleResize(column: string, width: number) {
-		if (cleanDatasetName) {
-			vlmStore.updateColumnWidth(cleanDatasetName, column, width);
-		}
-	}
-
-	function handleDrop(e: DragEvent, targetColumn: string) {
-		e.preventDefault();
-
-		if (!draggedColumn || draggedColumn === targetColumn || !cleanDatasetName) {
-			dragOverColumn = null;
-			return;
-		}
-
-		const columns = displayData.columns || [];
-		const fromIndex = columns.indexOf(draggedColumn);
-		const toIndex = columns.indexOf(targetColumn);
-		const newColumns = [...columns];
-
-		newColumns.splice(fromIndex, 1);
-		newColumns.splice(toIndex, 0, draggedColumn);
-
-		// Update both local state and store
-		displayData.columns = newColumns;
-		vlmStore.updateColumnOrder(cleanDatasetName, newColumns);
-
-		dragOverColumn = null;
-		draggedColumn = null;
-	}
-
-	function handleDragStart(e: DragEvent, column: string) {
-		draggedColumn = column;
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData('text/plain', column);
-		}
-	}
-
-	function handleDragOver(e: DragEvent, column: string) {
-		e.preventDefault();
-		if (draggedColumn === column) return;
-		dragOverColumn = column;
-		e.dataTransfer!.dropEffect = 'move';
-	}
-
-	$effect(() => {
-		console.log('Display Data Structure:', {
-			columns: displayData.columns,
-			rowCount: displayData.rows?.length,
-			sampleRow: displayData.rows?.[0],
-			allRows: displayData.rows
-		});
 	});
 </script>
 
@@ -251,10 +272,22 @@
 								<tr class="hover:bg-muted/50">
 									{#each displayData.columns as column}
 										<td
-											class="overflow-hidden text-ellipsis border p-2 align-top"
+											class="overflow-hidden border p-2 align-top"
 											style="width: {(columnWidths as Record<string, number>)[column] || 150}px"
 										>
-											{#if column === 'PARAMCD' || column === 'PARAM'}
+											{#if column === 'PARAMCD'}
+												<div>
+													<!-- Display PARAMCD in bold -->
+													<div class="font-bold">{row[column]}</div>
+
+													<!-- Display method description if available -->
+													{#if row.paramcdMethodDescription}
+														<div class="mt-1 text-xs text-muted-foreground">
+															{row.paramcdMethodDescription}
+														</div>
+													{/if}
+												</div>
+											{:else if column === 'PARAM'}
 												{row[column]}
 											{:else if row[column]}
 												<ExpandableCell content={formatCellContent(row[column], column)} />
