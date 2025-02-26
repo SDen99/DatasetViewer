@@ -62,7 +62,12 @@
 		if (hasData) newViews.push('data');
 		if (hasMetadata) {
 			newViews.push('metadata');
-			newViews.push('VLM');
+
+			// Check if this is a BDS dataset
+			const isBDSDataset = checkIfBDSDataset();
+			if (isBDSDataset) {
+				newViews.push('VLM');
+			}
 		}
 
 		viewArray = newViews;
@@ -75,6 +80,24 @@
 
 	function handleTabChange(newMode: string) {
 		uiStore.setViewMode(newMode as ViewType);
+	}
+
+	function checkIfBDSDataset(): boolean {
+		if (!normalizedDatasetName) return false;
+
+		if (defineData.ADaM?.ItemGroups) {
+			const adamDataset = defineData.ADaM.ItemGroups.find(
+				(g: ItemGroup) => normalizeDatasetId(g.Name || '') === normalizedDatasetName
+			);
+
+			if (adamDataset) {
+				return adamDataset.Class === 'BASIC DATA STRUCTURE';
+			}
+		}
+
+		// For SDTM datasets, we could add additional checks if needed
+
+		return false;
 	}
 </script>
 
