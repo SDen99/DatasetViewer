@@ -41,6 +41,9 @@
 	// Section collapsed state tracking
 	let collapsedSections = $state<Record<string, boolean>>({});
 
+	// PARAMCD filter
+	let paramcdFilter = $state('');
+
 	// Calculate if all columns are hidden using derived state
 	function calculateAllColumnsHidden() {
 		if (!displayData?.columns) return false;
@@ -72,6 +75,29 @@
 			);
 		});
 	}
+
+	// Get filtered rows based on PARAMCD filter
+	function getFilteredRows() {
+		if (!displayData?.rows || !paramcdFilter.trim()) {
+			return displayData?.rows || [];
+		}
+
+		const filter = paramcdFilter.trim().toLowerCase();
+
+		return displayData.rows.filter((row) => {
+			// For non-parameterized rows with PARAMCD='*', always show them
+			if (row.isNonParameterized) {
+				return true;
+			}
+
+			// Check if the PARAMCD contains the filter text
+			const paramcd = String(row.PARAMCD || '').toLowerCase();
+			return paramcd.includes(filter);
+		});
+	}
+
+	// Derive filtered rows from the PARAMCD filter
+	let filteredRows = $derived(getFilteredRows());
 
 	// Effect to handle define changes and processing
 	$effect(() => {
@@ -363,13 +389,39 @@
 		visibleColumnState = newState;
 	}
 
-	// Show all columns
-	function showAllColumns() {
-		const newState = { ...visibleColumnState };
-		Object.keys(newState).forEach((key) => {
-			newState[key] = true;
+	// Helper for debugging events
+	function logEvent(name, data) {
+		console.log(`Event: ${name}`, data);
+	}
+
+	// Create a direct, specialized function just for this action
+	// This helps bypass any potential issues with circular reactivity
+	function forceShowAllColumns() {
+		if (!displayData?.columns) return;
+
+		// Create new state object
+		const newState = {};
+
+		// Set ALL columns to true
+		displayData.columns.forEach((col) => {
+			newState[col] = true;
 		});
+
+		// Force console output for debugging
+		console.log('FORCE SHOW ALL COLUMNS', newState);
+
+		// Direct assignment
 		visibleColumnState = newState;
+
+		// Force a UI redraw with setTimeout
+		setTimeout(() => {
+			console.log('Checking column visibility state after update', visibleColumnState);
+		}, 100);
+	}
+
+	// Handle PARAMCD filter change
+	function handleParamcdFilterChange(e) {
+		paramcdFilter = e.target.value;
 	}
 
 	// Updated handleResize function
@@ -529,18 +581,44 @@
 			</AlertDescription>
 		</Alert>
 	{:else if displayData.hasData && displayData.columns && displayData.rows}
+		<!-- PARAMCD Filter -->
+		<div class="mb-4">
+			<div class="flex items-center gap-2">
+				<label for="paramcd-filter" class="font-medium">Filter PARAMCD:</label>
+				<input
+					id="paramcd-filter"
+					type="text"
+					class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+					placeholder="Enter PARAMCD..."
+					value={paramcdFilter}
+					oninput={handleParamcdFilterChange}
+				/>
+				{#if paramcdFilter.trim()}
+					<button
+						type="button"
+						class="text-sm text-muted-foreground hover:text-foreground"
+						onclick={() => (paramcdFilter = '')}
+					>
+						Clear
+					</button>
+				{/if}
+			</div>
+		</div>
+
 		<!-- Column Visibility Controls -->
 		<div class="mb-4">
-			<div class="flex items-center justify-between">
-				<h3 class="font-medium">Columns</h3>
+			<div class="flex items-center">
+				<h3 class="mr-3 font-medium">Columns</h3>
 				<button
 					type="button"
-					class="text-sm text-primary hover:underline disabled:opacity-50"
-					disabled={!allColumnsHidden}
-					onclick={() => showAllColumns()}
+					id="force-show-all-btn"
+					class="mr-4 rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:bg-primary/90"
+					onclick={forceShowAllColumns}
 				>
-					Show All
+					Show All Columns
 				</button>
+
+				<div class="flex-grow"></div>
 			</div>
 
 			<div class="mt-2 flex flex-wrap gap-2">
@@ -586,7 +664,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each displayData.rows as row, i}
+							{#each filteredRows as row, i}
 								<tr class="{i % 2 === 0 ? 'bg-white' : 'bg-muted/10'} hover:bg-primary/5">
 									{#each getVisibleColumns() as column}
 										<td
