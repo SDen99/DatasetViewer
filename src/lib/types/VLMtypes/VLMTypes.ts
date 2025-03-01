@@ -65,12 +65,16 @@ export interface VLMItemRef {
 	codelist?: {
 		OID: string;
 		name?: string;
+		comment?: { text: string; oid: string };
 		items?: Array<{
 			codedValue: string;
 			decode: string;
 			isExtended?: boolean;
+			orderNumber?: number;
 		}>;
 	};
+	// Add comments to the VLMItemRef structure
+	comments?: Array<{ text: string; oid: string }>;
 	isNonParameterized?: boolean;
 	specialVariables?: Record<string, string>;
 	stratificationInfo?: Record<

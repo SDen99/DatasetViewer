@@ -113,6 +113,7 @@
 	});
 
 	// Process VLM data into display format
+	// Process VLM data into display format
 	$effect(() => {
 		const vlmData = processor.vlmData();
 		const processingStatus = processor.status();
@@ -223,8 +224,12 @@
 						uniqueRowMap.set(rowKey, row);
 					}
 
-					// Add this variable to the row without modifying PARAMCD or PARAM
-					row[variableName] = itemRef;
+					// IMPORTANT CHANGE: Add variable data without overriding PARAMCD or PARAM
+					// When adding non-PARAMCD and non-PARAM variables, we want to keep the complex object
+					// but we've already set PARAMCD and PARAM as strings in the row
+					if (variableName !== 'PARAMCD' && variableName !== 'PARAM') {
+						row[variableName] = itemRef;
+					}
 
 					// Store method description
 					if (itemRef.method?.Description) {
@@ -530,6 +535,20 @@
 			setTimeout(applyAllColumnWidths, 100);
 		}
 	});
+
+	$effect(() => {
+		console.log('First row before rendering:', displayData.rows[0]);
+		console.log(
+			'Sample row data:',
+			displayData.rows.length > 0
+				? JSON.stringify(
+						displayData.rows[0],
+						(key, value) => (value instanceof Map ? Array.from(value.entries()) : value),
+						2
+					)
+				: 'No rows'
+		);
+	});
 </script>
 
 <!-- Debug info -->
@@ -611,7 +630,7 @@
 								{#each getVisibleColumns() as column}
 									<th
 										class="group/header relative whitespace-nowrap border bg-muted p-2 text-left font-semibold text-muted-foreground
-										{dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
+					  {dragOverColumn === column ? 'border-l-2 border-primary' : ''}"
 										style="width: {getColumnWidth(cleanDatasetName, column)}px"
 										data-column={column}
 										draggable={true}
@@ -639,18 +658,28 @@
 										>
 											{#if column === 'PARAMCD'}
 												<div>
-													<div class="font-mono font-bold">{String(row[column] || '')}</div>
+													<div class="font-mono font-bold">
+														{typeof row[column] === 'object'
+															? row[column]?.paramcd || row[column]?.paramInfo?.codedValue || ''
+															: String(row[column] || '')}
+													</div>
 												</div>
 											{:else if column === 'PARAM'}
-												<div class="font-medium">{String(row[column] || '')}</div>
+												<div class="font-medium">
+													{typeof row[column] === 'object'
+														? row[column]?.paramInfo?.decode || ''
+														: String(row[column] || '')}
+												</div>
 											{:else if stratificationColumns.has(column) && row[column]}
 												<!-- Display stratification column values -->
 												<div class="text-sm">
-													{String(row[column] || '')}
+													{typeof row[column] === 'object'
+														? JSON.stringify(row[column])
+														: String(row[column] || '')}
 												</div>
 											{:else if row[column]}
 												<!-- Process cell content by type -->
-												{#if row[column].itemDescription}
+												{#if typeof row[column] === 'object' && row[column].itemDescription}
 													<div class="mb-2">
 														<div class="mb-1 text-sm">
 															{column} Definition
@@ -662,9 +691,13 @@
 												{/if}
 
 												<!-- Where Clause -->
-												{#if row[column].whereClause}
+												{#if typeof row[column] === 'object' && row[column].whereClause}
 													{#if row[column].whereClause.source?.variable}
-														{@const sectionId = getSectionId(row.PARAMCD, column, 'where')}
+														{@const sectionId = getSectionId(
+															typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+															column,
+															'where'
+														)}
 														<div class="mb-2">
 															<button
 																type="button"
@@ -703,8 +736,12 @@
 												{/if}
 
 												<!-- Method -->
-												{#if row[column].method}
-													{@const sectionId = getSectionId(row.PARAMCD, column, 'method')}
+												{#if typeof row[column] === 'object' && row[column].method}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'method'
+													)}
 													<div class="mb-2">
 														<button
 															type="button"
@@ -750,8 +787,12 @@
 												{/if}
 
 												<!-- Codelist -->
-												{#if row[column].codelist}
-													{@const sectionId = getSectionId(row.PARAMCD, column, 'codelist')}
+												{#if typeof row[column] === 'object' && row[column].codelist}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'codelist'
+													)}
 													<div class="mb-2">
 														<button
 															type="button"
@@ -789,7 +830,11 @@
 												{/if}
 
 												<!-- Debug Info -->
-												{@const sectionId = getSectionId(row.PARAMCD, column, 'debug')}
+												{@const sectionId = getSectionId(
+													typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+													column,
+													'debug'
+												)}
 												<div class="mt-2 text-xs text-gray-500">
 													<button
 														type="button"
@@ -817,6 +862,139 @@
 														{/if}
 													</div>
 												</div>
+
+												<!-- Comments section -->
+												{#if typeof row[column] === 'object' && row[column].comments && row[column].comments.length > 0}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'comments'
+													)}
+													<div class="mb-2">
+														<button
+															type="button"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															onclick={() => toggleSection(sectionId)}
+															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+															aria-expanded={!collapsedSections[sectionId]}
+														>
+															<svg
+																class="h-3 w-3"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	d={collapsedSections[sectionId]
+																		? 'M9 5l7 7-7 7'
+																		: 'M19 9l-7 7-7-7'}
+																></path>
+															</svg>
+															<span class="text-xs font-medium"
+																>Comments ({row[column].comments.length})</span
+															>
+														</button>
+														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
+															{#each row[column].comments as comment, i}
+																<div class="mb-2 {i > 0 ? 'mt-3 border-t pt-2' : ''}">
+																	<div class="text-sm leading-relaxed">
+																		{comment.text}
+																	</div>
+																	<div class="mt-1 text-xs text-muted-foreground">
+																		Comment ID: {comment.oid}
+																	</div>
+																</div>
+															{/each}
+														</div>
+													</div>
+												{/if}
+
+												<!-- Enhanced CodeList section -->
+												{#if typeof row[column] === 'object' && row[column].codelist}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'codelist'
+													)}
+													<div class="mb-2">
+														<button
+															type="button"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															onclick={() => toggleSection(sectionId)}
+															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+															aria-expanded={!collapsedSections[sectionId]}
+														>
+															<svg
+																class="h-3 w-3"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	d={collapsedSections[sectionId]
+																		? 'M9 5l7 7-7 7'
+																		: 'M19 9l-7 7-7-7'}
+																></path>
+															</svg>
+															<span class="text-xs font-medium">
+																Codelist {row[column].codelist.items
+																	? `(${row[column].codelist.items.length} values)`
+																	: ''}
+															</span>
+														</button>
+														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
+															{#if row[column].codelist.name}
+																<div class="mb-2">
+																	<span class="text-xs font-medium text-muted-foreground"
+																		>Name:</span
+																	>
+																	<span class="ml-1">{row[column].codelist.name}</span>
+																</div>
+															{/if}
+
+															{#if row[column].codelist.comment}
+																<div class="mb-2 bg-muted/10 p-2 text-sm">
+																	<span class="block text-xs font-medium text-muted-foreground"
+																		>Comment:</span
+																	>
+																	<span class="text-sm">{row[column].codelist.comment.text}</span>
+																</div>
+															{/if}
+
+															{#if row[column].codelist.items && row[column].codelist.items.length > 0}
+																<div class="mt-2">
+																	<span class="mb-1 block text-xs font-medium text-muted-foreground"
+																		>Values:</span
+																	>
+																	<div class="max-h-60 overflow-y-auto rounded border">
+																		<table class="w-full text-sm">
+																			<thead class="bg-muted/20 text-xs">
+																				<tr>
+																					<th class="border-b px-2 py-1 text-left">Value</th>
+																					<th class="border-b px-2 py-1 text-left">Decode</th>
+																				</tr>
+																			</thead>
+																			<tbody>
+																				{#each row[column].codelist.items as item, i}
+																					<tr class={i % 2 === 0 ? 'bg-white' : 'bg-muted/5'}>
+																						<td class="border-b px-2 py-1 font-mono">
+																							{item.codedValue}
+																						</td>
+																						<td class="border-b px-2 py-1">
+																							{item.decode}
+																						</td>
+																					</tr>
+																				{/each}
+																			</tbody>
+																		</table>
+																	</div>
+																</div>
+															{/if}
+														</div>
+													</div>
+												{/if}
 											{/if}
 										</td>
 									{/each}
