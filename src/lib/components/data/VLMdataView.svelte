@@ -6,7 +6,7 @@
 	import { Alert, AlertDescription } from '$lib/components/core/alert';
 	import type { ParsedDefineXML } from '$lib/types/define-xml';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
-	import { createVLMProcessor } from './VLMProcessor.svelte';
+	import { createVLMProcessor } from '$lib/core/processors/defineXML/VLM/VLMProcessor.svelte';
 	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
 	let { sdtmDefine, adamDefine, datasetName } = $props<{
@@ -43,6 +43,9 @@
 
 	// PARAMCD filter
 	let paramcdFilter = $state('');
+
+	// Track stratification columns
+	let stratificationColumns = $state<Set<string>>(new Set());
 
 	// Calculate if all columns are hidden using derived state
 	function calculateAllColumnsHidden() {
@@ -114,11 +117,6 @@
 		const vlmData = processor.vlmData();
 		const processingStatus = processor.status();
 
-		console.log('Processing VLM Data:', {
-			status: processingStatus,
-			data: vlmData
-		});
-
 		if (processingStatus === 'error') {
 			processingError = processor.error() || 'Unknown error occurred';
 			displayData = { hasData: false };
@@ -126,158 +124,126 @@
 		}
 
 		if (!vlmData?.variables || vlmData.variables.size === 0) {
-			console.log('No VLM data available');
 			displayData = { hasData: false };
 			return;
 		}
 
 		try {
 			const columns = new Set(['PARAMCD', 'PARAM']);
-			const rows = new Map<string, any>();
+			const stratificationColumns = new Set<string>();
 
-			// Create a single special row for non-parameterized variables
-			const nonParameterizedRowId = 'NON_PARAMETERIZED_SPECIAL_ROW';
-			rows.set(nonParameterizedRowId, {
-				PARAMCD: '*',
-				PARAM: 'Non-Parameter Specific Variables',
-				isNonParameterized: true,
-				methodDescriptions: new Map<string, string>() // Store method descriptions by variable
-			});
-
-			let hasNonParameterizedData = false;
-
-			console.log('Starting data transformation', {
-				variableCount: vlmData.variables.size,
-				variables: Array.from(vlmData.variables.keys())
-			});
-
-			// First pass: Add all variables to columns
+			// First, collect all columns and identify stratification variables
 			vlmData.variables.forEach((variable, variableName) => {
 				if (!['PARAMCD', 'PARAM'].includes(variableName)) {
 					columns.add(variableName);
 				}
-			});
 
-			// Second pass: Collect method descriptions for PARAMCD codes
-			vlmData.variables.forEach((variable, variableName) => {
-				if (variableName === 'PARAMCD' && variable.valueListDef.ItemRefs) {
-					variable.valueListDef.ItemRefs.forEach((itemRef) => {
-						if (itemRef.method?.Description && itemRef.paramcd) {
-							const paramcd = itemRef.paramcd;
-							if (!rows.has(paramcd)) {
-								rows.set(paramcd, {
-									PARAMCD: paramcd,
-									PARAM: itemRef.paramInfo?.decode || '',
-									isNonParameterized: false,
-									methodDescriptions: new Map<string, string>(),
-									// Store method description for PARAMCD itself
-									paramcdMethodDescription: itemRef.method.Description
-								});
-							} else if (itemRef.method.Description) {
-								rows.get(paramcd).paramcdMethodDescription = itemRef.method.Description;
-							}
-						}
-					});
-				}
-			});
-
-			// Third pass: Process all items and create rows
-			vlmData.variables.forEach((variable, variableName) => {
-				console.log('Processing variable:', {
-					name: variableName,
-					valueListDef: variable.valueListDef,
-					hasItemRefs: !!variable.valueListDef.ItemRefs,
-					itemRefsLength: variable.valueListDef.ItemRefs?.length || 0
-				});
-
-				// Skip if no ItemRefs or if processing PARAMCD/PARAM
-				if (!variable.valueListDef.ItemRefs || ['PARAMCD', 'PARAM'].includes(variableName)) {
-					return;
-				}
-
-				console.log(`Processing ItemRefs for ${variableName}`, {
-					count: variable.valueListDef.ItemRefs.length
-				});
-
-				// Process each ItemRef
-				variable.valueListDef.ItemRefs.forEach((itemRef) => {
-					try {
-						// Handle non-parameterized items
-						if (itemRef.isNonParameterized) {
-							console.log(`Adding non-parameterized ${variableName} to consolidated row`);
-							rows.get(nonParameterizedRowId)[variableName] = itemRef;
-
-							// Store method description for this variable
-							if (itemRef.method?.Description) {
-								rows
-									.get(nonParameterizedRowId)
-									.methodDescriptions.set(variableName, itemRef.method.Description);
-							}
-
-							hasNonParameterizedData = true;
-							return;
-						}
-
-						// Handle regular parameterized items
-						const paramcd = itemRef.paramcd;
-						if (!paramcd) {
-							console.warn(`Skipping item with missing PARAMCD for ${variableName}`);
-							return;
-						}
-
-						// Create row if it doesn't exist
-						if (!rows.has(paramcd)) {
-							rows.set(paramcd, {
-								PARAMCD: paramcd,
-								PARAM: itemRef.paramInfo?.decode || '',
-								isNonParameterized: false,
-								methodDescriptions: new Map<string, string>()
-							});
-						}
-
-						// Add this variable to the row
-						const row = rows.get(paramcd);
-						row[variableName] = itemRef;
-
-						// Store method description for this variable
-						if (itemRef.method?.Description) {
-							row.methodDescriptions.set(variableName, itemRef.method.Description);
-						}
-					} catch (err) {
-						console.error(`Error processing ItemRef for ${variableName}:`, err);
+				// Look for stratification variables in the itemRefs
+				variable.valueListDef.ItemRefs?.forEach((itemRef) => {
+					if (itemRef.stratificationInfo) {
+						Object.keys(itemRef.stratificationInfo).forEach((stratVar) => {
+							stratificationColumns.add(stratVar);
+						});
 					}
 				});
 			});
 
-			// Remove the non-parameterized row if there's no data
-			if (!hasNonParameterizedData) {
-				console.log('No non-parameterized data found, removing special row');
-				rows.delete(nonParameterizedRowId);
-			}
+			// Add stratification columns to the display columns
+			stratificationColumns.forEach((column) => {
+				columns.add(column);
+			});
 
-			// Safely convert to array and sort
-			const rowsArray = Array.from(rows.values());
-			console.log('Rows before sorting:', rowsArray);
+			console.log('Identified stratification columns:', Array.from(stratificationColumns));
 
-			// Sort the rows with safe string comparison
-			const sortedRows = rowsArray.sort((a, b) => {
-				// Non-parameterized row first
-				if (a.isNonParameterized === true && b.isNonParameterized !== true) return -1;
-				if (a.isNonParameterized !== true && b.isNonParameterized === true) return 1;
+			// Create a map to track unique row identifiers
+			const uniqueRowMap = new Map();
 
-				// For regular rows, sort by PARAMCD
+			// Process all variables to create rows
+			vlmData.variables.forEach((variable, variableName) => {
+				if (!variable.valueListDef.ItemRefs) return;
+
+				variable.valueListDef.ItemRefs.forEach((itemRef) => {
+					// Skip entries without proper paramcd value
+					if (!itemRef.paramcd) {
+						console.log('Skipping entry without paramcd value');
+						return;
+					}
+
+					// Ensure paramcd is a string
+					const paramcdStr =
+						typeof itemRef.paramcd === 'string' ? itemRef.paramcd : String(itemRef.paramcd);
+
+					// Skip invalid or placeholder paramcd values
+					if (paramcdStr === 'undefined' || paramcdStr === 'null' || paramcdStr === '') {
+						console.log('Skipping entry with invalid paramcd:', paramcdStr);
+						return;
+					}
+
+					// Generate a unique identifier for this row based on PARAMCD and stratification
+					let rowKey = paramcdStr;
+
+					// Add stratification variables to the key if they exist
+					if (itemRef.stratificationInfo) {
+						Object.entries(itemRef.stratificationInfo).forEach(
+							([variable, { comparator, values }]) => {
+								if (values && values.length > 0) {
+									rowKey += `|${variable}:${comparator}:${values.join(',')}`;
+								}
+							}
+						);
+					}
+
+					// Get or create the row
+					let row = uniqueRowMap.get(rowKey);
+					if (!row) {
+						// Ensure paramInfo.decode is a string
+						const paramDecode = itemRef.paramInfo?.decode
+							? typeof itemRef.paramInfo.decode === 'string'
+								? itemRef.paramInfo.decode
+								: String(itemRef.paramInfo.decode)
+							: paramcdStr;
+
+						// Create a new row with proper string values
+						row = {
+							PARAMCD: paramcdStr,
+							PARAM: paramDecode,
+							methodDescriptions: new Map()
+						};
+
+						// Add stratification values as separate columns
+						if (itemRef.stratificationInfo) {
+							Object.entries(itemRef.stratificationInfo).forEach(([variable, info]) => {
+								const valueStr = Array.isArray(info.values)
+									? info.values.join(', ')
+									: String(info.values || '');
+								row[variable] = `${formatComparator(info.comparator)} ${valueStr}`;
+							});
+						}
+
+						uniqueRowMap.set(rowKey, row);
+					}
+
+					// Add this variable to the row without modifying PARAMCD or PARAM
+					row[variableName] = itemRef;
+
+					// Store method description
+					if (itemRef.method?.Description) {
+						row.methodDescriptions.set(variableName, itemRef.method.Description);
+					}
+				});
+			});
+
+			// Convert unique rows to array
+			const parameterRows = Array.from(uniqueRowMap.values());
+
+			// Sort rows by PARAMCD
+			const sortedRows = parameterRows.sort((a, b) => {
 				const paramcdA = String(a.PARAMCD || '');
 				const paramcdB = String(b.PARAMCD || '');
 				return paramcdA.localeCompare(paramcdB);
 			});
 
-			console.log('Final transformed data:', {
-				columnCount: columns.size,
-				columns: Array.from(columns),
-				rowCount: sortedRows.length,
-				sampleRow: sortedRows.length > 0 ? sortedRows[0] : null,
-				hasNonParameterizedRow: hasNonParameterizedData
-			});
+			console.log(`Created ${sortedRows.length} rows with stratification columns`);
 
 			displayData = {
 				hasData: true,
@@ -292,7 +258,6 @@
 			displayData = { hasData: false };
 		}
 	});
-
 	// Initialize column visibility when displayData changes
 	$effect(() => {
 		if (displayData?.hasData && displayData?.columns) {
@@ -674,18 +639,15 @@
 										>
 											{#if column === 'PARAMCD'}
 												<div>
-													<!-- Clean PARAMCD display -->
-													<div class="font-mono font-bold">{row[column]}</div>
-
-													<!-- Display method description if available -->
-													{#if row.paramcdMethodDescription}
-														<div class="mt-1 text-xs italic text-muted-foreground">
-															{row.paramcdMethodDescription}
-														</div>
-													{/if}
+													<div class="font-mono font-bold">{String(row[column] || '')}</div>
 												</div>
 											{:else if column === 'PARAM'}
-												<div class="font-medium">{row[column]}</div>
+												<div class="font-medium">{String(row[column] || '')}</div>
+											{:else if stratificationColumns.has(column) && row[column]}
+												<!-- Display stratification column values -->
+												<div class="text-sm">
+													{String(row[column] || '')}
+												</div>
 											{:else if row[column]}
 												<!-- Process cell content by type -->
 												{#if row[column].itemDescription}

@@ -1,5 +1,3 @@
-import type { VLMItemRef } from '$lib/core/processors/defineXML/VLMProcessingLogic';
-
 // Helper to format comparator for display
 function formatComparator(comparator: string): string {
 	switch (comparator) {
