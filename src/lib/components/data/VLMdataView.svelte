@@ -116,6 +116,7 @@
 	// Process VLM data into display format
 	$effect(() => {
 		const vlmData = processor.vlmData();
+
 		const processingStatus = processor.status();
 
 		if (processingStatus === 'error') {
@@ -542,9 +543,11 @@
 			'Sample row data:',
 			displayData.rows.length > 0
 				? JSON.stringify(
-						displayData.rows[0],
-						(key, value) => (value instanceof Map ? Array.from(value.entries()) : value),
-						2
+						displayData.rows.map((row) => {
+							return row instanceof Map ? Array.from(row.entries()) : row;
+						}),
+						null, // Replacer function
+						2 // Indentation level
 					)
 				: 'No rows'
 		);
@@ -580,7 +583,7 @@
 				{#if paramcdFilter.trim()}
 					<button
 						type="button"
-						class="text-sm text-muted-foreground hover:text-foreground"
+						class="text-sm text-muted-foreground hover:text-primary-foreground"
 						onclick={() => (paramcdFilter = '')}
 					>
 						Clear
@@ -701,7 +704,7 @@
 														<div class="mb-2">
 															<button
 																type="button"
-																class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+																class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
 																onclick={() => toggleSection(sectionId)}
 																onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
 																aria-expanded={!collapsedSections[sectionId]}
@@ -745,7 +748,7 @@
 													<div class="mb-2">
 														<button
 															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
 															onclick={() => toggleSection(sectionId)}
 															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
 															aria-expanded={!collapsedSections[sectionId]}
@@ -786,6 +789,46 @@
 													</div>
 												{/if}
 
+												<!-- Comment -->
+												{#if typeof row[column] === 'object' && row[column].comment}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'comment'
+													)}
+													<div class="mb-2">
+														<button
+															type="button"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
+															onclick={() => toggleSection(sectionId)}
+															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+															aria-expanded={!collapsedSections[sectionId]}
+														>
+															<svg
+																class="h-3 w-3"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	d={collapsedSections[sectionId]
+																		? 'M9 5l7 7-7 7'
+																		: 'M19 9l-7 7-7-7'}
+																></path>
+															</svg>
+															<span class="text-xs font-medium">Comment</span>
+														</button>
+														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
+															{#if row[column].comment.description}
+																<div class="mb-1">
+																	{row[column].comment.description}
+																</div>
+															{/if}
+														</div>
+													</div>
+												{/if}
+
 												<!-- Codelist -->
 												{#if typeof row[column] === 'object' && row[column].codelist}
 													{@const sectionId = getSectionId(
@@ -796,7 +839,7 @@
 													<div class="mb-2">
 														<button
 															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
 															onclick={() => toggleSection(sectionId)}
 															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
 															aria-expanded={!collapsedSections[sectionId]}
@@ -829,51 +872,17 @@
 													</div>
 												{/if}
 
-												<!-- Debug Info -->
-												{@const sectionId = getSectionId(
-													typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
-													column,
-													'debug'
-												)}
-												<div class="mt-2 text-xs text-gray-500">
-													<button
-														type="button"
-														class="cursor-pointer text-left underline"
-														onclick={() => toggleSection(sectionId)}
-														onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
-														aria-expanded={!collapsedSections[sectionId]}
-													>
-														Debug OIDs
-													</button>
-													<div class={collapsedSections[sectionId] ? 'hidden' : 'mt-1 pl-2'}>
-														{#if row[column].OID}
-															<div class="mb-1">ItemDef OID: {row[column].OID}</div>
-														{/if}
-														{#if row[column].valueListOID}
-															<div class="mb-1">ValueList OID: {row[column].valueListOID}</div>
-														{/if}
-														{#if row[column].whereClause?.whereClauseOID}
-															<div class="mb-1">
-																WhereClause OID: {row[column].whereClause.whereClauseOID}
-															</div>
-														{/if}
-														{#if row[column].methodOID}
-															<div class="mb-1">Method OID: {row[column].methodOID}</div>
-														{/if}
-													</div>
-												</div>
-
-												<!-- Comments section -->
-												{#if typeof row[column] === 'object' && row[column].comments && row[column].comments.length > 0}
+												<!-- Comment -->
+												{#if typeof row[column] === 'object' && row[column].comment && row[column].comment.description}
 													{@const sectionId = getSectionId(
 														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
 														column,
-														'comments'
+														'comment'
 													)}
 													<div class="mb-2">
 														<button
 															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
 															onclick={() => toggleSection(sectionId)}
 															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
 															aria-expanded={!collapsedSections[sectionId]}
@@ -891,25 +900,15 @@
 																		: 'M19 9l-7 7-7-7'}
 																></path>
 															</svg>
-															<span class="text-xs font-medium"
-																>Comments ({row[column].comments.length})</span
-															>
+															<span class="text-xs font-medium">Comment</span>
 														</button>
 														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
-															{#each row[column].comments as comment, i}
-																<div class="mb-2 {i > 0 ? 'mt-3 border-t pt-2' : ''}">
-																	<div class="text-sm leading-relaxed">
-																		{comment.text}
-																	</div>
-																	<div class="mt-1 text-xs text-muted-foreground">
-																		Comment ID: {comment.oid}
-																	</div>
-																</div>
-															{/each}
+															<div class="text-sm leading-relaxed">
+																{row[column].comment.description}
+															</div>
 														</div>
 													</div>
 												{/if}
-
 												<!-- Enhanced CodeList section -->
 												{#if typeof row[column] === 'object' && row[column].codelist}
 													{@const sectionId = getSectionId(
@@ -920,7 +919,7 @@
 													<div class="mb-2">
 														<button
 															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-muted/30 px-2 py-1 text-primary-foreground"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
 															onclick={() => toggleSection(sectionId)}
 															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
 															aria-expanded={!collapsedSections[sectionId]}
@@ -995,6 +994,115 @@
 														</div>
 													</div>
 												{/if}
+												<!-- Origin -->
+												{#if typeof row[column] === 'object' && row[column].origin}
+													{@const sectionId = getSectionId(
+														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+														column,
+														'origin'
+													)}
+													<div class="mb-2">
+														<button
+															type="button"
+															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
+															onclick={() => toggleSection(sectionId)}
+															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+															aria-expanded={!collapsedSections[sectionId]}
+														>
+															<svg
+																class="h-3 w-3"
+																viewBox="0 0 24 24"
+																fill="none"
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	d={collapsedSections[sectionId]
+																		? 'M9 5l7 7-7 7'
+																		: 'M19 9l-7 7-7-7'}
+																></path>
+															</svg>
+															<span class="text-xs font-medium">Origin</span>
+														</button>
+														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
+															{#if row[column].origin.type}
+																<div class="mb-1">
+																	<span class="mr-1 text-xs font-medium text-muted-foreground"
+																		>Type:</span
+																	>
+																	{row[column].origin.type}
+																</div>
+															{/if}
+
+															{#if row[column].origin.source}
+																<div class="mb-1">
+																	<span class="mr-1 text-xs font-medium text-muted-foreground"
+																		>Source:</span
+																	>
+																	{row[column].origin.source}
+																</div>
+															{/if}
+
+															{#if row[column].origin.description}
+																<div class="mb-1">
+																	<span class="mr-1 text-xs font-medium text-muted-foreground"
+																		>Description:</span
+																	>
+																	{row[column].origin.description}
+																</div>
+															{/if}
+
+															{#if row[column].origin.translatedText}
+																<div class="mb-1">
+																	<span class="mr-1 text-xs font-medium text-muted-foreground"
+																		>TranslatedText:</span
+																	>
+																	{row[column].origin.translatedText}
+																</div>
+															{/if}
+														</div>
+													</div>
+												{/if}
+
+												<!-- Debug Info -->
+												{@const sectionId = getSectionId(
+													typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+													column,
+													'debug'
+												)}
+												<div class="mt-2 text-xs text-gray-500">
+													<button
+														type="button"
+														class="cursor-pointer text-left underline"
+														onclick={() => toggleSection(sectionId)}
+														onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+														aria-expanded={!collapsedSections[sectionId]}
+													>
+														Debug OIDs
+													</button>
+													<div
+														class={collapsedSections[sectionId] === false ? 'mt-1 pl-2' : 'hidden'}
+													>
+														{#if row[column].OID}
+															<div class="mb-1">ItemDef OID: {row[column].OID}</div>
+														{/if}
+														{#if row[column].valueListOID}
+															<div class="mb-1">ValueList OID: {row[column].valueListOID}</div>
+														{/if}
+														{#if row[column].whereClause?.whereClauseOID}
+															<div class="mb-1">
+																WhereClause OID: {row[column].whereClause.whereClauseOID}
+															</div>
+														{/if}
+														{#if row[column].methodOID}
+															<div class="mb-1">Method OID: {row[column].methodOID}</div>
+														{/if}
+														<!-- Add this line for Comment OID -->
+														{#if row[column].comment?.OID}
+															<div class="mb-1">Comment OID: {row[column].comment.OID}</div>
+														{/if}
+													</div>
+												</div>
 											{/if}
 										</td>
 									{/each}

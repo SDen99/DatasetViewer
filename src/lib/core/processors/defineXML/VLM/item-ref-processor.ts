@@ -9,7 +9,13 @@
 
 import { processWhereClause } from './where-clause-processor';
 import type { VLMItemRef } from '$lib/types/VLMtypes';
-import type { ParsedDefineXML, ValueListDef, ItemDef, CodeList } from '$lib/types/define-xml';
+import type {
+	ParsedDefineXML,
+	ValueListDef,
+	ItemDef,
+	CodeList,
+	Comment
+} from '$lib/types/define-xml';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 
 /**
@@ -82,6 +88,29 @@ function processOriginInfo(itemDef: ItemDef):
 }
 
 /**
+ * Process comment information from an ItemDef
+ * @param itemDef The ItemDef to process comments from
+ * @param comments Array of all Comments
+ * @returns Comment info object or undefined if no comment
+ */
+function processCommentInfo(itemDef: ItemDef, comments: Comment[] | undefined) {
+	// Return early if no CommentOID in itemDef or no comments array
+	if (!itemDef.CommentOID || !comments || !Array.isArray(comments)) return undefined;
+
+	const comment = comments.find((c) => c.OID === itemDef.CommentOID);
+	if (!comment) return undefined;
+
+	// Debug: Log the found comment
+	console.log(`Found comment with OID ${comment.OID}:`, comment);
+
+	// Based on the actual structure where Description is a string
+	return {
+		OID: comment.OID,
+		description: typeof comment.Description === 'string' ? comment.Description : undefined
+	};
+}
+
+/**
  * Processes ItemRefs within a ValueListDef to create VLMItemRefs
  * Enhanced to properly handle stratification and eliminate non-parameterized entries
  * @param valueListDef The ValueListDef to process
@@ -90,6 +119,29 @@ function processOriginInfo(itemDef: ItemDef):
  * @param datasetName The name of the dataset
  * @returns Array of VLMItemRefs
  */
+/**
+ * Debug function to inspect a VLMItemRef object and check for comment information
+ * @param itemRef The VLMItemRef to inspect
+ */
+export function debugInspectVLMItemRef(itemRef: VLMItemRef): void {
+	console.group('VLMItemRef Debug Info');
+	console.log('PARAMCD:', itemRef.paramcd);
+	console.log('OID:', itemRef.OID);
+	console.log('Has comment?', itemRef.comment !== undefined);
+
+	if (itemRef.comment) {
+		console.group('Comment Details');
+		console.log('Comment OID:', itemRef.comment.OID);
+		console.log('Comment Description:', itemRef.comment.description);
+		console.groupEnd();
+	}
+
+	console.log('Has codelist?', itemRef.codelist !== undefined);
+	console.log('Has origin?', itemRef.origin !== undefined);
+	console.log('Has method?', itemRef.method !== undefined);
+	console.groupEnd();
+}
+
 export function processParameterItemRefs(
 	valueListDef: ValueListDef,
 	define: ParsedDefineXML,
@@ -97,6 +149,10 @@ export function processParameterItemRefs(
 	datasetName: string
 ): VLMItemRef[] {
 	console.log(`Processing ItemRefs for ValueListDef ${valueListDef.OID}`);
+	console.log(`Comments available: ${define.Comments ? define.Comments.length : 0} items`);
+	if (define.Comments && define.Comments.length > 0) {
+		console.log(`Sample comment OID: ${define.Comments[0].OID}`);
+	}
 	const itemRefs: VLMItemRef[] = [];
 
 	if (!valueListDef.ItemRefs) {
@@ -139,6 +195,25 @@ export function processParameterItemRefs(
 		// Process origin information
 		const originInfo = processOriginInfo(itemDef);
 
+		// Process comment information
+		let commentInfo;
+		try {
+			// The CommentOID could be directly on itemDef or in a namespace property
+			const commentOID = itemDef.CommentOID || (itemDef as any)['def:CommentOID'];
+
+			if (commentOID) {
+				const tempItemDef = { ...itemDef, CommentOID: commentOID };
+				commentInfo = processCommentInfo(tempItemDef, define.Comments);
+				if (commentInfo) {
+					console.log(
+						`Processed comment: ${commentInfo.OID}, Description: "${commentInfo.description}"`
+					);
+				}
+			}
+		} catch (error) {
+			console.warn(`Error processing comments: ${error.message}. Continuing without comments.`);
+		}
+
 		// Process the WhereClause to determine which parameters and conditions this applies to
 		if (!itemRef.WhereClauseOID) {
 			console.log(`No WhereClauseOID found - this will apply to all parameters`);
@@ -161,6 +236,7 @@ export function processParameterItemRefs(
 					OID: itemDef.OID,
 					codelist: codelistInfo,
 					origin: originInfo,
+					comment: commentInfo,
 					itemDescription: itemDef.Description,
 					mandatory: itemRef.Mandatory === 'Yes',
 					orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
@@ -247,6 +323,7 @@ export function processParameterItemRefs(
 					OID: itemDef.OID,
 					codelist: codelistInfo,
 					origin: originInfo,
+					comment: commentInfo,
 					itemDescription: itemDef.Description,
 					mandatory: itemRef.Mandatory === 'Yes',
 					orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
@@ -303,6 +380,7 @@ export function processParameterItemRefs(
 				OID: itemDef.OID,
 				codelist: codelistInfo,
 				origin: originInfo,
+				comment: commentInfo,
 				itemDescription: itemDef.Description,
 				mandatory: itemRef.Mandatory === 'Yes',
 				orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
@@ -316,5 +394,17 @@ export function processParameterItemRefs(
 	});
 
 	console.log(`Processed ${itemRefs.length} total ItemRefs for ValueListDef ${valueListDef.OID}`);
+
+	// Check how many ItemRefs have comments
+	const itemRefsWithComments = itemRefs.filter((ref) => ref.comment !== undefined);
+	console.log(`ItemRefs with comments: ${itemRefsWithComments.length} / ${itemRefs.length}`);
+
+	if (itemRefsWithComments.length > 0) {
+		console.log(`Sample ItemRef with comment: 
+			PARAMCD: ${itemRefsWithComments[0].paramcd}, 
+			Comment OID: ${itemRefsWithComments[0].comment?.OID}, 
+			Comment Description: ${itemRefsWithComments[0].comment?.description}`);
+	}
+
 	return itemRefs;
 }
