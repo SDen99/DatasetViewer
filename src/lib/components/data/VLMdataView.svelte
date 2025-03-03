@@ -684,9 +684,6 @@
 												<!-- Process cell content by type -->
 												{#if typeof row[column] === 'object' && row[column].itemDescription}
 													<div class="mb-2">
-														<div class="mb-1 text-sm">
-															{column} Definition
-														</div>
 														<div>
 															{row[column].itemDescription}
 														</div>
