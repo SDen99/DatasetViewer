@@ -789,46 +789,6 @@
 													</div>
 												{/if}
 
-												<!-- Comment -->
-												{#if typeof row[column] === 'object' && row[column].comment}
-													{@const sectionId = getSectionId(
-														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
-														column,
-														'comment'
-													)}
-													<div class="mb-2">
-														<button
-															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
-															onclick={() => toggleSection(sectionId)}
-															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
-															aria-expanded={!collapsedSections[sectionId]}
-														>
-															<svg
-																class="h-3 w-3"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-															>
-																<path
-																	d={collapsedSections[sectionId]
-																		? 'M9 5l7 7-7 7'
-																		: 'M19 9l-7 7-7-7'}
-																></path>
-															</svg>
-															<span class="text-xs font-medium">Comment</span>
-														</button>
-														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
-															{#if row[column].comment.description}
-																<div class="mb-1">
-																	{row[column].comment.description}
-																</div>
-															{/if}
-														</div>
-													</div>
-												{/if}
-
 												<!-- Codelist -->
 												{#if typeof row[column] === 'object' && row[column].codelist}
 													{@const sectionId = getSectionId(
