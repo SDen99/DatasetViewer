@@ -288,7 +288,7 @@
 			vlmStore.initialize(cleanDatasetName, displayData.columns);
 
 			// Load initial widths from store to local state
-			const initialWidths = {};
+			const initialWidths: Record<string, number> = {};
 			displayData.columns.forEach((column) => {
 				const storeWidth = vlmStore.getColumnWidths(cleanDatasetName)[column];
 				if (storeWidth) {
@@ -360,18 +360,13 @@
 		visibleColumnState = newState;
 	}
 
-	// Helper for debugging events
-	function logEvent(name, data) {
-		console.log(`Event: ${name}`, data);
-	}
-
 	// Create a direct, specialized function just for this action
 	// This helps bypass any potential issues with circular reactivity
 	function forceShowAllColumns() {
 		if (!displayData?.columns) return;
 
 		// Create new state object
-		const newState = {};
+		const newState: Record<string, boolean> = {};
 
 		// Set ALL columns to true
 		displayData.columns.forEach((col) => {
@@ -391,8 +386,9 @@
 	}
 
 	// Handle PARAMCD filter change
-	function handleParamcdFilterChange(e) {
-		paramcdFilter = e.target.value;
+	function handleParamcdFilterChange(e: Event) {
+		const target = e.target as HTMLInputElement; // Cast target to HTMLInputElement
+		paramcdFilter = target.value;
 	}
 
 	// Updated handleResize function
@@ -535,21 +531,6 @@
 			// Also apply widths immediately
 			setTimeout(applyAllColumnWidths, 100);
 		}
-	});
-
-	$effect(() => {
-		console.log(
-			'Sample row data:',
-			displayData?.rows?.length > 0
-				? JSON.stringify(
-						displayData.rows.map((row) => {
-							return row instanceof Map ? Array.from(row.entries()) : row;
-						}),
-						null, // Replacer function
-						2 // Indentation level
-					)
-				: 'No rows'
-		);
 	});
 </script>
 

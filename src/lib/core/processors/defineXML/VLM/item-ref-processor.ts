@@ -211,7 +211,16 @@ export function processParameterItemRefs(
 						isExternal: false
 					},
 					method: itemRef.MethodOID
-						? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
+						? {
+								Type:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Type ?? undefined,
+								Description:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Description ??
+									undefined,
+								TranslatedText:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.TranslatedText ??
+									undefined
+							}
 						: undefined,
 					methodOID: itemRef.MethodOID,
 					valueListOID: valueListDef.OID,
@@ -289,7 +298,7 @@ export function processParameterItemRefs(
 						? {
 								comparator: whereClauseResult.conditions[0].comparator,
 								checkValues: whereClauseResult.conditions[0].values,
-								whereClauseOID: itemRef.WhereClauseOID,
+								whereClauseOID: whereClauseResult.conditions[0].whereClauseOID ?? '',
 								OID: itemRef.OID || '',
 								source: {
 									domain: datasetName,
@@ -298,11 +307,20 @@ export function processParameterItemRefs(
 							}
 						: undefined,
 					method: itemRef.MethodOID
-						? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
+						? {
+								Type:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Type ?? undefined,
+								Description:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Description ??
+									undefined,
+								TranslatedText:
+									methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.TranslatedText ??
+									undefined
+							}
 						: undefined,
-					methodOID: itemRef.MethodOID,
-					valueListOID: valueListDef.OID,
-					OID: itemDef.OID,
+					methodOID: itemRef.MethodOID ?? undefined,
+					valueListOID: valueListDef.OID ?? undefined,
+					OID: itemDef.OID ?? undefined,
 					codelist: codelistInfo,
 					origin: originInfo,
 					comment: commentInfo,
@@ -346,7 +364,7 @@ export function processParameterItemRefs(
 					? {
 							comparator: whereClauseResult.conditions[0].comparator,
 							checkValues: whereClauseResult.conditions[0].values,
-							whereClauseOID: itemRef.WhereClauseOID,
+							whereClauseOID: whereClauseResult.conditions[0].whereClauseOID || '',
 							OID: itemRef.OID || '',
 							source: {
 								domain: datasetName,
@@ -355,7 +373,15 @@ export function processParameterItemRefs(
 						}
 					: undefined,
 				method: itemRef.MethodOID
-					? methodUtils.processMethod(itemRef.MethodOID, define.Methods)
+					? {
+							Type: methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Type ?? undefined,
+							Description:
+								methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.Description ??
+								undefined,
+							TranslatedText:
+								methodUtils.processMethod(itemRef.MethodOID, define.Methods)?.TranslatedText ??
+								undefined
+						}
 					: undefined,
 				methodOID: itemRef.MethodOID,
 				valueListOID: valueListDef.OID,
@@ -374,19 +400,6 @@ export function processParameterItemRefs(
 			console.log(`Added ItemRef for ${paramcdStr} successfully`);
 		});
 	});
-
-	console.log(`Processed ${itemRefs.length} total ItemRefs for ValueListDef ${valueListDef.OID}`);
-
-	// Check how many ItemRefs have comments
-	const itemRefsWithComments = itemRefs.filter((ref) => ref.comment !== undefined);
-	console.log(`ItemRefs with comments: ${itemRefsWithComments.length} / ${itemRefs.length}`);
-
-	if (itemRefsWithComments.length > 0) {
-		console.log(`Sample ItemRef with comment: 
-			PARAMCD: ${itemRefsWithComments[0].paramcd}, 
-			Comment OID: ${itemRefsWithComments[0].comment?.OID}, 
-			Comment Description: ${itemRefsWithComments[0].comment?.description}`);
-	}
 
 	return itemRefs;
 }
