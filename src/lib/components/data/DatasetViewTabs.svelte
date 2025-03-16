@@ -224,17 +224,9 @@
 	function calculateViewsOnly() {
 		const newViews: ViewType[] = [];
 
-		// Always add data view
-		newViews.push('data');
-
-		console.log('Calculating views:', {
-			hasMetadata,
-			hasSDTM,
-			hasADAM,
-			selectedId,
-			selectedDomain,
-			normalizedDatasetName
-		});
+		if (typeof dataset?.data[0] === 'object') {
+			newViews.push('data');
+		}
 
 		if (hasMetadata) {
 			newViews.push('metadata');
