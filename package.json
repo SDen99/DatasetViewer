@@ -42,7 +42,6 @@
 		"lucide-svelte": "^0.469.0",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
-		"svelte": "5.23.0",
 		"svelte-check": "^4.0.0",
 		"svelte-lucide": "^2.0.1",
 		"tailwind-merge": "^2.6.0",
@@ -65,8 +64,7 @@
 		"dependency-cruiser": "^16.9.0",
 		"melt": "^0.17.3",
 		"pyodide": "^0.26.3",
-		"runed": "^0.22.0",
-		"svelte": "5.23.0",
+		"svelte": "^5.16.0",
 		"terser": "^5.39.0",
 		"zimmerframe": "1.1.2"
 	},

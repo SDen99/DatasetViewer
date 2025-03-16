@@ -20,6 +20,7 @@
 	let activeTab = $state<ViewType>('data');
 	let viewArray = $state<ViewType[]>(['data']);
 	let lastUpdateId = $state(''); // Track the last update to prevent loops
+	let dataForTable = $state<any[] | null>(null); // NEW: Specific state for table data
 
 	interface DefineXmlDatasets {
 		SDTM: ParsedDefineXML | null;
@@ -130,16 +131,104 @@
 	const triggerClass =
 		'relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground';
 
-	// Break the update into separate effects to avoid circular dependencies
+	// Helper to get the actual data to display
+
+	function getDataForDisplay() {
+  // Try to get data in order of preference:
+  let dataToDisplay = null;
+  
+  // Log the current state for debugging
+  console.log('getDataForDisplay - starting values:', {
+    updateId: lastUpdateId,
+    selectedId,
+    selectedDomain,
+    hasDataset: !!dataset,
+    hasDatasetData: !!dataset?.data,
+    isSasDataset: selectedId?.includes('sas7bdat') || false
+  });
+  
+  // FIRST: Try direct data from SAS dataset
+  if (selectedId?.includes('sas7bdat') && dataset?.data) {
+    console.log('Using SAS dataset data directly');
+    dataToDisplay = dataset.data;
+  }
+  // SECOND: If selected domain AND the ID is a define.xml file
+  else if (selectedDomain && selectedId?.includes('define')) {
+    // Get domain data by normalized domain name look-up
+    const normalizedDomain = normalizeDatasetId(selectedDomain);
+    console.log('Looking for normalized domain data:', normalizedDomain);
+    
+    // Explicitly check all datasets 
+    for (const [key, value] of Object.entries(datasetStore.datasets)) {
+      const normalizedKey = normalizeDatasetId(key);
+      if (normalizedKey === normalizedDomain && value.data) {
+        console.log('Found data by normalized domain name:', key);
+        dataToDisplay = value.data;
+        break;
+      }
+    }
+    
+    if (!dataToDisplay) {
+      console.log('No data found for domain:', selectedDomain);
+    }
+  }
+  // THIRD: Try direct domain data
+  else if (selectedDomain && datasetStore.datasets[selectedDomain]?.data) {
+    console.log('Found data directly for domain:', selectedDomain);
+    dataToDisplay = datasetStore.datasets[selectedDomain].data;
+  }
+  // FOURTH: Fall back to current dataset
+  else if (dataset?.data && Array.isArray(dataset.data)) {
+    console.log('Using dataset.data as fallback');
+    dataToDisplay = dataset.data;
+  }
+  
+  // Ensure we have a valid array
+  if (dataToDisplay) {
+    if (Array.isArray(dataToDisplay) && dataToDisplay.length > 0) {
+      console.log('Using valid array data for display, length:', dataToDisplay.length);
+      return dataToDisplay;
+    } else if (
+      typeof dataToDisplay === 'object' && 
+      dataToDisplay !== null && 
+      'data' in dataToDisplay && 
+      Array.isArray(dataToDisplay.data)
+    ) {
+      console.log('Found nested data array, length:', dataToDisplay.data.length);
+      return dataToDisplay.data;
+    }
+  }
+  
+  console.log('No valid array data available for display');
+  return null;
+}
+
+	// Special effect to update table data whenever selection changes
+	$effect(() => {
+		// Update table data whenever selection changes
+		if (selectedId || selectedDomain) {
+			// Get the data and create a completely new array reference to force reactivity
+			const newData = getDataForDisplay();
+			if (newData) {
+				console.log('Updating dataForTable with new array reference, length:', newData.length);
+				// Make a shallow copy to ensure reference changes
+				dataForTable = [...newData];
+			} else {
+				dataForTable = null;
+			}
+		} else {
+			dataForTable = null;
+		}
+	});
 
 	// 1. Effect to update local state from store
 	$effect(() => {
 		const storeDatasetId = datasetStore.selectedDatasetId;
 		const storeDomain = datasetStore.selectedDomain;
-
+		
 		// Create a unique identifier for this update to track changes
 		const updateId = `${storeDatasetId || ''}:${storeDomain || ''}`;
-
+		
 		// Only process if this is a new update
 		if (updateId !== lastUpdateId) {
 			console.log('DatasetViewTabs: Processing store update', {
@@ -147,49 +236,52 @@
 				lastUpdateId,
 				storeDatasetId,
 				storeDomain,
-				defineData: {
-					hasSDTM: !!datasetStore.defineXmlDatasets.SDTM,
-					hasADaM: !!datasetStore.defineXmlDatasets.ADaM,
-					SDTMGroups: datasetStore.defineXmlDatasets.SDTM?.ItemGroups?.length,
-					ADaMGroups: datasetStore.defineXmlDatasets.ADaM?.ItemGroups?.length
-				}
+				hasDatasetById: storeDatasetId ? !!datasetStore.datasets[storeDatasetId] : false,
+				currentDataset: !!dataset?.data
 			});
-
+			
 			// Update tracking ID first to prevent re-entry
 			lastUpdateId = updateId;
-
-			// Update local state
+			
+			// Update local state for IDs
 			selectedId = storeDatasetId ?? '';
 			selectedDomain = storeDomain ?? '';
-
-			// Get dataset
-			if (storeDatasetId) {
-				dataset = datasetStore.datasets[storeDatasetId] || null;
-
-				if (dataset) {
-					console.log('Dataset retrieved:', {
-						id: storeDatasetId,
-						isDefineXML:
-							dataset.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data,
-						hasData: !!dataset.data,
-						hasDetails: !!dataset.details
-					});
-				} else {
-					console.log('No dataset found for ID:', storeDatasetId);
-				}
-			} else {
+			
+			// Only update the dataset if it exists in the store by ID
+			if (storeDatasetId && datasetStore.datasets[storeDatasetId]) {
+				console.log('Setting dataset from store by ID:', storeDatasetId);
+				// In Svelte 5, create a new object reference to trigger reactivity
+				dataset = { ...datasetStore.datasets[storeDatasetId] };
+			}
+			// If ID is empty but domain has changed, don't clear the dataset as we might
+			// need it for data lookup by normalized name
+			else if (!storeDatasetId && storeDomain && storeDomain !== '') {
+				console.log('Domain changed to:', storeDomain);
+				// We'll try to find data for this domain in getDataForDisplay()
+			}
+			// Only clear dataset when both ID and domain are empty
+			else if (!storeDatasetId && !storeDomain) {
+				console.log('Clearing dataset - both ID and domain are empty');
 				dataset = null;
 			}
-
-			defineData = datasetStore.defineXmlDatasets;
+			
+			// Update other state values regardless
+			defineData = { ...datasetStore.defineXmlDatasets };
 			isLoading = datasetStore.isLoading ?? false;
 		}
 	});
 
-	// 2. Separate effect for calculating views
+	// 2. Separate effect for calculating views based on state changes
 	$effect(() => {
-		// Only recalculate if we have valid data
-		if (lastUpdateId) {
+		// Only recalculate if we have a valid update ID
+		if (lastUpdateId && (selectedId || selectedDomain)) {
+			console.log('View calculation triggered by state change:', {
+				selectedId,
+				selectedDomain,
+				hasDataset: !!dataset,
+				hasData: !!dataForTable
+			});
+			
 			// Calculate views without modifying the UI store
 			calculateViewsOnly();
 		}
@@ -224,7 +316,25 @@
 	function calculateViewsOnly() {
 		const newViews: ViewType[] = [];
 
-		if (typeof dataset?.data[0] === 'object') {
+		// Check for data presence using dataForTable for consistency
+		const hasActualData = !!dataForTable;
+		
+		// Also check the dataset state for more metadata
+		const datasetStateHasData = selectedDomain ? 
+			datasetStore.getDatasetState(selectedDomain).hasData : false;
+			
+		// Log detailed debug info about what's happening with the data
+		console.log('Dataset view calculation details:', {
+			selectedId,
+			selectedDomain,
+			hasDatasetData: !!dataset?.data,
+			datasetStateHasData,
+			hasActualData,
+			isSasDataset: selectedId?.includes('sas7bdat') || false
+		});
+
+		// Add data tab if we have data according to either check
+		if (datasetStateHasData || hasActualData) {
 			newViews.push('data');
 		}
 
@@ -284,6 +394,7 @@
 		| SDTM Groups: {defineData.SDTM?.ItemGroups?.length ?? 0}
 		| ADaM Groups: {defineData.ADaM?.ItemGroups?.length ?? 0}
 		| hasSDTM: {hasSDTM} | hasADAM: {hasADAM}
+		| hasDataset: {!!dataset} | hasData: {!!dataForTable}
 	</div>
 
 	{#if !isLoading && viewArray.length > 0}
@@ -303,16 +414,20 @@
 			</Tabs.List>
 
 			{#if viewArray.includes('data')}
-				<Tabs.Content value="data" class="p-4">
-					{#if dataset?.data}
-						<DataTable data={dataset.data} />
-					{:else}
-						<div class="p-4 text-muted-foreground">
-							<p>Dataset content not available</p>
-						</div>
-					{/if}
-				</Tabs.Content>
-			{/if}
+			<Tabs.Content value="data" class="p-4">
+			  {#key lastUpdateId}
+				{#if getDataForDisplay()}
+				  <div class="data-table-wrapper" data-table-id={lastUpdateId}>
+					<DataTable data={getDataForDisplay()} />
+				  </div>
+				{:else}
+				  <div class="p-4 text-muted-foreground">
+					<p>Dataset content not available</p>
+				  </div>
+				{/if}
+			  {/key}
+			</Tabs.Content>
+		  {/if}
 
 			{#if viewArray.includes('metadata')}
 				<Tabs.Content value="metadata" class="p-4">

@@ -7,21 +7,6 @@ import { UIStore } from './UIStore.svelte';
 import { untrack } from 'svelte';
 import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
-interface DefineXMLData {
-	MetaData: {
-		OID: string;
-	};
-}
-
-function isDefineXMLData(data: unknown): data is DefineXMLData {
-	return (
-		data !== null &&
-		typeof data === 'object' &&
-		'MetaData' in data &&
-		typeof (data as any).MetaData?.OID === 'string'
-	);
-}
-
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
 	lastSavedState = $state<{
@@ -97,8 +82,8 @@ export class StoreCoordinator {
 		return StoreCoordinator.instance;
 	}
 
-	selectDataset(id: string | null) {
-		console.log('StoreCoordinator.selectDataset called with:', id);
+	selectDataset(id: string | null, domain: string | null = null) {
+		console.log('StoreCoordinator.selectDataset called with:', { id, domain });
 
 		if (id === null) {
 			datasetStore.selectDataset(null, null);
@@ -106,12 +91,16 @@ export class StoreCoordinator {
 		}
 
 		// Check if this ID is a dataset within Define XML files
-		// Use raw dataset name check rather than relying on normalization
-
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
 
+		// If a domain was explicitly provided, use it with the given id
+		if (domain) {
+			console.log('Using explicitly provided domain:', domain);
+			datasetStore.selectDataset(id, domain);
+			return;
+		}
+
 		// Check if the id directly matches a dataset name in either Define XML
-		// This bypasses normalization issues
 		const isInSDTM = SDTM?.ItemGroups?.some(
 			(g) => (g.SASDatasetName || g.Name || '').toLowerCase() === id.toLowerCase()
 		);
