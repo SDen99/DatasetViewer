@@ -7,4 +7,5 @@ import type { ItemRef } from './variables';
 export interface ValueListDef {
 	OID: string | null;
 	ItemRefs: ItemRef[];
+	Description?: string;
 }

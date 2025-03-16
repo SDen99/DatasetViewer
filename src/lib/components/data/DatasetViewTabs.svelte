@@ -326,7 +326,7 @@
 				<Tabs.Content value="metadata" class="p-4">
 					<MetadataView
 						define={activeDefine}
-						{defineType}
+						defineType={defineType as 'SDTM' | 'ADaM' | null}
 						datasetName={selectedDomain || selectedId}
 					/>
 				</Tabs.Content>
@@ -334,7 +334,11 @@
 
 			{#if viewArray.includes('VLM')}
 				<Tabs.Content value="VLM" class="p-4">
-					<VLMView define={activeDefine} {defineType} datasetName={selectedDomain || selectedId} />
+					<VLMView
+						define={activeDefine}
+						defineType={defineType as 'SDTM' | 'ADaM' | null}
+						datasetName={selectedDomain || selectedId}
+					/>
 				</Tabs.Content>
 			{/if}
 		</Tabs.Root>

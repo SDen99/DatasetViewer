@@ -70,7 +70,7 @@ export class InitializationManager {
 
 		// Restore dataset selection
 		const selectedId = state.lastSelectedDataset;
-		const domain = state.lastSelectDomain;
+		const domain = state.lastSelectedDomain;
 		if (selectedId && datasetStore.datasets[selectedId]) {
 			datasetStore.selectDataset(selectedId, domain);
 		}

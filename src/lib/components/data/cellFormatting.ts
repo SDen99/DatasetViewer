@@ -1,3 +1,5 @@
+import type { VLMItemRef } from '$lib/types/VLMtypes';
+
 // Helper to format comparator for display
 function formatComparator(comparator: string): string {
 	switch (comparator) {

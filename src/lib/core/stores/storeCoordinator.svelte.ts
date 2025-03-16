@@ -7,6 +7,21 @@ import { UIStore } from './UIStore.svelte';
 import { untrack } from 'svelte';
 import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
+interface DefineXMLData {
+	MetaData: {
+		OID: string;
+	};
+}
+
+function isDefineXMLData(data: unknown): data is DefineXMLData {
+	return (
+		data !== null &&
+		typeof data === 'object' &&
+		'MetaData' in data &&
+		typeof (data as any).MetaData?.OID === 'string'
+	);
+}
+
 export class StoreCoordinator {
 	private static instance: StoreCoordinator;
 	lastSavedState = $state<{
@@ -73,31 +88,6 @@ export class StoreCoordinator {
 				}
 			});
 		});
-
-		$effect.root(() => {
-			$effect(() => {
-				const selectedId = datasetStore.selectedDatasetId;
-				if (selectedId) {
-					const dataset = datasetStore.datasets[selectedId];
-					const isDefineXML =
-						dataset?.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data;
-
-					console.log('Selected dataset debug:', {
-						id: selectedId,
-						normalizedId: normalizeDatasetId(selectedId),
-						isDefineXML,
-						hasData: Boolean(dataset?.data),
-						type: isDefineXML
-							? dataset.data.MetaData.OID?.includes('SDTM')
-								? 'SDTM'
-								: dataset.data.MetaData.OID?.includes('ADaM')
-									? 'ADaM'
-									: 'Unknown'
-							: 'Not Define XML'
-					});
-				}
-			});
-		});
 	}
 
 	static getInstance(): StoreCoordinator {
@@ -138,7 +128,7 @@ export class StoreCoordinator {
 				dataset.data &&
 				typeof dataset.data === 'object' &&
 				'MetaData' in dataset.data &&
-				dataset.data.MetaData.OID?.includes('SDTM')
+				(dataset.data as any).MetaData.OID?.includes('SDTM')
 		)?.[0];
 
 		const adamFileName = Object.entries(datasetStore.datasets).find(
@@ -146,7 +136,7 @@ export class StoreCoordinator {
 				dataset.data &&
 				typeof dataset.data === 'object' &&
 				'MetaData' in dataset.data &&
-				dataset.data.MetaData.OID?.includes('ADaM')
+				(dataset.data as any).MetaData.OID?.includes('ADaM')
 		)?.[0];
 
 		// If it's a direct match in a Define XML, use that

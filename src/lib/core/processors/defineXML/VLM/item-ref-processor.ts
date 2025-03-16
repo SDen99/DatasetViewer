@@ -123,24 +123,6 @@ function processCommentInfo(itemDef: ItemDef, comments: Comment[] | undefined) {
  * Debug function to inspect a VLMItemRef object and check for comment information
  * @param itemRef The VLMItemRef to inspect
  */
-export function debugInspectVLMItemRef(itemRef: VLMItemRef): void {
-	console.group('VLMItemRef Debug Info');
-	console.log('PARAMCD:', itemRef.paramcd);
-	console.log('OID:', itemRef.OID);
-	console.log('Has comment?', itemRef.comment !== undefined);
-
-	if (itemRef.comment) {
-		console.group('Comment Details');
-		console.log('Comment OID:', itemRef.comment.OID);
-		console.log('Comment Description:', itemRef.comment.description);
-		console.groupEnd();
-	}
-
-	console.log('Has codelist?', itemRef.codelist !== undefined);
-	console.log('Has origin?', itemRef.origin !== undefined);
-	console.log('Has method?', itemRef.method !== undefined);
-	console.groupEnd();
-}
 
 export function processParameterItemRefs(
 	valueListDef: ValueListDef,
@@ -186,7 +168,7 @@ export function processParameterItemRefs(
 		console.log(`Found ItemDef: ${itemDef.Name || itemDef.OID}`);
 
 		// Get codelist info if this ItemDef has a codelist
-		let codelistInfo;
+		let codelistInfo: any;
 		if (itemDef.CodeListOID) {
 			console.log(`Processing codelist: ${itemDef.CodeListOID}`);
 			codelistInfo = processCodelistInfo(itemDef, define.CodeLists);
@@ -196,7 +178,7 @@ export function processParameterItemRefs(
 		const originInfo = processOriginInfo(itemDef);
 
 		// Process comment information
-		let commentInfo;
+		let commentInfo: any;
 		try {
 			// The CommentOID could be directly on itemDef or in a namespace property
 			const commentOID = itemDef.CommentOID || (itemDef as any)['def:CommentOID'];

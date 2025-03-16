@@ -27,7 +27,7 @@ export class DatasetStore {
 			const storage = StorageService.getInstance();
 			const state = storage.loadState();
 			if (state.lastSelectedDataset && this.datasets[state.lastSelectedDataset]) {
-				this.selectDataset(state.lastSelectedDataset);
+				this.selectDataset(state.lastSelectedDataset, state.lastSelectedDomain);
 			}
 		});
 		this.initializeDebugEffects();
@@ -90,7 +90,7 @@ export class DatasetStore {
 
 			// Update selection if needed
 			if (this.selectedDatasetId && normalizedId === normalizeDatasetId(this.selectedDatasetId)) {
-				this.selectDataset(null);
+				this.selectDataset(null, null);
 				tableUIStore.reset();
 				sortStore.reset();
 			}
