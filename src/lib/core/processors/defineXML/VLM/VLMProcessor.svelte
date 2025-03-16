@@ -196,7 +196,7 @@
 			const parts = item.OID?.split('.');
 			return parts?.[0] === 'IT' && normalizeDatasetId(parts?.[1] || '') === normalizedDatasetName;
 		});
-
+		/*
 		console.log(`Found ${datasetItems.length} ItemDefs for dataset ${datasetName}`);
 		console.log(
 			datasetItems.map((item) => {
@@ -210,7 +210,7 @@
 				};
 			})
 		);
-
+*/
 		// 2. Log all ValueListDefs
 		const valueListDefs = define.ValueListDefs.filter((vl) => {
 			const parts = vl.OID?.split('.');
