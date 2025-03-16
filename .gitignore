@@ -1,6 +1,5 @@
 # Dependencies
 node_modules
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -56,9 +55,7 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-package-lock.json
 codebase.md
-package-lock.json
 .aidigestignore
 svelte-complete-medium.txt
 check.txt
