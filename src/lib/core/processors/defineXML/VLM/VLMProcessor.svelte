@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import type { ParsedDefineXML } from '$lib/types/define-xml';
-	import type { ProcessedVLM } from '$lib/types/VLMtypes';
+	import type { ProcessedVLM } from '$lib/types/VLMtypes/VLMTypes';
 	import { processValueLevelMetadata } from '$lib/core/processors/defineXML/VLM/vlm-processor';
 	import { normalizeDatasetId } from '$lib/core/utils/datasetUtils';
 
