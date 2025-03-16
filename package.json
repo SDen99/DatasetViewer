@@ -22,7 +22,7 @@
 	"devDependencies": {
 		"@melt-ui/svelte": "^0.86.2",
 		"@sveltejs/adapter-auto": "^3.0.0",
-		"@sveltejs/kit": "^2.15.1",
+		"@sveltejs/kit": "^2.19.2",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@tailwindcss/aspect-ratio": "^0.4.2",
 		"@tailwindcss/container-queries": "^0.1.1",
@@ -41,7 +41,7 @@
 		"lucide-svelte": "^0.469.0",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.5",
-		"svelte": "^5.0.0",
+		"svelte": "5.16.0",
 		"svelte-check": "^4.0.0",
 		"svelte-lucide": "^2.0.1",
 		"tailwind-merge": "^2.6.0",
@@ -65,7 +65,8 @@
 		"pyodide": "^0.26.3",
 		"runed": "^0.22.0",
 		"terser": "^5.39.0",
-		"vaul-svelte": "^0.3.2"
+		"vaul-svelte": "^0.3.2",
+		"zimmerframe": "1.1.2"
 	},
 	"description": "Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).",
 	"main": "index.ts",
