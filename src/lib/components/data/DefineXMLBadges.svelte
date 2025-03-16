@@ -13,8 +13,19 @@
 	let defineTypeToDelete = $state<'SDTM' | 'ADaM' | null>(null);
 
 	// Derived state for Define.xml presence
-	let hasSDTM = $derived(Boolean(uiStore.uiState.SDTM));
-	let hasADaM = $derived(Boolean(uiStore.uiState.ADaM));
+	let hasSDTM = $derived(Boolean(datasetStore.defineXmlDatasets.SDTM));
+	let hasADaM = $derived(Boolean(datasetStore.defineXmlDatasets.ADaM));
+
+	// Add an inspection effect to monitor badge status
+	$effect(() => {
+		$inspect({
+			event: 'DefineXMLBadges status',
+			hasSDTM,
+			hasADaM,
+			SDTMdataset: datasetStore.defineXmlDatasets.SDTM ? 'present' : 'null',
+			ADaMdataset: datasetStore.defineXmlDatasets.ADaM ? 'present' : 'null'
+		});
+	});
 
 	function handleConfirmDelete() {
 		if (defineTypeToDelete) {

@@ -23,6 +23,7 @@ export interface SerializedMetadataViewState {
 
 export interface AppPersistentState {
 	lastSelectedDataset: string | null;
+	lastSelectedDomain: string | null;
 	datasetViews: Record<string, DatasetViewState>;
 	uiPreferences: UIState;
 	metadataViews: Record<string, SerializedMetadataViewState>;
@@ -51,6 +52,7 @@ export class StorageService {
 	private getDefaultState(): AppPersistentState {
 		return {
 			lastSelectedDataset: null,
+			lastSelectedDomain: null,
 			datasetViews: {},
 			uiPreferences: {
 				leftSidebarOpen: true,

@@ -5,7 +5,7 @@ import { sortStore } from '$lib/core/stores/sortStore.svelte';
 import type { InitState, ServiceContainer as ServiceContainerType } from '$lib/core/types/types';
 import { ServiceContainer } from '$lib/core/stores/serviceContainer';
 import { StorageService } from './StorageServices';
-import { UIStore } from '$lib/core/stores/UIStore.svelte'
+import { UIStore } from '$lib/core/stores/UIStore.svelte';
 
 export class InitializationManager {
 	status = $state<InitState>({
@@ -67,11 +67,12 @@ export class InitializationManager {
 		// Get all saved state from StorageService
 		const storage = StorageService.getInstance();
 		const state = storage.loadState();
-		
+
 		// Restore dataset selection
 		const selectedId = state.lastSelectedDataset;
+		const domain = state.lastSelectDomain;
 		if (selectedId && datasetStore.datasets[selectedId]) {
-			datasetStore.selectDataset(selectedId);
+			datasetStore.selectDataset(selectedId, domain);
 		}
 
 		// Restore UI preferences

@@ -95,6 +95,7 @@
 				storeCoordinator.selectDataset(name);
 			}
 		}
+		console.log({ name });
 	}
 
 	const getDatasetMetadata = (name: string) => {

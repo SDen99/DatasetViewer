@@ -10,6 +10,7 @@ export class DatasetStore {
 	private static instance: DatasetStore | null = null;
 	datasets = $state<Record<string, Dataset>>({});
 	selectedDatasetId = $state<string | null>(null);
+	selectedDomain = $state<string | null>(null);
 	isLoading = $state(false);
 	loadingDatasets = $state<Record<string, DatasetLoadingState>>({});
 	originalFilenames = $state<Record<string, string>>({}); // normalized -> original
@@ -29,6 +30,7 @@ export class DatasetStore {
 				this.selectDataset(state.lastSelectedDataset);
 			}
 		});
+		this.initializeDebugEffects();
 	}
 
 	persistSelectedDataset = $effect.root(() => {
@@ -151,12 +153,19 @@ export class DatasetStore {
 	}
 
 	// Simplified selectDataset - coordination handled by StoreCoordinator effect
-	selectDataset(id: string | null) {
-		if (id) {
-			const normalizedId = normalizeDatasetId(id);
-			this.originalFilenames[normalizedId] = id;
-		}
+	selectDataset(id: string | null, domain: string | null) {
+		console.log('datasetStore.selectDataset:', { id, domain });
+
+		// Update store state
 		this.selectedDatasetId = id;
+		this.selectedDomain = domain;
+
+		// Emit a debug log after state update
+		console.log('datasetStore.selectDataset - after update:', {
+			currentSelectedId: this.selectedDatasetId,
+			currentSelectedDomain: this.selectedDomain,
+			stateMatches: this.selectedDatasetId === id && this.selectedDomain === domain
+		});
 	}
 
 	getOriginalFilename(normalizedId: string): string | undefined {
@@ -359,6 +368,25 @@ export class DatasetStore {
 
 		return Array.from(datasetSet).sort();
 	});
+
+	private initializeDebugEffects() {
+		$effect.root(() => {
+			$effect(() => {
+				const { selectedDatasetId, selectedDomain, defineXmlDatasets } = this;
+
+				console.log('DatasetStore state update:', {
+					selectedDatasetId,
+					selectedDomain,
+					hasDefineXmlDatasets: {
+						SDTM: !!defineXmlDatasets.SDTM,
+						ADaM: !!defineXmlDatasets.ADaM,
+						SDTMItemGroups: defineXmlDatasets.SDTM?.ItemGroups?.length || 0,
+						ADaMItemGroups: defineXmlDatasets.ADaM?.ItemGroups?.length || 0
+					}
+				});
+			});
+		});
+	}
 }
 
 export const datasetStore = DatasetStore.getInstance();

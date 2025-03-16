@@ -16,13 +16,12 @@
 	} from './shared/expansionUtils';
 	import { hasCodelist } from './shared/codelistUtils';
 
-	let { sdtmDefine, adamDefine, datasetName } = $props<{
-		sdtmDefine: ParsedDefineXML | null;
-		adamDefine: ParsedDefineXML | null;
+	let { define, defineType, datasetName } = $props<{
+		define: ParsedDefineXML | null;
+		defineType: 'SDTM' | 'ADaM' | null;
 		datasetName: string;
 	}>();
 
-	let define = $derived(sdtmDefine || adamDefine);
 	let methods = $derived(define?.Methods || []);
 	let comments = $derived(define?.Comments || []);
 	let codeLists = $derived(define?.CodeLists || []);
@@ -49,9 +48,9 @@
 
 		const datasetRefs = define.ItemRefs.filter((ref: ItemRef) => {
 			let refDataset;
-			if (sdtmDefine) {
+			if (defineType === 'SDTM') {
 				refDataset = ref.OID?.split('.')[0] || '';
-			} else if (adamDefine) {
+			} else if (defineType === 'ADaM') {
 				refDataset = ref.OID?.split('.')[1] || '';
 			}
 			return normalizeDatasetId(refDataset) === normalizedDatasetName;

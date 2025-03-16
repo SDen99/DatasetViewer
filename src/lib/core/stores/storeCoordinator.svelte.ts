@@ -19,8 +19,14 @@ export class StoreCoordinator {
 		$effect.root(() => {
 			// Monitor Define XML status
 			$effect(() => {
-				const { SDTM, ADaM } = untrack(() => datasetStore.defineXmlDatasets);
+				const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
 				UIStore.getInstance().setDefineXMLType(Boolean(SDTM), Boolean(ADaM));
+
+				// For debugging
+				console.log('Define XML status updated:', {
+					hasSDTM: Boolean(SDTM),
+					hasADaM: Boolean(ADaM)
+				});
 			});
 
 			// New effect to handle dataset selection and coordination
@@ -67,6 +73,31 @@ export class StoreCoordinator {
 				}
 			});
 		});
+
+		$effect.root(() => {
+			$effect(() => {
+				const selectedId = datasetStore.selectedDatasetId;
+				if (selectedId) {
+					const dataset = datasetStore.datasets[selectedId];
+					const isDefineXML =
+						dataset?.data && typeof dataset.data === 'object' && 'MetaData' in dataset.data;
+
+					console.log('Selected dataset debug:', {
+						id: selectedId,
+						normalizedId: normalizeDatasetId(selectedId),
+						isDefineXML,
+						hasData: Boolean(dataset?.data),
+						type: isDefineXML
+							? dataset.data.MetaData.OID?.includes('SDTM')
+								? 'SDTM'
+								: dataset.data.MetaData.OID?.includes('ADaM')
+									? 'ADaM'
+									: 'Unknown'
+							: 'Not Define XML'
+					});
+				}
+			});
+		});
 	}
 
 	static getInstance(): StoreCoordinator {
@@ -77,23 +108,81 @@ export class StoreCoordinator {
 	}
 
 	selectDataset(id: string | null) {
+		console.log('StoreCoordinator.selectDataset called with:', id);
+
 		if (id === null) {
-			datasetStore.selectedDatasetId = null;
+			datasetStore.selectDataset(null, null);
 			return;
 		}
 
-		const normalizedId = normalizeDatasetId(id);
+		// Check if this ID is a dataset within Define XML files
+		// Use raw dataset name check rather than relying on normalization
 
-		// First try to find the dataset with data
+		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+
+		// Check if the id directly matches a dataset name in either Define XML
+		// This bypasses normalization issues
+		const isInSDTM = SDTM?.ItemGroups?.some(
+			(g) => (g.SASDatasetName || g.Name || '').toLowerCase() === id.toLowerCase()
+		);
+
+		const isInADaM = ADaM?.ItemGroups?.some(
+			(g) => (g.SASDatasetName || g.Name || '').toLowerCase() === id.toLowerCase()
+		);
+
+		console.log('Direct name matching:', { id, isInSDTM, isInADaM });
+
+		// Find Define.xml filenames
+		const sdtmFileName = Object.entries(datasetStore.datasets).find(
+			([_, dataset]) =>
+				dataset.data &&
+				typeof dataset.data === 'object' &&
+				'MetaData' in dataset.data &&
+				dataset.data.MetaData.OID?.includes('SDTM')
+		)?.[0];
+
+		const adamFileName = Object.entries(datasetStore.datasets).find(
+			([_, dataset]) =>
+				dataset.data &&
+				typeof dataset.data === 'object' &&
+				'MetaData' in dataset.data &&
+				dataset.data.MetaData.OID?.includes('ADaM')
+		)?.[0];
+
+		// If it's a direct match in a Define XML, use that
+		if (isInADaM && adamFileName) {
+			console.log('Selecting ADaM Define.xml for domain:', id);
+			datasetStore.selectDataset(adamFileName, id);
+			return;
+		}
+
+		if (isInSDTM && sdtmFileName) {
+			console.log('Selecting SDTM Define.xml for domain:', id);
+			datasetStore.selectDataset(sdtmFileName, id);
+			return;
+		}
+
+		// Fall back to standard normalized ID approach for other cases
+		const normalizedId = normalizeDatasetId(id);
+		console.log('Normalized ID (standard approach):', normalizedId);
+
+		// Check if ID is an exact match for a dataset we have
+		if (datasetStore.datasets[id]) {
+			console.log('Found exact dataset match:', id);
+			datasetStore.selectDataset(id, null);
+			return;
+		}
+
+		// Try to find via normalized ID
 		const datasetKeys = Object.keys(datasetStore.datasets);
 		const matchingKey = datasetKeys.find((key) => normalizeDatasetId(key) === normalizedId);
 
-		// If we found a matching dataset with data, use its full filename
 		if (matchingKey) {
-			datasetStore.selectedDatasetId = matchingKey;
+			console.log('Found normalized match:', matchingKey);
+			datasetStore.selectDataset(matchingKey, null);
 		} else {
-			// Otherwise use the original id for metadata-only datasets
-			datasetStore.selectedDatasetId = id;
+			console.log('Using original ID (metadata-only):', id);
+			datasetStore.selectDataset(id, null);
 		}
 	}
 

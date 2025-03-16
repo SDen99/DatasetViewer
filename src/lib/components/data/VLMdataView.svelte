@@ -9,18 +9,19 @@
 	import { createVLMProcessor } from '$lib/core/processors/defineXML/VLM/VLMProcessor.svelte';
 	import { vlmStore } from '$lib/core/stores/VLMStore.svelte';
 
-	let { sdtmDefine, adamDefine, datasetName } = $props<{
-		sdtmDefine: ParsedDefineXML | null;
-		adamDefine: ParsedDefineXML | null;
+	let {
+		define: activeDefine,
+		defineType,
+		datasetName
+	} = $props<{
+		define: ParsedDefineXML | null;
+		defineType: 'SDTM' | 'ADaM' | null;
 		datasetName: string;
 	}>();
-
-	console.log('Inside VLMdataView', { sdtmDefine, adamDefine, datasetName });
 
 	const processor = createVLMProcessor();
 	let processingError = $state<string | null>(null);
 
-	let activeDefine = $state<ParsedDefineXML | null>(null);
 	let cleanDatasetName = $state('');
 	let displayData = $state<{
 		hasData: boolean;
@@ -104,7 +105,6 @@
 
 	// Effect to handle define changes and processing
 	$effect(() => {
-		activeDefine = sdtmDefine || adamDefine;
 		cleanDatasetName = datasetName ? normalizeDatasetId(datasetName) : '';
 
 		if (activeDefine && cleanDatasetName) {
@@ -538,10 +538,9 @@
 	});
 
 	$effect(() => {
-		console.log('First row before rendering:', displayData.rows[0]);
 		console.log(
 			'Sample row data:',
-			displayData.rows.length > 0
+			displayData?.rows?.length > 0
 				? JSON.stringify(
 						displayData.rows.map((row) => {
 							return row instanceof Map ? Array.from(row.entries()) : row;

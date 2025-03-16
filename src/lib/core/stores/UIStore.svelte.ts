@@ -104,12 +104,22 @@ export class UIStore {
 		};
 	}
 
-	setDefineXMLType(isSDTM: boolean, isADaM: boolean) {
+	setDefineXMLType(hasSDTM: boolean, hasADaM: boolean): void {
+		// Preserve existing values (don't overwrite true with false)
+		const newSDTM = hasSDTM || this.uiState.SDTM;
+		const newADaM = hasADaM || this.uiState.ADaM;
+
 		this.uiState = {
 			...this.uiState,
-			SDTM: Boolean(isSDTM),
-			ADaM: Boolean(isADaM)
+			SDTM: newSDTM,
+			ADaM: newADaM
 		};
+
+		console.log({
+			event: 'UIStore: Define XML types updated',
+			SDTM: newSDTM,
+			ADaM: newADaM
+		});
 	}
 
 	setMetadataViewMode(mode: 'table' | 'card') {
