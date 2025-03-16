@@ -26,14 +26,16 @@ export interface WhereClauseDef {
 
 // For VLM processing
 export interface WhereClauseCondition {
-	variable: string; // Extracted from ItemOID
+	variable: string; 
 	comparator: ComparatorType;
 	values: string[];
+	whereClauseOID?: string;
 }
 
 export interface ProcessedWhereClause {
 	paramcd: string; // When the condition is about PARAMCD
 	conditions: WhereClauseCondition[];
+
 }
 
 // For the final VLM output

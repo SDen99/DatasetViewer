@@ -1,6 +1,6 @@
 // vlm-types.ts - Type definitions for Value-Level Metadata processing
 
-import type { RangeCheck } from '$lib/types/define-xml';
+import type { RangeCheck, ComparatorType } from '$lib/types/define-xml';
 
 /**
  * Structure representing processed Value-Level Metadata for a dataset
@@ -80,7 +80,7 @@ export interface VLMItemRef {
 	stratificationInfo?: Record<
 		string,
 		{
-			comparator: RangeCheck['Comparator'];
+			comparator: ComparatorType;
 			values: string[];
 		}
 	>;
@@ -95,6 +95,7 @@ export interface WhereClauseResult {
 		variable: string;
 		comparator: RangeCheck['Comparator'];
 		values: string[];
+		
 	}>;
 	stratificationVariables: Map<
 		string,

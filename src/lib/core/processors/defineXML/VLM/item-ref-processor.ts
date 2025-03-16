@@ -14,7 +14,8 @@ import type {
 	ValueListDef,
 	ItemDef,
 	CodeList,
-	Comment
+	Comment,
+	ComparatorType
 } from '$lib/types/define-xml';
 import { methodUtils } from '$lib/utils/defineXML/methodUtils';
 
@@ -43,7 +44,7 @@ function processCodelistInfo(itemDef: ItemDef, codeLists: CodeList[]) {
 				result.items.push({
 					codedValue: item.CodedValue,
 					decode: item.Decode.TranslatedText,
-					isExtended: item.ExtendedValue === 'Yes'
+					isExtended: item.ExtendedValue === true
 				});
 			}
 		});
@@ -193,7 +194,9 @@ export function processParameterItemRefs(
 				}
 			}
 		} catch (error) {
-			console.warn(`Error processing comments: ${error.message}. Continuing without comments.`);
+			console.warn(
+				`Error processing comments: ${error instanceof Error ? error.message : error}. Continuing without comments.`
+			);
 		}
 
 		// Process the WhereClause to determine which parameters and conditions this applies to
@@ -222,12 +225,12 @@ export function processParameterItemRefs(
 									undefined
 							}
 						: undefined,
-					methodOID: itemRef.MethodOID,
-					valueListOID: valueListDef.OID,
-					OID: itemDef.OID,
+					methodOID: itemRef.MethodOID ?? undefined,
+					valueListOID: valueListDef.OID ?? undefined,
+					OID: itemDef.OID ?? undefined,
 					codelist: codelistInfo,
 					origin: originInfo,
-					comment: commentInfo,
+					comments: commentInfo,
 					itemDescription: itemDef.Description,
 					mandatory: itemRef.Mandatory === 'Yes',
 					orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
@@ -268,16 +271,13 @@ export function processParameterItemRefs(
 		});
 
 		// Create stratification info object for display
-		const stratificationInfo =
-			stratificationVariables.size > 0
-				? Object.fromEntries(
-						Array.from(stratificationVariables.entries()).map(([variable, details]) => [
-							variable,
-							details
-						])
-					)
-				: undefined;
-
+		const stratificationInfo: Record<string, { comparator: ComparatorType; values: string[] }> = {};
+		whereClauseResult.stratificationVariables.forEach((value, key) => {
+			stratificationInfo[key] = {
+				comparator: value.comparator as ComparatorType,
+				values: value.values
+			};
+		});
 		// If no PARAMCD values found in the WhereClause, this applies to ALL parameters
 		if (whereClauseResult.paramcds.length === 0) {
 			console.log(
@@ -298,7 +298,7 @@ export function processParameterItemRefs(
 						? {
 								comparator: whereClauseResult.conditions[0].comparator,
 								checkValues: whereClauseResult.conditions[0].values,
-								whereClauseOID: whereClauseResult.conditions[0].whereClauseOID ?? '',
+								whereClauseOID: (whereClauseResult.conditions[0] as any).whereClauseOID ?? '',
 								OID: itemRef.OID || '',
 								source: {
 									domain: datasetName,
@@ -323,7 +323,7 @@ export function processParameterItemRefs(
 					OID: itemDef.OID ?? undefined,
 					codelist: codelistInfo,
 					origin: originInfo,
-					comment: commentInfo,
+					comments: commentInfo,
 					itemDescription: itemDef.Description,
 					mandatory: itemRef.Mandatory === 'Yes',
 					orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
@@ -364,7 +364,7 @@ export function processParameterItemRefs(
 					? {
 							comparator: whereClauseResult.conditions[0].comparator,
 							checkValues: whereClauseResult.conditions[0].values,
-							whereClauseOID: whereClauseResult.conditions[0].whereClauseOID || '',
+							whereClauseOID: (whereClauseResult.conditions[0] as any).whereClauseOID || '',
 							OID: itemRef.OID || '',
 							source: {
 								domain: datasetName,
@@ -383,12 +383,12 @@ export function processParameterItemRefs(
 								undefined
 						}
 					: undefined,
-				methodOID: itemRef.MethodOID,
-				valueListOID: valueListDef.OID,
-				OID: itemDef.OID,
+				methodOID: itemRef.MethodOID ?? undefined,
+				valueListOID: valueListDef.OID ?? undefined,
+				OID: itemDef.OID ?? undefined,
 				codelist: codelistInfo,
 				origin: originInfo,
-				comment: commentInfo,
+				comments: commentInfo,
 				itemDescription: itemDef.Description,
 				mandatory: itemRef.Mandatory === 'Yes',
 				orderNumber: parseInt(itemRef.OrderNumber || '0', 10),
