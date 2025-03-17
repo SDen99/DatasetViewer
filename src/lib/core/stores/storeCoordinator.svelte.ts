@@ -99,83 +99,86 @@ export class StoreCoordinator {
 
 	selectDataset(id: string | null) {
 		console.log('StoreCoordinator.selectDataset called with:', id);
-
+	  
 		if (id === null) {
-			datasetStore.selectDataset(null, null);
-			return;
+		  datasetStore.selectDataset(null, null);
+		  return;
 		}
-
+	  
 		// Check if this ID is a dataset within Define XML files
-		// Use raw dataset name check rather than relying on normalization
-
 		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
-
+	  
 		// Check if the id directly matches a dataset name in either Define XML
-		// This bypasses normalization issues
 		const isInSDTM = SDTM?.ItemGroups?.some(
-			(g) => (g.SASDatasetName || g.Name || '').toLowerCase() === id.toLowerCase()
+		  (g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizeDatasetId(id)
 		);
-
+	  
 		const isInADaM = ADaM?.ItemGroups?.some(
-			(g) => (g.SASDatasetName || g.Name || '').toLowerCase() === id.toLowerCase()
+		  (g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizeDatasetId(id)
 		);
-
-		console.log('Direct name matching:', { id, isInSDTM, isInADaM });
-
+	  
+		console.log('Name matching:', { id, isInSDTM, isInADaM });
+	  
 		// Find Define.xml filenames
 		const sdtmFileName = Object.entries(datasetStore.datasets).find(
-			([_, dataset]) =>
-				dataset.data &&
-				typeof dataset.data === 'object' &&
-				'MetaData' in dataset.data &&
-				(dataset.data as any).MetaData.OID?.includes('SDTM')
+		  ([_, dataset]) =>
+			dataset.data &&
+			typeof dataset.data === 'object' &&
+			'MetaData' in dataset.data &&
+			(dataset.data as any).MetaData.OID?.includes('SDTM')
 		)?.[0];
-
+	  
 		const adamFileName = Object.entries(datasetStore.datasets).find(
-			([_, dataset]) =>
-				dataset.data &&
-				typeof dataset.data === 'object' &&
-				'MetaData' in dataset.data &&
-				(dataset.data as any).MetaData.OID?.includes('ADaM')
+		  ([_, dataset]) =>
+			dataset.data &&
+			typeof dataset.data === 'object' &&
+			'MetaData' in dataset.data &&
+			(dataset.data as any).MetaData.OID?.includes('ADaM')
 		)?.[0];
-
-		// If it's a direct match in a Define XML, use that
-		if (isInADaM && adamFileName) {
-			console.log('Selecting ADaM Define.xml for domain:', id);
-			datasetStore.selectDataset(adamFileName, id);
-			return;
-		}
-
-		if (isInSDTM && sdtmFileName) {
-			console.log('Selecting SDTM Define.xml for domain:', id);
-			datasetStore.selectDataset(sdtmFileName, id);
-			return;
-		}
-
-		// Fall back to standard normalized ID approach for other cases
+	  
+		// First check if dataset exists directly in our storage
 		const normalizedId = normalizeDatasetId(id);
-		console.log('Normalized ID (standard approach):', normalizedId);
-
-		// Check if ID is an exact match for a dataset we have
-		if (datasetStore.datasets[id]) {
-			console.log('Found exact dataset match:', id);
-			datasetStore.selectDataset(id, null);
-			return;
-		}
-
-		// Try to find via normalized ID
 		const datasetKeys = Object.keys(datasetStore.datasets);
 		const matchingKey = datasetKeys.find((key) => normalizeDatasetId(key) === normalizedId);
-
+		
+		// Variables to determine final selection
+		let selectedFileId = null;
+		let selectedDomain = null;
+		
+		// If it exists directly as a dataset, select it
 		if (matchingKey) {
-			console.log('Found normalized match:', matchingKey);
-			datasetStore.selectDataset(matchingKey, null);
-		} else {
-			console.log('Using original ID (metadata-only):', id);
-			datasetStore.selectDataset(id, null);
+		  console.log('Found actual dataset match:', matchingKey);
+		  selectedFileId = matchingKey;
 		}
-	}
-
+		
+		// If it's in ADaM, record that information (gives ADaM precedence over SDTM)
+		if (isInADaM && adamFileName) {
+		  console.log('Found in ADaM:', id);
+		  // If we don't have a direct dataset match already, use the ADaM file
+		  if (!selectedFileId) {
+			selectedFileId = adamFileName;
+		  }
+		  selectedDomain = id; // Always track the domain for metadata
+		}
+		// If it's in SDTM and not already found in ADaM
+		else if (isInSDTM && sdtmFileName && !selectedDomain) {
+		  console.log('Found in SDTM:', id);
+		  // If we don't have a direct dataset match already, use the SDTM file
+		  if (!selectedFileId) {
+			selectedFileId = sdtmFileName;
+		  }
+		  selectedDomain = id; // Always track the domain for metadata
+		}
+		
+		// If we still don't have a file ID but were asked for one, use the original as a fallback
+		if (!selectedFileId && id) {
+		  selectedFileId = id;
+		}
+		
+		// Make the selection
+		console.log('Final selection:', { fileId: selectedFileId, domain: selectedDomain });
+		datasetStore.selectDataset(selectedFileId, selectedDomain);
+	  }
 	updateDefineXMLStatus(hasSDTM: boolean, hasADaM: boolean) {
 		UIStore.getInstance().setDefineXMLType(hasSDTM, hasADaM);
 	}

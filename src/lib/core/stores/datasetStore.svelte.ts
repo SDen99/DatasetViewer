@@ -387,6 +387,100 @@ export class DatasetStore {
 			});
 		});
 	}
+
+	availableViews = $derived.by(() => {
+		const views = {
+		  data: false,
+		  metadata: false,
+		  VLM: false
+		};
+		
+		const selectedId = this.selectedDatasetId;
+		const selectedDomain = this.selectedDomain;
+		
+		if (!selectedId) return views;
+		
+		// Check if data is available
+		const dataset = this.datasets[selectedId];
+		views.data = Boolean(
+		  dataset?.data && 
+		  Array.isArray(dataset.data) && 
+		  dataset.data.length > 0 &&
+		  dataset.details?.columns?.length > 0
+		);
+		
+		// Get normalized name for metadata lookup
+		const normalizedName = selectedDomain 
+		  ? normalizeDatasetId(selectedDomain) 
+		  : normalizeDatasetId(selectedId);
+		
+		// Check for metadata in SDTM or ADaM
+		const hasSDTMMetadata = Boolean(
+		  this.defineXmlDatasets.SDTM?.ItemGroups?.some(
+			g => normalizeDatasetId(g.Name || g.SASDatasetName || '') === normalizedName
+		  )
+		);
+		
+		const hasADaMMetadata = Boolean(
+		  this.defineXmlDatasets.ADaM?.ItemGroups?.some(
+			g => normalizeDatasetId(g.Name || g.SASDatasetName || '') === normalizedName
+		  )
+		);
+		
+		views.metadata = hasSDTMMetadata || hasADaMMetadata;
+		
+		// Check if it's a BDS dataset for VLM
+		if (hasADaMMetadata && this.defineXmlDatasets.ADaM) {
+		  const adamDataset = this.defineXmlDatasets.ADaM.ItemGroups.find(
+			g => normalizeDatasetId(g.Name || g.SASDatasetName || '') === normalizedName
+		  );
+		  
+		  views.VLM = adamDataset?.Class === 'BASIC DATA STRUCTURE';
+		}
+		
+		return views;
+	  });
+	  
+	  activeDefineInfo = $derived.by(() => {
+		const selectedId = this.selectedDatasetId;
+		const selectedDomain = this.selectedDomain;
+		
+		if (!selectedId) return { define: null, type: null };
+		
+		const normalizedName = selectedDomain 
+		  ? normalizeDatasetId(selectedDomain) 
+		  : normalizeDatasetId(selectedId);
+		
+		// Check ADaM first (priority over SDTM if both match)
+		if (this.defineXmlDatasets.ADaM?.ItemGroups) {
+		  const hasMatch = this.defineXmlDatasets.ADaM.ItemGroups.some(
+			g => normalizeDatasetId(g.Name || g.SASDatasetName || '') === normalizedName
+		  );
+		  
+		  if (hasMatch) {
+			return { 
+			  define: this.defineXmlDatasets.ADaM, 
+			  type: 'ADaM' as 'SDTM' | 'ADaM' | null
+			};
+		  }
+		}
+		
+		// Then check SDTM
+		if (this.defineXmlDatasets.SDTM?.ItemGroups) {
+		  const hasMatch = this.defineXmlDatasets.SDTM.ItemGroups.some(
+			g => normalizeDatasetId(g.Name || g.SASDatasetName || '') === normalizedName
+		  );
+		  
+		  if (hasMatch) {
+			return { 
+			  define: this.defineXmlDatasets.SDTM, 
+			  type: 'SDTM' as 'SDTM' | 'ADaM' | null
+			};
+		  }
+		}
+		
+		return { define: null, type: null };
+	  });
 }
 
 export const datasetStore = DatasetStore.getInstance();
