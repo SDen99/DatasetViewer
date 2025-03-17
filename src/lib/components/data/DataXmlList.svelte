@@ -16,26 +16,82 @@
 	let isDeleting = $state(false);
 	let searchTerm = $state('');
 
-	// Using derived Runes
+	// Define the metadata interface
+	interface DatasetMetadata {
+		description?: string;
+		class?: string;
+		isReferenceData?: string;
+		purpose?: string;
+		repeating?: string;
+		structure?: string;
+	}
+
+	// Create a cache for metadata
+	const metadataCache = new Map<string, DatasetMetadata>();
+
+	// Metadata retrieval function with caching
+	function getDatasetMetadata(name: string): DatasetMetadata {
+		// Check if we have cached metadata for this dataset
+		if (metadataCache.has(name)) {
+			return metadataCache.get(name)!;
+		}
+		
+		const normalizedName = normalizeDatasetId(name);
+		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
+
+		const metadata =
+			SDTM?.ItemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			) ||
+			ADaM?.ItemGroups?.find(
+				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
+			);
+
+		const result: DatasetMetadata = {
+			description: metadata?.Description || undefined,
+			class: metadata?.Class || undefined,
+			isReferenceData: metadata?.IsReferenceData || undefined,
+			purpose: metadata?.Purpose || undefined,
+			repeating: metadata?.Repeating || undefined,
+			structure: metadata?.Structure || undefined
+		};
+		
+		// Cache the result
+		metadataCache.set(name, result);
+		
+		return result;
+	}
+
+	// Using derived Runes with enhanced search
 	const datasets = $derived.by(() => {
 		if (!isInitialized) return [];
 
 		const allDatasets = datasetStore.availableDatasets;
 		if (!searchTerm) return allDatasets;
 
+		const searchLower = searchTerm.toLowerCase();
+		
 		return allDatasets.filter((name) => {
 			const metadata = getDatasetMetadata(name);
-			const searchLower = searchTerm.toLowerCase();
-
+			
 			return (
 				name.toLowerCase().includes(searchLower) ||
 				metadata.description?.toLowerCase().includes(searchLower) ||
-				metadata.class?.toLowerCase().includes(searchLower)
+				metadata.class?.toLowerCase().includes(searchLower) ||
+				metadata.purpose?.toLowerCase().includes(searchLower) ||
+				metadata.structure?.toLowerCase().includes(searchLower)
 			);
 		});
 	});
 
 	const selectedDatasetId = $derived.by(() => datasetStore.selectedDatasetId);
+
+	// Clear the metadata cache when datasets change
+	$effect(() => {
+		if (datasetStore.availableDatasets) {
+			metadataCache.clear();
+		}
+	});
 
 	// Initialize data
 	$effect.root(() => {
@@ -98,24 +154,6 @@
 		console.log({ name });
 	}
 
-	const getDatasetMetadata = (name: string) => {
-		const normalizedName = normalizeDatasetId(name);
-		const { SDTM, ADaM } = datasetStore.defineXmlDatasets;
-
-		const metadata =
-			SDTM?.ItemGroups?.find(
-				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
-			) ||
-			ADaM?.ItemGroups?.find(
-				(g) => normalizeDatasetId(g.SASDatasetName || g.Name || '') === normalizedName
-			);
-
-		return {
-			description: metadata?.Description || undefined,
-			class: metadata?.Class || undefined
-		};
-	};
-
 	$effect.root(() => {
 		$effect(() => {
 			console.log('State Debug:', {
@@ -149,6 +187,10 @@
 							{name}
 							description={metadata.description}
 							class={metadata.class}
+							isReferenceData={metadata.isReferenceData}
+							purpose={metadata.purpose}
+							repeating={metadata.repeating}
+							structure={metadata.structure}
 							state={datasetStore.getDatasetState(name)}
 							isSelected={normalizeDatasetId(name) === normalizeDatasetId(selectedDatasetId)}
 							loadingProgress={datasetStore.getDatasetState(name).loadingProgress}

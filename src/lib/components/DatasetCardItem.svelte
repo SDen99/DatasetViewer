@@ -1,25 +1,30 @@
 <script lang="ts">
-	import { Database, FileText, Files, Trash2, Loader2, AlertCircle } from 'lucide-svelte';
+	import { Database, FileText, Files, Trash2, Loader2, AlertCircle, ChevronDown } from 'lucide-svelte';
 	import * as Button from '$lib/components/core/button';
 	import { Progress } from '$lib/components/core/progress';
 	import * as Tooltip from '$lib/components/core/tooltip';
 	import { Badge } from '$lib/components/core/badge';
 
 	const props = $props<{
-		name: string;
-		description?: string;
-		class?: string;
-		state: {
-			hasData: boolean;
-			hasMetadata: boolean;
-			isLoading: boolean;
-			error?: string;
-		};
-		isSelected: boolean;
-		loadingProgress?: number;
-		onDelete: () => void;
-		onClick: () => void;
-	}>();
+	name: string;
+	description?: string;
+	class?: string;
+	// New metadata fields
+	isReferenceData?: string;
+	purpose?: string;
+	repeating?: string;
+	structure?: string;
+	state: {
+		hasData: boolean;
+		hasMetadata: boolean;
+		isLoading: boolean;
+		error?: string;
+	};
+	isSelected: boolean;
+	loadingProgress?: number;
+	onDelete: () => void;
+	onClick: () => void;
+}>();
 
 	const stateInfo = $derived.by(() => {
 		const { state } = props;
@@ -94,9 +99,9 @@
 	});
 
 	const handleClick = (event: MouseEvent) => {
-		// Prevent click if clicking the delete button
+		// Prevent click if clicking the delete button or expand button
 		const target = event.target as HTMLElement;
-		if (target.closest('button[data-delete-button]')) {
+		if (target.closest('button[data-delete-button]') || target.closest('button[data-expand-button]')) {
 			return;
 		}
 
@@ -106,6 +111,21 @@
 	};
 
 	const Icon = $derived.by(() => stateInfo.icon);
+
+	// Determine if additional metadata is available to show the dropdown button
+	const hasAdditionalMetadata = $derived.by(() => {
+		return props.isReferenceData || props.purpose || props.repeating || props.structure;
+	});
+
+	let isExpanded = $state(false);
+
+    const toggleExpand = (event: MouseEvent) => {
+        event.stopPropagation(); // Prevent triggering the main card click
+        isExpanded = !isExpanded;
+    };
+    
+    // Dynamic tooltip text based on expanded state
+    const tooltipText = $derived.by(() => isExpanded ? "Fewer details" : "More details");
 </script>
 
 <button
@@ -171,10 +191,66 @@
 			</div>
 		</div>
 
-		<!-- Description -->
-		{#if props.description}
-			<div class="mt-1.5">
-				<p class="line-clamp-2 text-sm text-muted-foreground">{props.description}</p>
+		<!-- Description and Dropdown Button -->
+		<div class="mt-1.5 flex items-start justify-between">
+			{#if props.description}
+				<p class="line-clamp-2 text-sm text-muted-foreground flex-1">{props.description}</p>
+			{:else}
+				<div class="flex-1"></div>
+			{/if}
+			
+			<!-- Always show the dropdown button if we have additional metadata -->
+			{#if hasAdditionalMetadata && !props.state.isLoading}
+				<Tooltip.Provider>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<Button.Root
+								variant="ghost"
+								size="icon"
+								class="h-6 w-6 ml-2 flex-shrink-0 text-muted-foreground"
+								onclick={toggleExpand}
+								data-expand-button
+								aria-label={isExpanded ? "Hide details" : "Show more details"}
+							>
+								<ChevronDown 
+									class="h-4 w-4 transition-transform duration-200 {isExpanded ? 'rotate-180' : ''}" 
+								/>
+							</Button.Root>
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							<p>{tooltipText}</p>
+						</Tooltip.Content>
+					</Tooltip.Root>
+				</Tooltip.Provider>
+			{/if}
+		</div>
+		
+		<!-- Expanded Metadata Section -->
+		{#if isExpanded}
+			<div class="mt-3 border-t pt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground animate-in fade-in-50 duration-200">
+				{#if props.isReferenceData}
+					<div>
+						<span class="font-medium text-foreground">Reference Data:</span> {props.isReferenceData}
+					</div>
+				{/if}
+				
+				{#if props.purpose}
+					<div>
+						<span class="font-medium text-foreground">Purpose:</span> {props.purpose}
+					</div>
+				{/if}
+				
+				{#if props.repeating}
+					<div>
+						<span class="font-medium text-foreground">Repeating:</span> {props.repeating}
+					</div>
+				{/if}
+				
+				{#if props.structure}
+					<div class="col-span-2">
+						<span class="font-medium text-foreground">Structure:</span> {props.structure}
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
