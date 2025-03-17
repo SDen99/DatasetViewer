@@ -65,6 +65,7 @@
 		"dependency-cruiser": "^16.9.0",
 		"melt": "^0.17.3",
 		"pyodide": "^0.26.3",
+		"svelte": "5.16.0",
 		"terser": "^5.39.0",
 		"zimmerframe": "1.1.2"
 	},
