@@ -153,10 +153,10 @@
 									<!-- Method section -->
 									{#if variable.MethodOID && isMethodExpanded(variable, datasetName)}
 										<div class="space-y-2">
-											<pre class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">
+											<div class="whitespace-pre-wrap text-sm font-normal text-muted-foreground">
                         {methods.find((m: Method) => m.OID === variable.MethodOID)?.Description ||
 													'No description available'}
-                    </pre>
+                    </div>
 
 											{#if variable.itemDef?.Comment}
 												<div class="mt-2 text-sm text-muted-foreground">
