@@ -52,7 +52,7 @@
 		'relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground';
 </script>
 
-<div class="w-full rounded-md border bg-card">
+<div class="w-full h-full rounded-md border bg-card flex flex-col">
 	<div class="p-2 text-xs text-muted-foreground">
 		Debug: Views: {viewArray.join(', ')} | Active: {activeTab} | 
 		SelectedId: {datasetStore.selectedDatasetId} | SelectedDomain: {datasetStore.selectedDomain} |
@@ -60,8 +60,8 @@
 		Define: {datasetStore.activeDefineInfo.type ?? 'none'}
 	</div>
 
-	<Tabs.Root value={activeTab} onValueChange={handleTabChange}>
-		<Tabs.List class="w-full border-b bg-muted/50 px-4">
+	<Tabs.Root value={activeTab} onValueChange={handleTabChange} class="flex flex-col flex-grow">
+		<Tabs.List class="w-full border-b bg-muted/50 px-4 flex-none">
 			{#if datasetStore.availableViews.data}
 				<Tabs.Trigger value="data" class={triggerClass}>Dataset</Tabs.Trigger>
 			{/if}
@@ -75,8 +75,9 @@
 			{/if}
 		</Tabs.List>
 
+		<!-- Make tab content scrollable and contained within the available space -->
 		{#if datasetStore.availableViews.data}
-			<Tabs.Content value="data" class="p-4">
+			<Tabs.Content value="data" class="p-4 overflow-auto flex-grow">
 				{#if dataset?.data}
 					<DataTable data={dataset.data} />
 				{:else}
@@ -88,7 +89,7 @@
 		{/if}
 
 		{#if datasetStore.availableViews.metadata}
-			<Tabs.Content value="metadata" class="p-4">
+			<Tabs.Content value="metadata" class="p-4 overflow-auto flex-grow h-[calc(100%-3rem)]">
 				<MetadataView
 					define={datasetStore.activeDefineInfo.define}
 					defineType={datasetStore.activeDefineInfo.type}
@@ -98,7 +99,7 @@
 		{/if}
 
 		{#if datasetStore.availableViews.VLM}
-			<Tabs.Content value="VLM" class="p-4">
+			<Tabs.Content value="VLM" class="p-4 overflow-auto flex-grow h-[calc(100%-3rem)]">
 				<VLMView
 					define={datasetStore.activeDefineInfo.define}
 					defineType={datasetStore.activeDefineInfo.type}

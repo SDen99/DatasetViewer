@@ -605,8 +605,8 @@
 		</div>
 
 		<div class="rounded-lg border bg-card shadow-sm">
-			<div class="h-[calc(100vh-14rem)] w-full">
-				<div class="h-full overflow-auto">
+			<div class="w-full">
+				<div class="h-[calc(100vh-24rem)] overflow-auto">
 					<table class="w-full border-collapse" bind:this={tableRef}>
 						<thead class="sticky top-0 z-10">
 							<tr>

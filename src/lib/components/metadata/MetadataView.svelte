@@ -135,7 +135,7 @@
 </script>
 
 <!-- Content section -->
-<div class="flex h-[calc(100vh-12rem)] flex-col">
+<div class="flex h-[calc(100vh-16rem)] flex-col">
 	<!-- Controls section -->
 	<div class="flex-none p-4">
 		<div class="flex items-center justify-between">
