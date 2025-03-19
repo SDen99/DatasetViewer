@@ -3,7 +3,8 @@
 	import { datasetStore } from '$lib/core/stores/datasetStore.svelte';
 	import DataTable from '$lib/components/data/DataTable/DataTable.svelte';
 	import MetadataView from '$lib/components/metadata/MetadataView.svelte';
-	import VLMView from '$lib/components/data/VLMdataView.svelte';
+	import VLMViewOld from '$lib/components/data/VLMdataViewOld.svelte';
+	import VLMView from '$lib/components/VLMView/VLMdataView.svelte';
 	import { uiStore } from '$lib/core/stores/UIStore.svelte';
 	
 	type ViewType = 'data' | 'metadata' | 'VLM';
@@ -72,6 +73,7 @@
 			
 			{#if datasetStore.availableViews.VLM}
 				<Tabs.Trigger value="VLM" class={triggerClass}>VLM</Tabs.Trigger>
+				<Tabs.Trigger value="VLMOld" class={triggerClass}>VLMOld</Tabs.Trigger>
 			{/if}
 		</Tabs.List>
 
@@ -107,5 +109,16 @@
 				/>
 			</Tabs.Content>
 		{/if}
+
+		{#if datasetStore.availableViews.VLM}
+			<Tabs.Content value="VLMOld" class="p-4 overflow-auto flex-grow h-[calc(100%-3rem)]">
+				<VLMViewOld
+					define={datasetStore.activeDefineInfo.define}
+					defineType={datasetStore.activeDefineInfo.type}
+					datasetName={datasetStore.selectedDomain || datasetStore.selectedDatasetId}
+				/>
+			</Tabs.Content>
+		{/if}
+
 	</Tabs.Root>
 </div>

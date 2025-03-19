@@ -646,7 +646,7 @@
 															? row[column]?.paramcd || row[column]?.paramInfo?.codedValue || ''
 															: String(row[column] || '')}
 													</div>
-												</div>
+												</div> 
 											{:else if column === 'PARAM'}
 												<div class="font-medium">
 													{typeof row[column] === 'object'
@@ -667,8 +667,59 @@
 														<div>
 															{row[column].itemDescription}
 														</div>
-													</div>
+													</div> 
 												{/if}
+												  
+<!-- Method -->
+{#if typeof row[column] === 'object' && row[column].method}
+{@const sectionId = getSectionId(
+	typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
+	column,
+	'method'
+)}
+<div class="mb-2">
+	<button
+		type="button"
+		class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
+		onclick={() => toggleSection(sectionId)}
+		onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
+		aria-expanded={!collapsedSections[sectionId]}
+	>
+		<svg
+			class="h-3 w-3" 
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2" 
+		>
+			<path
+				d={collapsedSections[sectionId]
+					? 'M9 5l7 7-7 7'
+					: 'M19 9l-7 7-7-7'}
+			></path>
+		</svg>
+		<span class="text-xs font-medium">Method</span>
+	</button>
+	<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
+		{#if row[column].method.Type}
+			<div class="mb-1">
+				<span class="mr-1 text-xs font-medium text-muted-foreground"
+					>Type:</span
+				>
+				{row[column].method.Type}
+			</div>
+		{/if}
+		{#if row[column].method.Description}
+			<div class="mb-1">
+				<span class="mr-1 text-xs font-medium text-muted-foreground"
+					>Description:</span
+				>
+				{row[column].method.Description}
+			</div>
+		{/if}
+	</div>
+</div>
+{/if}
 
 												<!-- Where Clause -->
 												{#if typeof row[column] === 'object' && row[column].whereClause}
@@ -715,99 +766,6 @@
 													{/if}
 												{/if}
 
-												<!-- Method -->
-												{#if typeof row[column] === 'object' && row[column].method}
-													{@const sectionId = getSectionId(
-														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
-														column,
-														'method'
-													)}
-													<div class="mb-2">
-														<button
-															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
-															onclick={() => toggleSection(sectionId)}
-															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
-															aria-expanded={!collapsedSections[sectionId]}
-														>
-															<svg
-																class="h-3 w-3"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-															>
-																<path
-																	d={collapsedSections[sectionId]
-																		? 'M9 5l7 7-7 7'
-																		: 'M19 9l-7 7-7-7'}
-																></path>
-															</svg>
-															<span class="text-xs font-medium">Method</span>
-														</button>
-														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
-															{#if row[column].method.Type}
-																<div class="mb-1">
-																	<span class="mr-1 text-xs font-medium text-muted-foreground"
-																		>Type:</span
-																	>
-																	{row[column].method.Type}
-																</div>
-															{/if}
-															{#if row[column].method.Description}
-																<div class="mb-1">
-																	<span class="mr-1 text-xs font-medium text-muted-foreground"
-																		>Description:</span
-																	>
-																	{row[column].method.Description}
-																</div>
-															{/if}
-														</div>
-													</div>
-												{/if}
-
-												<!-- Codelist -->
-												{#if typeof row[column] === 'object' && row[column].codelist}
-													{@const sectionId = getSectionId(
-														typeof row.PARAMCD === 'object' ? row.PARAMCD.paramcd : row.PARAMCD,
-														column,
-														'codelist'
-													)}
-													<div class="mb-2">
-														<button
-															type="button"
-															class="mb-1 flex w-fit cursor-pointer items-center gap-1 rounded-sm bg-primary/20 px-2 py-1 text-foreground"
-															onclick={() => toggleSection(sectionId)}
-															onkeydown={(e) => e.key === 'Enter' && toggleSection(sectionId)}
-															aria-expanded={!collapsedSections[sectionId]}
-														>
-															<svg
-																class="h-3 w-3"
-																viewBox="0 0 24 24"
-																fill="none"
-																stroke="currentColor"
-																stroke-width="2"
-															>
-																<path
-																	d={collapsedSections[sectionId]
-																		? 'M9 5l7 7-7 7'
-																		: 'M19 9l-7 7-7-7'}
-																></path>
-															</svg>
-															<span class="text-xs font-medium">Codelist</span>
-														</button>
-														<div class={collapsedSections[sectionId] ? 'hidden' : 'pl-2'}>
-															{#if row[column].codelist.name}
-																<div class="mb-1">
-																	<span class="mr-1 text-xs font-medium text-muted-foreground"
-																		>Name:</span
-																	>
-																	{row[column].codelist.name}
-																</div>
-															{/if}
-														</div>
-													</div>
-												{/if}
 
 												<!-- Comment -->
 												{#if typeof row[column] === 'object' && row[column].comment && row[column].comment.description}
@@ -846,6 +804,7 @@
 														</div>
 													</div>
 												{/if}
+												
 												<!-- Enhanced CodeList section -->
 												{#if typeof row[column] === 'object' && row[column].codelist}
 													{@const sectionId = getSectionId(
