@@ -43,11 +43,16 @@
 	);
 	
 	function handleTabChange(newMode: string) {
-		if (newMode !== activeTab && viewArray.includes(newMode as ViewType)) {
-			activeTab = newMode as ViewType;
-			uiStore.setViewMode(newMode as ViewType);
-		}
-	}
+  if (newMode !== activeTab && viewArray.includes(newMode as ViewType)) {
+    // If we're moving away from 'data' tab and sidebar is open, close it
+    if (activeTab === 'data' && newMode !== 'data' && uiStore.uiState.rightSidebarOpen) {
+      uiStore.toggleSidebar('right');
+    }
+    
+    activeTab = newMode as ViewType;
+    uiStore.setViewMode(newMode as ViewType);
+  } 
+}
 	
 	const triggerClass =
 		'relative h-9 rounded-none border-b-2 border-b-transparent bg-transparent px-4 pb-3 pt-2 font-semibold text-muted-foreground transition-none hover:text-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground';

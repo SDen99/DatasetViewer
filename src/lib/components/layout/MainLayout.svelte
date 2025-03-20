@@ -41,11 +41,11 @@
 		</div>
 
 		<Sidebar
-			position="right"
-			open={uiStore.uiState.rightSidebarOpen}
-			headerContent={rightSidebarHeader}
-			sidebarContent={rightbar}
-		/>
+		    position="right"
+		    open={uiStore.uiState.rightSidebarOpen && uiStore.uiState.viewMode === 'data'}
+		    headerContent={rightSidebarHeader}
+		    sidebarContent={rightbar}
+	    />
 	</div>
 
 	{@render footer()}
