@@ -73,7 +73,7 @@
 			
 			{#if datasetStore.availableViews.VLM}
 				<Tabs.Trigger value="VLM" class={triggerClass}>VLM</Tabs.Trigger>
-				<Tabs.Trigger value="VLMOld" class={triggerClass}>VLMOld</Tabs.Trigger>
+				<!--Tabs.Trigger value="VLMOld" class={triggerClass}>VLMOld</Tabs.Trigger-->
 			{/if}
 		</Tabs.List>
 
