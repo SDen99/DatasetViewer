@@ -133,7 +133,7 @@ export class UIStore {
 	reset() {
 		this.uiState = {
 			leftSidebarOpen: true,
-			rightSidebarOpen: true,
+			rightSidebarOpen: false,
 			leftSidebarWidth: 320,
 			rightSidebarWidth: 320,
 			viewMode: 'data',
