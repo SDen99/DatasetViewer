@@ -82,7 +82,8 @@ export class InitializationManager {
 			console.log('Current UI state before restore:', uiStore.uiState);
 			uiStore.uiState = {
 				...uiStore.uiState,
-				...state.uiPreferences
+				...state.uiPreferences,
+				metadataViewMode: state.uiPreferences.metadataViewMode ?? 'table'
 			};
 			console.log('UI state after restore:', uiStore.uiState);
 		} else {
