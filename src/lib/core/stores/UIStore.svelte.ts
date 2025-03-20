@@ -9,7 +9,7 @@ export interface UIState {
 	viewMode: 'data' | 'metadata' | 'VLM';
 	SDTM: boolean;
 	ADaM: boolean;
-	metadataViewMode: String;
+	metadataViewMode: 'table' | 'card';
 }
 
 export class UIStore {
@@ -20,7 +20,7 @@ export class UIStore {
 	// Initialize with explicit state structure
 	uiState = $state<UIState>({
 		leftSidebarOpen: true,
-		rightSidebarOpen: true,
+		rightSidebarOpen: false,
 		leftSidebarWidth: 250,
 		rightSidebarWidth: 300,
 		viewMode: 'data',
@@ -53,7 +53,8 @@ export class UIStore {
 				...this.uiState, // Keep defaults
 				...savedState.uiPreferences,
 				leftSidebarWidth: savedState.uiPreferences.leftSidebarWidth ?? 320,
-				rightSidebarWidth: savedState.uiPreferences.rightSidebarWidth ?? 320
+				rightSidebarWidth: savedState.uiPreferences.rightSidebarWidth ?? 320,
+				metadataViewMode: savedState.uiPreferences.metadataViewMode ?? 'table'
 			};
 		}
 
