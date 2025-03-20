@@ -80,14 +80,16 @@ export class InitializationManager {
 			console.log('Found UI preferences in storage:', state.uiPreferences);
 			const uiStore = UIStore.getInstance();
 			console.log('Current UI state before restore:', uiStore.uiState);
+
+			// Ensure metadataViewMode is properly typed as 'table' | 'card'
+			const metadataViewMode = state.uiPreferences.metadataViewMode === 'card' ? 'card' : 'table';
+
 			uiStore.uiState = {
 				...uiStore.uiState,
 				...state.uiPreferences,
-				metadataViewMode: state.uiPreferences.metadataViewMode ?? 'table'
+				metadataViewMode
 			};
 			console.log('UI state after restore:', uiStore.uiState);
-		} else {
-			console.log('No UI preferences found in storage');
 		}
 	}
 

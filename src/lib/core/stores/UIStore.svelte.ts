@@ -124,8 +124,10 @@ export class UIStore {
 	}
 
 	setMetadataViewMode(mode: 'table' | 'card') {
-		// @ts-ignore - We'll fix type issues later
-		this.uiState.metadataViewMode = mode;
+		this.uiState = {
+			...this.uiState,
+			metadataViewMode: mode
+		};
 	}
 
 	reset() {
