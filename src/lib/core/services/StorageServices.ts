@@ -56,13 +56,13 @@ export class StorageService {
 			datasetViews: {},
 			uiPreferences: {
 				leftSidebarOpen: true,
-				rightSidebarOpen: true,
+				rightSidebarOpen: false,
 				leftSidebarWidth: 320,
 				rightSidebarWidth: 320,
 				viewMode: 'data',
 				SDTM: false,
 				ADaM: false,
-				metadataViewMode: 'default'
+				metadataViewMode: 'table'
 			},
 			metadataViews: {},
 			vlmViews: {}
