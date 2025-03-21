@@ -2,7 +2,7 @@ import { parseDefineXML } from '$lib/core/processors/defineXML/ParseDefineXML';
 import { FileType, type FileProcessor, type ValidationResult } from '$lib/core/types/fileTypes';
 import type { DatasetLoadingState } from '$lib/core/types/types';
 import type { ProcessingResult } from '$lib/core/processors/types';
-import { uiStore } from '$lib/core/stores/UIStore.svelte';
+import { graphXML } from '$lib/utils/graphXML';
 
 export class DefineXMLProcessor implements FileProcessor {
 	validateFile(file: File): ValidationResult {
@@ -36,6 +36,16 @@ export class DefineXMLProcessor implements FileProcessor {
 			const text = await file.text();
 			console.log('[DefineXMLProcessor] File text loaded, length:', text.length);
 
+			if (onProgress) {
+				onProgress({
+					status: 'processing',
+					fileName: file.name,
+					progress: 30,
+					totalSize: file.size,
+					loadedSize: text.length
+				});
+			}
+
 			const defineData = await parseDefineXML(text);
 			console.log('[DefineXMLProcessor] Parse complete:', {
 				hasMetaData: 'MetaData' in defineData,
@@ -43,6 +53,49 @@ export class DefineXMLProcessor implements FileProcessor {
 				itemGroupsCount: defineData.ItemGroups?.length,
 				itemGroups: defineData.ItemGroups?.map((g) => g.Name)
 			});
+
+			if (onProgress) {
+				onProgress({
+					status: 'processing',
+					fileName: file.name,
+					progress: 70,
+					totalSize: file.size,
+					loadedSize: text.length
+				});
+			}
+
+			// Generate graph data using graphXML
+			let graphData = null;
+			try {
+				graphData = graphXML({
+					itemGroups: defineData.ItemGroups || [],
+					itemDefs: defineData.ItemDefs || [],
+					methods: defineData.Methods || [],
+					comments: defineData.Comments || [],
+					CodeLists: defineData.CodeLists || [],
+					standards: defineData.Standards || [],
+					itemRefs: defineData.ItemRefs || [],
+					valueListDefs: defineData.ValueListDefs || [],
+					whereClauseDefs: defineData.WhereClauseDefs || []
+				});
+				console.log('[DefineXMLProcessor] Graph data generated:', {
+					nodeCount: graphData.nodes.length,
+					linkCount: graphData.links.length
+				});
+			} catch (graphError) {
+				console.error('[DefineXMLProcessor] Error generating graph:', graphError);
+				// We continue processing even if graph generation fails
+			}
+
+			if (onProgress) {
+				onProgress({
+					status: 'processing',
+					fileName: file.name,
+					progress: 90,
+					totalSize: file.size,
+					loadedSize: text.length
+				});
+			}
 
 			// Add result details for consistency with other processors
 			const result = {
@@ -56,10 +109,20 @@ export class DefineXMLProcessor implements FileProcessor {
 					columns: ['Name', 'Label', 'Type'], // Add relevant columns
 					dtypes: {},
 					summary: {}
-				}
+				},
+				// Add graph data if generation was successful
+				graphData: graphData,
+				// Add processing stats
+				processingTime: performance.now() // Will be converted to elapsed time in FileImportManager
 			};
 
-			console.log('[DefineXMLProcessor] Processing result:', result);
+			console.log('[DefineXMLProcessor] Processing result:', {
+				success: result.success,
+				ADaM: result.ADaM,
+				SDTM: result.SDTM,
+				hasGraphData: !!result.graphData
+			});
+
 			return result;
 		} catch (error) {
 			console.error('[DefineXMLProcessor] Processing error:', error);

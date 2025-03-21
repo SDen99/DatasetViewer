@@ -60,15 +60,31 @@ export class DatasetService {
 
 	public async addDataset(dataset: {
 		fileName: string;
-		data: any[];
-		details: {
+		data: any;
+		details?: {
 			num_rows: number;
 			num_columns: number;
 			columns: string[];
 			dtypes: Record<string, string>;
 			summary: Record<string, any>;
 		};
-		processingTime: number;
+		graphData?: {
+			nodes: Array<{
+				id: string;
+				group: number;
+				label: string;
+			}>;
+			links: Array<{
+				source: string;
+				target: string;
+				value: number;
+				relationship: string;
+			}>;
+		} | null;
+		processingTime?: number;
+		processingStats?: any;
+		ADaM?: boolean;
+		SDTM?: boolean;
 	}): Promise<void> {
 		if (!this.db) throw new Error('Database not initialized');
 
@@ -85,14 +101,29 @@ export class DatasetService {
 			const getRequest = store.get(dataset.fileName);
 
 			getRequest.onsuccess = () => {
+				// Prepare the dataset with all needed properties
+				const datasetToStore = {
+					...dataset,
+					// Add a timestamp if not present
+					timestamp: Date.now()
+				};
+
+				// Log information about graph data if present
+				if (dataset.graphData) {
+					console.log(`[DatasetService] Dataset ${dataset.fileName} includes graph data:`, {
+						nodeCount: dataset.graphData.nodes.length,
+						linkCount: dataset.graphData.links.length
+					});
+				}
+
 				if (getRequest.result) {
 					// If exists, update it
-					const putRequest = store.put(dataset);
+					const putRequest = store.put(datasetToStore);
 					putRequest.onsuccess = () => resolve();
 					putRequest.onerror = () => reject(putRequest.error);
 				} else {
 					// If new, add it
-					const addRequest = store.add(dataset);
+					const addRequest = store.add(datasetToStore);
 					addRequest.onsuccess = () => resolve();
 					addRequest.onerror = () => reject(addRequest.error);
 				}
@@ -189,6 +220,33 @@ export class DatasetService {
 			request.onsuccess = () => {
 				const size = new Blob([JSON.stringify(request.result)]).size;
 				resolve(size);
+			};
+
+			request.onerror = () => reject(request.error);
+		});
+	}
+
+	public async getDatasetsWithGraphData(): Promise<Record<string, any>> {
+		if (!this.db) throw new Error('Database not initialized');
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction('datasets', 'readonly');
+			const store = transaction.objectStore('datasets');
+			const request = store.getAll();
+
+			request.onsuccess = () => {
+				// Filter datasets with graph data and convert to a Record object
+				const datasets: Record<string, any> = {};
+				request.result.forEach((dataset) => {
+					if (dataset.graphData) {
+						datasets[dataset.fileName] = dataset;
+					}
+				});
+
+				console.log(
+					`[DatasetService] Found ${Object.keys(datasets).length} datasets with graph data`
+				);
+				resolve(datasets);
 			};
 
 			request.onerror = () => reject(request.error);

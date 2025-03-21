@@ -90,7 +90,8 @@ export class FileImportManager {
 		console.log('[FileImportManager] Processing success for:', file.name, {
 			resultType: typeof result,
 			hasData: !!result.data,
-			isDefineXML: result.data?.MetaData?.OID != null
+			isDefineXML: result.data?.MetaData?.OID != null,
+			hasGraphData: !!result.graphData
 		});
 
 		const datasetService = this.serviceContainer.getDatasetService();
@@ -102,10 +103,27 @@ export class FileImportManager {
 			datasetSize: file.size
 		};
 
+		// For DefineXML files, check if graph data was generated
+		if (result.data?.MetaData?.OID != null) {
+			if (result.graphData) {
+				console.log('[FileImportManager] Graph data generated for define.xml:', {
+					nodeCount: result.graphData.nodes.length,
+					linkCount: result.graphData.links.length
+				});
+			} else {
+				console.log('[FileImportManager] No graph data was generated for define.xml');
+			}
+		}
+
+		// We don't need to modify this - just pass through the result which now includes graphData
 		await datasetService.addDataset({
 			fileName: file.name,
-			...result,
-			processingStats
+			data: result.data,
+			details: result.details,
+			graphData: result.graphData, // This will be undefined for non-Define XML files
+			processingStats,
+			ADaM: result.ADaM,
+			SDTM: result.SDTM
 		});
 
 		const updatedDatasets = await datasetService.getAllDatasets();
@@ -113,7 +131,8 @@ export class FileImportManager {
 			count: Object.keys(updatedDatasets).length,
 			datasets: Object.keys(updatedDatasets),
 			defineXMLCount: Object.values(updatedDatasets).filter((d) => d.data?.MetaData?.OID != null)
-				.length
+				.length,
+			graphDataCount: Object.values(updatedDatasets).filter((d) => d.graphData != null).length
 		});
 
 		datasetStore.setDatasets(updatedDatasets);
